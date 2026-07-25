@@ -49,10 +49,14 @@ client.on(interactionEvent.name, async (...args) => {
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
 client.on("error", err => console.error("[CLIENT] Error:", err));
+client.on("warn", msg => console.warn("[CLIENT] Warn:", msg));
+client.on("shardDisconnect", (event, id) => console.warn(`[CLIENT] Shard ${id} desconectado, codigo: ${event.code}`));
+client.on("shardReconnecting", id => console.log(`[CLIENT] Shard ${id} reconectando...`));
+client.on("shardResume", (id, replayed) => console.log(`[CLIENT] Shard ${id} reconectado. Eventos: ${replayed}`));
 process.on("unhandledRejection", err => console.error("[PROCESS] Unhandled rejection:", err));
 process.on("uncaughtException", err => {
-  console.error("[PROCESS] Uncaught exception:", err);
-  process.exit(1);
+  // Logear el error pero NO salir — Pterodactyl mataría el proceso
+  console.error("[PROCESS] Uncaught exception (no-exit):", err);
 });
 
 // ─── CONECTAR A MONGODB ───────────────────────────────────────────────────────
