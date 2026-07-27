@@ -66,6 +66,20 @@ await mongoose.connect(config.mongoUri, {
 });
 console.log("[DB] Conectado a MongoDB exitosamente.");
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+// ─── LOGIN & KEEPALIVE ────────────────────────────────────────────────────────
 console.log("[BOT] Iniciando sesion...");
 await client.login(config.token);
+
+// Mantener el event loop activo indefinidamente para evitar que Bun o Node.js cierren el proceso
+setInterval(() => {
+  if (!client.isReady()) {
+    console.warn("[KEEPALIVE] Cliente no listo, intentando reconectar...");
+  }
+}, 60_000);
+
+// Capturar senales de cierre para depuracion
+process.on("SIGINT", () => console.log("[PROCESS] Recibida senal SIGINT (detencion solicitada por el servidor/panel)"));
+process.on("SIGTERM", () => console.log("[PROCESS] Recibida senal SIGTERM (detencion solicitada por el servidor/panel)"));
+process.on("beforeExit", (code) => console.warn(`[PROCESS] El event loop se vacio. Codigo de salida: ${code}`));
+process.on("exit", (code) => console.log(`[PROCESS] Proceso finalizado con codigo: ${code}`));
+

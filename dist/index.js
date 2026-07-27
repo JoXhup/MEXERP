@@ -40,10 +40,14 @@ client.on(interactionEvent.name, async (...args) => {
 });
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
 client.on("error", err => console.error("[CLIENT] Error:", err));
+client.on("warn", msg => console.warn("[CLIENT] Warn:", msg));
+client.on("shardDisconnect", (event, id) => console.warn(`[CLIENT] Shard ${id} desconectado, codigo: ${event.code}`));
+client.on("shardReconnecting", id => console.log(`[CLIENT] Shard ${id} reconectando...`));
+client.on("shardResume", (id, replayed) => console.log(`[CLIENT] Shard ${id} reconectado. Eventos: ${replayed}`));
 process.on("unhandledRejection", err => console.error("[PROCESS] Unhandled rejection:", err));
 process.on("uncaughtException", err => {
-    console.error("[PROCESS] Uncaught exception:", err);
-    process.exit(1);
+    // Logear el error pero NO salir — Pterodactyl mataría el proceso
+    console.error("[PROCESS] Uncaught exception (no-exit):", err);
 });
 // ─── CONECTAR A MONGODB ───────────────────────────────────────────────────────
 console.log("[DB] Conectando a MongoDB...");
@@ -51,6 +55,17 @@ await mongoose.connect(config.mongoUri, {
     serverSelectionTimeoutMS: 10_000,
 });
 console.log("[DB] Conectado a MongoDB exitosamente.");
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+// ─── LOGIN & KEEPALIVE ────────────────────────────────────────────────────────
 console.log("[BOT] Iniciando sesion...");
 await client.login(config.token);
+// Mantener el event loop activo indefinidamente para evitar que Bun o Node.js cierren el proceso
+setInterval(() => {
+    if (!client.isReady()) {
+        console.warn("[KEEPALIVE] Cliente no listo, intentando reconectar...");
+    }
+}, 60_000);
+// Capturar senales de cierre para depuracion
+process.on("SIGINT", () => console.log("[PROCESS] Recibida senal SIGINT (detencion solicitada por el servidor/panel)"));
+process.on("SIGTERM", () => console.log("[PROCESS] Recibida senal SIGTERM (detencion solicitada por el servidor/panel)"));
+process.on("beforeExit", (code) => console.warn(`[PROCESS] El event loop se vacio. Codigo de salida: ${code}`));
+process.on("exit", (code) => console.log(`[PROCESS] Proceso finalizado con codigo: ${code}`));
