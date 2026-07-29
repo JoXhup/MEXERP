@@ -33,9 +33,12 @@ export const config = {
   verificationChannelId: process.env.VERIFICATION_CHANNEL_ID ?? "1528973867362812024",
   // Roles que se asignan al verificarse
   verifiedRoleIds: [
-    process.env.VERIFIED_ROLE_ID  ?? "1528974991813771304",
-    process.env.VERIFIED_ROLE_ID_2 ?? "1529584400126181516",
-  ].filter(Boolean),
+    "1529584400126181516",
+    "1528974991813771304",
+    "1531425281502613675",
+  ],
+  // Rol que se retira al verificarse
+  unverifiedRoleId: "1528974924805312562",
 
   // ─── SISTEMA DE TICKETS ────────────────────────────────────────────────────
   cooldownMs: 30_000,          // 30 segundos entre tickets

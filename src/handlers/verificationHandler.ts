@@ -385,7 +385,7 @@ export async function handleVerificationConfirm(
   const rolAsignado = rolesAsignados > 0;
 
   // Quitar el rol de "no verificado" si lo tiene
-  const ROL_QUITAR = "1528974924805312562";
+  const ROL_QUITAR = config.unverifiedRoleId;
   try {
     if (member.roles.cache.has(ROL_QUITAR)) {
       await member.roles.remove(ROL_QUITAR, "Verificacion Roblox completada");
