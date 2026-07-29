@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import { config } from "./config.js";
 import type { Command } from "./types/index.js";
 
+// MEXERP Bot v1.1.0 - Staff management, shifts & aperturas panel
+
 // ─── IMPORTAR COMANDOS ─────────────────────────────────────────────────────────
 import panelCommand from "./commands/panel.js";
 import statsCommand from "./commands/stats.js";
