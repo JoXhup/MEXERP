@@ -1,6 +1,9 @@
 import type { Client, Interaction } from "discord.js";
 import { InteractionType } from "discord.js";
+import { handleAperturaButton } from "../handlers/aperturasHandler.js";
 import { handleButton } from "../handlers/buttonHandler.js";
+import { handleDespedirButton } from "../handlers/despedirHandler.js";
+import { handleJornadaButton } from "../handlers/jornadaHandler.js";
 import { handleModalSubmit } from "../handlers/modalHandler.js";
 import { handleSecondaryModals } from "../handlers/secondaryModalHandler.js";
 import { handleSelectCategory, handleTicketManagementSelect } from "../handlers/selectMenuHandler.js";
@@ -30,6 +33,24 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── BOTONES ────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
       const id = interaction.customId;
+
+      // Aperturas de servidor
+      if (id.startsWith("apertura:")) {
+        await handleAperturaButton(interaction, client);
+        return;
+      }
+
+      // Jornadas staff
+      if (id.startsWith("jornada:")) {
+        await handleJornadaButton(interaction, client);
+        return;
+      }
+
+      // Despido de staff
+      if (id.startsWith("despedir:")) {
+        await handleDespedirButton(interaction, client);
+        return;
+      }
 
       // Verificacion
       if (id === "verification:start") {

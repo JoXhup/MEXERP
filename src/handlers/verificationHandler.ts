@@ -411,6 +411,14 @@ export async function handleVerificationConfirm(
     console.error("[VERIFICAR] Error guardando en DB:", err);
   }
 
+  // Cambiar apodo al nombre de usuario de Roblox
+  try {
+    await member.setNickname(robloxNameShort, "Verificacion Roblox completada");
+    console.log(`[VERIFICAR] Apodo cambiado a: ${robloxNameShort}`);
+  } catch (err) {
+    console.error("[VERIFICAR] Error cambiando apodo (puede que no tenga permisos):", err);
+  }
+
   // Actualizar el mensaje con confirmacion final
   const successEmbed = new EmbedBuilder()
     .setColor(0x7c3aed) // Morado — verificacion completada

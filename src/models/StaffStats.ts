@@ -10,6 +10,9 @@ export interface IStaffStats extends Document {
   totalTranscripts: number;
   averageCloseTimeMs: number;
   lastActiveAt: Date;
+  hiredAt?: Date;
+  hiredBy?: string;
+  totalShiftTimeMs?: number;
   categoryCounts: Map<string, number>;
 }
 
@@ -23,6 +26,9 @@ const StaffStatsSchema = new Schema<IStaffStats>({
   totalTranscripts: { type: Number, default: 0 },
   averageCloseTimeMs: { type: Number, default: 0 },
   lastActiveAt: { type: Date, default: Date.now },
+  hiredAt: { type: Date },
+  hiredBy: { type: String },
+  totalShiftTimeMs: { type: Number, default: 0 },
   categoryCounts: { type: Map, of: Number, default: {} },
 }, {
   timestamps: true,

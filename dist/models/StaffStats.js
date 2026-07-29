@@ -9,6 +9,9 @@ const StaffStatsSchema = new Schema({
     totalTranscripts: { type: Number, default: 0 },
     averageCloseTimeMs: { type: Number, default: 0 },
     lastActiveAt: { type: Date, default: Date.now },
+    hiredAt: { type: Date },
+    hiredBy: { type: String },
+    totalShiftTimeMs: { type: Number, default: 0 },
     categoryCounts: { type: Map, of: Number, default: {} },
 }, {
     timestamps: true,

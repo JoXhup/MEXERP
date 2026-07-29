@@ -7,12 +7,24 @@ import type { Command } from "./types/index.js";
 // ─── IMPORTAR COMANDOS ─────────────────────────────────────────────────────────
 import panelCommand from "./commands/panel.js";
 import statsCommand from "./commands/stats.js";
+import contratarCommand from "./commands/contratar.js";
+import despedirCommand from "./commands/despedir.js";
+import * as jornadaCommand from "./commands/jornada.js";
 import * as profileCommand from "./commands/profile.js";
 import * as verificarCommand from "./commands/verificar.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
 import * as interactionEvent from "./events/interactionCreate.js";
+
+import { DefaultWebSocketManagerOptions } from "@discordjs/ws";
+
+// Forzar identificacion de Gateway como Discord Android en @discordjs/ws
+(DefaultWebSocketManagerOptions as any).identifyProperties = {
+  $os: "android",
+  $browser: "Discord Android",
+  $device: "Discord Android",
+};
 
 // ─── CREAR CLIENTE ────────────────────────────────────────────────────────────
 const client = new Client({
@@ -31,6 +43,9 @@ client.commands = new Collection<string, Command>();
 const commands: Command[] = [
   panelCommand,
   statsCommand,
+  contratarCommand,
+  despedirCommand,
+  jornadaCommand as unknown as Command,
   profileCommand as unknown as Command,
   verificarCommand as unknown as Command,
 ];

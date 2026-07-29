@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, MessageFlags, } from "discord.js";
+import { SlashCommandBuilder, MessageFlags, PermissionFlagsBits, } from "discord.js";
 import { StaffStats } from "../models/StaffStats.js";
+import { VerifiedUser } from "../models/VerifiedUser.js";
 import { buildStaffProfileContainer, buildErrorContainer } from "../utils/components.js";
 const command = {
     data: new SlashCommandBuilder()
@@ -36,13 +37,42 @@ const command = {
                 });
                 return;
             }
+            const STAFF_PERM_ROLE = "1531825255889506506";
+            // Validar si quien ejecuta tiene permisos (rol staff 1531825255889506506 o Admin)
+            const executorMember = interaction.guild?.members.cache.get(interaction.user.id);
+            const executorCanView = executorMember?.roles.cache.has(STAFF_PERM_ROLE) ||
+                executorMember?.permissions.has(PermissionFlagsBits.Administrator);
+            if (!executorCanView) {
+                await interaction.editReply({
+                    components: [buildErrorContainer("No tienes permisos para revisar el perfil administrativo.", client)],
+                    flags: MessageFlags.IsComponentsV2,
+                });
+                return;
+            }
+            // Validar si el usuario buscado es staff (tiene rol o es Admin)
+            const targetIsStaff = targetMember.roles.cache.has(STAFF_PERM_ROLE) ||
+                targetMember.permissions.has(PermissionFlagsBits.Administrator);
+            if (!targetIsStaff) {
+                await interaction.editReply({
+                    components: [buildErrorContainer("El usuario buscado no es staff.", client)],
+                    flags: MessageFlags.IsComponentsV2,
+                });
+                return;
+            }
             // Obtener estadísticas del usuario
             const userStats = await StaffStats.findOne({
                 guildId: interaction.guildId,
                 userId: targetUser.id,
             });
-            const processedCount = userStats?.totalClosed ?? 0;
-            const container = buildStaffProfileContainer(targetMember, processedCount, client);
+            // Obtener vinculación de Roblox
+            const verifiedUser = await VerifiedUser.findOne({
+                discordId: targetUser.id,
+            });
+            const processedCount = userStats?.totalClosed ?? userStats?.totalClaimed ?? 0;
+            const robloxName = verifiedUser?.robloxName ?? null;
+            const hiredAt = userStats?.hiredAt ?? null;
+            const totalShiftTimeMs = userStats?.totalShiftTimeMs ?? 0;
+            const container = buildStaffProfileContainer(targetMember, processedCount, robloxName, hiredAt, client, totalShiftTimeMs);
             await interaction.editReply({
                 components: [container],
                 flags: MessageFlags.IsComponentsV2,

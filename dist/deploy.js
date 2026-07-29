@@ -8,9 +8,13 @@ import { config } from "./config.js";
 // Importar datos de los comandos
 import panelCommand from "./commands/panel.js";
 import statsCommand from "./commands/stats.js";
+import contratarCommand from "./commands/contratar.js";
+import despedirCommand from "./commands/despedir.js";
+import { data as jornadaData } from "./commands/jornada.js";
 import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
-const commands = [panelCommand, statsCommand].map(cmd => cmd.data);
+const commands = [panelCommand, statsCommand, contratarCommand, despedirCommand].map(cmd => cmd.data);
+commands.push(jornadaData.toJSON());
 commands.push(profileData.toJSON());
 commands.push(verificarData.toJSON());
 const rest = new REST({ version: "10" }).setToken(config.token);

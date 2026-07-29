@@ -118,6 +118,133 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
     );
 }
 
+// ─── PANEL DE JORNADAS STAFF (CHANNEL 1528869236687110215) ─────────────────
+export function buildJornadasPanelContainer(client: Client, guildIconUrl?: string): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const startBtn = new ButtonBuilder()
+    .setCustomId("jornada:start")
+    .setLabel("Iniciar Turno")
+    .setEmoji("✅")
+    .setStyle(ButtonStyle.Success);
+
+  const manageBtn = new ButtonBuilder()
+    .setCustomId("jornada:manage")
+    .setLabel("Gestionar")
+    .setEmoji("⚙️")
+    .setStyle(ButtonStyle.Primary);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(startBtn, manageBtn);
+
+  return new ContainerBuilder()
+    .setAccentColor(0x7c3aed) // Morado
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("# Jornadas Staff\n> Inicia tu turno administrativo para moderar.")
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(iconUrl)
+        )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("**Instrucciones**")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("Para iniciar tu jornada da click en el boton **✅ Iniciar Turno**")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("Para gestionar tu jornada da click en el boton **⚙️ Gestionar**")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("Para realizar un breve descanso pulsa en el boton **⏸️ Pausar** y para reincorporarte da click en el boton **⏯️ Volver**")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("El boton **❗ Finalizar** para terminar tu tiempo de moderacion.")
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("Si tienes dudas en el funcionamiento comunicate con un administrador.")
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addActionRowComponents(row)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+    );
+}
+
+
+// ─── PANEL DE GESTIÓN DE APERTURAS (CHANNEL 1532163697559208027) ─────────────
+export function buildAperturasPanelContainer(client: Client, guildIconUrl?: string): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const abrirBtn = new ButtonBuilder()
+    .setCustomId("apertura:abrir")
+    .setLabel("Abrir")
+    .setEmoji("🟢")
+    .setStyle(ButtonStyle.Success);
+
+  const mantenimientoBtn = new ButtonBuilder()
+    .setCustomId("apertura:mantenimiento")
+    .setLabel("Mantenimiento")
+    .setEmoji("🟡")
+    .setStyle(ButtonStyle.Secondary);
+
+  const cierreBtn = new ButtonBuilder()
+    .setCustomId("apertura:cierre")
+    .setLabel("Cierre")
+    .setEmoji("🔴")
+    .setStyle(ButtonStyle.Danger);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(abrirBtn, mantenimientoBtn, cierreBtn);
+
+  return new ContainerBuilder()
+    .setAccentColor(0x3b82f6) // Azul
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "# Gestion de Aperturas\n*Usalo para manipular el estado del servidor en ER:LC*\n> Este sistema actualmente es manipulado en discord, no tiene ningun efecto en ERLC."
+          )
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(iconUrl)
+        )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("🟢 Envia la notificacion de apertura del servidor")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("🟡 Mantenimiento del servidor")
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("🔴 Cierre del servidor")
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("Usalo correctamente, el mal uso sera sancionado.")
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addActionRowComponents(row)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+    );
+}
+
 
 // ─── HELPER COLOR ALEATORIO ───────────────────────────────────────────────────
 export function getRandomColor(): number {
@@ -464,11 +591,28 @@ export function buildStatsContainer(
     );
 }
 
-// ─── CONTAINER DE PERFIL STAFF (STATS REVISAR) ──────────────────────────────
+export function formatShiftTime(ms?: number): string {
+  if (!ms || ms <= 0) return "0";
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
+  return `${seconds}s`;
+}
+
 export function buildStaffProfileContainer(
   targetMember: import("discord.js").GuildMember,
   processedCount: number,
+  robloxName: string | null,
+  hiredAt: Date | null,
   client: Client,
+  totalShiftTimeMs?: number,
 ): ContainerBuilder {
   const userAvatar = targetMember.user.displayAvatarURL({ size: 256 });
 
@@ -478,6 +622,10 @@ export function buildStaffProfileContainer(
     "1529312367706378341",
     "1529312300207443978",
     "1529322176757628970",
+    "1531855122634772630",
+    "1531420532753305853",
+    "1531835160222503123",
+    "1531825255889506506",
   ];
 
   const matchingRoleId = HIERARCHY_ROLES.find(roleId => targetMember.roles.cache.has(roleId));
@@ -488,25 +636,39 @@ export function buildStaffProfileContainer(
         ? `<@&${targetMember.roles.highest.id}>`
         : "Sin Rango");
 
-  const joinedTimestamp = targetMember.joinedTimestamp
-    ? Math.floor(targetMember.joinedTimestamp / 1000)
-    : Math.floor(Date.now() / 1000);
+  const robloxText = robloxName ? `**${robloxName}**` : "*Sin registro*";
 
-  const headerText = [
-    `# Perfil de <@${targetMember.id}>`,
-    `**Staff:** <@${targetMember.id}> **(@${targetMember.user.username})**`,
-    `**Fecha de Ingreso:** <t:${joinedTimestamp}:F>`,
-    `**Rango:** ${rangoDisplay}`,
+  const fechaIngresoText = hiredAt
+    ? `<t:${Math.floor(hiredAt.getTime() / 1000)}:F>`
+    : "*Sin fecha de contratacion.*";
+
+  const infoStaffText = [
+    "**Informacion del staff:**",
+    `* <:discotoolsxyzicon4:1532137819726675968> Usuario:\n<@${targetMember.id}> (@${targetMember.user.username})`,
+    `* <:discotoolsxyzicon5:1532137818652934324> Roblox user vinculado:\n${robloxText}`,
+    `* <:discotoolsxyzicon2:1532137821949923569> Fecha de Ingreso:\n${fechaIngresoText}`,
+    `* <:discotoolsxyzicon6:1532137817843437741> Rango:\n${rangoDisplay}`,
   ].join("\n");
 
-  const ticketsText = `**Tickets Procesados:** ${processedCount}`;
+  const horasDisplay = formatShiftTime(totalShiftTimeMs);
+
+  const statsText = [
+    "**Estadisticas:**",
+    `* <:discotoolsxyzicon3:1532137821077504020> Tickets Atendidos:\n${processedCount}`,
+    `* <:discotoolsxyzicon8:1532141321198764093> Horas Realizadas:\n${horasDisplay}`,
+  ].join("\n");
+
+  const sancionesText = [
+    "**Sanciones:**",
+    `* <:discotoolsxyzicon7:1532137816832606449> Advertencias:\n*Sin registro de advertencias administrativas*`,
+  ].join("\n");
 
   return new ContainerBuilder()
     .setAccentColor(getRandomColor())
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(headerText)
+          new TextDisplayBuilder().setContent("# Perfil Administrativo")
         )
         .setThumbnailAccessory(
           new ThumbnailBuilder().setURL(userAvatar)
@@ -516,7 +678,19 @@ export function buildStaffProfileContainer(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(ticketsText)
+      new TextDisplayBuilder().setContent(infoStaffText)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(statsText)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sancionesText)
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)

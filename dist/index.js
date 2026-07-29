@@ -5,11 +5,21 @@ import { config } from "./config.js";
 // ─── IMPORTAR COMANDOS ─────────────────────────────────────────────────────────
 import panelCommand from "./commands/panel.js";
 import statsCommand from "./commands/stats.js";
+import contratarCommand from "./commands/contratar.js";
+import despedirCommand from "./commands/despedir.js";
+import * as jornadaCommand from "./commands/jornada.js";
 import * as profileCommand from "./commands/profile.js";
 import * as verificarCommand from "./commands/verificar.js";
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
 import * as interactionEvent from "./events/interactionCreate.js";
+import { DefaultWebSocketManagerOptions } from "@discordjs/ws";
+// Forzar identificacion de Gateway como Discord Android en @discordjs/ws
+DefaultWebSocketManagerOptions.identifyProperties = {
+    $os: "android",
+    $browser: "Discord Android",
+    $device: "Discord Android",
+};
 // ─── CREAR CLIENTE ────────────────────────────────────────────────────────────
 const client = new Client({
     intents: [
@@ -25,6 +35,9 @@ client.commands = new Collection();
 const commands = [
     panelCommand,
     statsCommand,
+    contratarCommand,
+    despedirCommand,
+    jornadaCommand,
     profileCommand,
     verificarCommand,
 ];
