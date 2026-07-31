@@ -73,7 +73,7 @@ async function getHeadshot(userId: number): Promise<string> {
 function buildVerificationModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("verification:modal")
-    .setTitle("Verificacion — MEXERP");
+    .setTitle("Verificacion — Tamaulipas RP");
 
   // Label 1: Usuario de Roblox
   const l1 = new LabelBuilder()
@@ -142,7 +142,7 @@ function buildProfileEmbed(
   return new EmbedBuilder()
     .setColor(0xf97316) // Naranja — pendiente de confirmar
     .setAuthor({
-      name: "Verificacion — MEXERP",
+      name: "Verificacion — Tamaulipas RP",
       iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
     .setTitle(`${user.hasVerifiedBadge ? "☑ " : ""}${user.displayName}`)
@@ -162,7 +162,7 @@ function buildProfileEmbed(
     )
     .setThumbnail(headshotUrl || null)
     .setFooter({
-      text: "MEXERP System — Confirma si este es tu perfil",
+      text: "Tamaulipas RP System — Confirma si este es tu perfil",
       iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
     .setTimestamp();
@@ -208,7 +208,7 @@ export async function handleVerificationStart(
               ? `Tu cuenta de Discord ya esta vinculada a **@${yaEnDB.robloxName}** en Roblox.\nNo puedes verificarte dos veces.`
               : "Ya tienes el rol de verificado asignado. No es necesario verificarte de nuevo."
           )
-          .setFooter({ text: "MEXERP System — Verificacion" })
+          .setFooter({ text: "Tamaulipas RP System — Verificacion" })
           .setTimestamp(),
       ],
       flags: MessageFlags.Ephemeral,
@@ -302,7 +302,7 @@ export async function handleVerificationModal(
               : `La cuenta **@${user.name}** ya esta en uso por otro miembro del servidor.\nSi crees que es un error, contacta a un administrador.`
           )
           .setThumbnail(headshotUrl || null)
-          .setFooter({ text: "MEXERP System — Verificacion" })
+          .setFooter({ text: "Tamaulipas RP System — Verificacion" })
           .setTimestamp(),
       ],
       components: [
@@ -428,14 +428,14 @@ export async function handleVerificationConfirm(
     })
     .setDescription(
       [
-        `Bienvenido a **MEXERP**, <@${interaction.user.id}>!`,
+        `Bienvenido a **Tamaulipas RP**, <@${interaction.user.id}>!`,
         ``,
         `Tu cuenta de Roblox **${robloxName}** ha sido vinculada correctamente.`,
         rolAsignado ? `\nSe te ha asignado el rol de verificado.` : "",
       ].join("\n")
     )
     .setFooter({
-      text: "MEXERP System — Verificacion Roblox",
+      text: "Tamaulipas RP System — Verificacion Roblox",
       iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
     .setTimestamp();
