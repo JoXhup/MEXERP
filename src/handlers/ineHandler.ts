@@ -162,12 +162,28 @@ export async function handleIneModalSubmit(
     console.error("[INE] Error leyendo selects del modal:", err);
   }
 
-  // Buscar usuario verificado en Roblox
+  // Buscar usuario verificado en Roblox y obtener su avatar de Roblox
   let robloxUsername = "Sin vincular (No verificado)";
+  let avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+
   try {
     const verified = await VerifiedUser.findOne({ discordId: interaction.user.id });
     if (verified?.robloxName) {
       robloxUsername = `@${verified.robloxName}`;
+      // Intentar obtener la imagen del avatar de Roblox
+      try {
+        const thumbRes = (await fetch(
+          `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${verified.robloxId}&size=420x420&format=Png&isCircular=false`
+        )) as any;
+        if (thumbRes.ok) {
+          const thumbData = (await thumbRes.json()) as any;
+          if (thumbData?.data?.[0]?.imageUrl) {
+            avatarUrl = thumbData.data[0].imageUrl;
+          }
+        }
+      } catch (err) {
+        console.error("[INE] Error obteniendo thumbnail de Roblox:", err);
+      }
     }
   } catch (err) {
     console.error("[INE] Error buscando en DB:", err);
@@ -200,6 +216,36 @@ export async function handleIneModalSubmit(
   const numIne = Math.floor(1000000000 + Math.random() * 9000000000).toString();
   const domicilioConEstado = `${domicilioInput}, ${estadoInput}`;
 
+  // Asignar rol 1531425402193449093 y quitar rol 1531425281502613675
+  const guild = interaction.guild;
+  if (guild) {
+    try {
+      const member =
+        guild.members.cache.get(interaction.user.id) ??
+        (await guild.members.fetch(interaction.user.id));
+
+      if (member) {
+        // Asignar rol nuevo de INE
+        try {
+          await member.roles.add("1531425402193449093", "Tramite de INE completado");
+        } catch (err) {
+          console.error("[INE] Error agregando rol 1531425402193449093:", err);
+        }
+
+        // Quitar rol anterior
+        try {
+          if (member.roles.cache.has("1531425281502613675")) {
+            await member.roles.remove("1531425281502613675", "Tramite de INE completado");
+          }
+        } catch (err) {
+          console.error("[INE] Error quitando rol 1531425281502613675:", err);
+        }
+      }
+    } catch (err) {
+      console.error("[INE] Error actualizando roles del miembro:", err);
+    }
+  }
+
   // Guardar/Actualizar en MongoDB
   try {
     await Ine.findOneAndUpdate(
@@ -225,10 +271,9 @@ export async function handleIneModalSubmit(
     console.error("[INE] Error guardando registro en DB:", err);
   }
 
-  // Renderizar la credencial con Canvas
+  // Renderizar la credencial con Canvas usando el avatar de Roblox
   let attachment: AttachmentBuilder;
   try {
-    const avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
     const buffer = await renderIneImage({
       nombre: nombreInput,
       domicilio: domicilioInput,
