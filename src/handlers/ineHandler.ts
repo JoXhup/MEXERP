@@ -10,6 +10,8 @@ import {
   TextDisplayBuilder,
   SeparatorBuilder,
   ThumbnailBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   AttachmentBuilder,
   MessageFlags,
   SeparatorSpacingSize,
@@ -120,12 +122,135 @@ export async function handleTramitarCommand(
   await interaction.showModal(buildIneModal());
 }
 
+/** Maneja la ejecución del subcomando /ine revisar */
+export async function handleIneRevisarCommand(
+  interaction: ChatInputCommandInteraction
+): Promise<void> {
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  const ineRecord = await Ine.findOne({ discordId: interaction.user.id });
+  if (!ineRecord) {
+    await interaction.editReply({
+      content: "❌ No tienes ninguna credencial de INE registrada. Utiliza **/ine tramitar** para solicitar la tuya.",
+    });
+    return;
+  }
+
+  // Buscar avatar de Roblox
+  let avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+  try {
+    const verified = await VerifiedUser.findOne({ discordId: interaction.user.id });
+    if (verified?.robloxId) {
+      const thumbRes = (await fetch(
+        `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${verified.robloxId}&size=420x420&format=Png&isCircular=false`
+      )) as any;
+      if (thumbRes.ok) {
+        const thumbData = (await thumbRes.json()) as any;
+        if (thumbData?.data?.[0]?.imageUrl) {
+          avatarUrl = thumbData.data[0].imageUrl;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[INE REVISAR] Error obteniendo avatar de Roblox:", err);
+  }
+
+  const nameParts = splitFullName(ineRecord.nombre);
+  const sexChar = ineRecord.sexo.toUpperCase().startsWith("M") ? "M" : "H";
+
+  // Generar la imagen con los datos guardados
+  let attachment: AttachmentBuilder;
+  try {
+    const buffer = await renderIneImage({
+      nombre: ineRecord.nombre,
+      domicilio: ineRecord.domicilio.split(",")[0] || ineRecord.domicilio,
+      estado: ineRecord.estado,
+      fechaNacimiento: ineRecord.fechaNacimiento,
+      sexo: sexChar,
+      curp: ineRecord.curp,
+      claveElector: ineRecord.claveElector,
+      seccion: ineRecord.seccion,
+      vigencia: ineRecord.vigencia,
+      avatarUrl,
+    });
+    attachment = new AttachmentBuilder(buffer, { name: "ine.png" });
+  } catch (err) {
+    console.error("[INE REVISAR] Error generando imagen Canvas:", err);
+    await interaction.editReply({ content: "Error al generar la imagen de tu credencial INE." });
+    return;
+  }
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0x0055a5)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("# INE")
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`Documento **INE** de <@${interaction.user.id}>`)
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(avatarUrl)
+        )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        [
+          `**Nombre:** ${ineRecord.nombre}`,
+          `**Roblox:** ${ineRecord.robloxUsername}`,
+        ].join("\n")
+      )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        [
+          `**CURP:** \`${ineRecord.curp}\``,
+          `**SECCIÓN:** \`${ineRecord.seccion}\``,
+          `**VIGENCIA:** \`${ineRecord.vigencia}\``,
+          `**CLAVE DE ELECTOR:** \`${ineRecord.claveElector}\``,
+          `**N.º DE INE:** \`${ineRecord.numIne}\``,
+        ].join("\n")
+      )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL("attachment://ine.png")
+      )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# Tamaulipas RP System · ${getFooterTimestamp()}`)
+    );
+
+  await interaction.editReply({
+    components: [container],
+    files: [attachment],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
 /** Maneja la entrega del modal del INE */
 export async function handleIneModalSubmit(
   interaction: ModalSubmitInteraction,
-  client: Client
+  _client: Client
 ): Promise<void> {
-  await interaction.deferReply();
+  // Respuesta efímera (flags: 64)
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Leer campos de texto
   const nombreInput   = interaction.fields.getTextInputValue("nombre").trim();
@@ -137,7 +262,6 @@ export async function handleIneModalSubmit(
   let estadoInput = "Ciudad de México (CDMX)";
 
   try {
-    // Método 1: Intentar leer con getStringSelectValues si está disponible
     try {
       const sVal = interaction.fields.getStringSelectValues("sexo");
       if (sVal?.length) sexoInput = sVal[0];
@@ -148,7 +272,6 @@ export async function handleIneModalSubmit(
       if (eVal?.length) estadoInput = eVal[0];
     } catch { /* ok */ }
 
-    // Método 2: Iterar sobre componentes del modal
     for (const row of (interaction as any).components ?? []) {
       const inner = row?.components?.[0] ?? row;
       const customId = inner?.customId ?? inner?.data?.custom_id;
@@ -170,7 +293,6 @@ export async function handleIneModalSubmit(
     const verified = await VerifiedUser.findOne({ discordId: interaction.user.id });
     if (verified?.robloxName) {
       robloxUsername = `@${verified.robloxName}`;
-      // Intentar obtener la imagen del avatar de Roblox
       try {
         const thumbRes = (await fetch(
           `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${verified.robloxId}&size=420x420&format=Png&isCircular=false`
@@ -225,14 +347,12 @@ export async function handleIneModalSubmit(
         (await guild.members.fetch(interaction.user.id));
 
       if (member) {
-        // Asignar rol nuevo de INE
         try {
           await member.roles.add("1531425402193449093", "Tramite de INE completado");
         } catch (err) {
           console.error("[INE] Error agregando rol 1531425402193449093:", err);
         }
 
-        // Quitar rol anterior
         try {
           if (member.roles.cache.has("1531425281502613675")) {
             await member.roles.remove("1531425281502613675", "Tramite de INE completado");
@@ -293,9 +413,7 @@ export async function handleIneModalSubmit(
     return;
   }
 
-  // Construir Container V2
-  const userAvatar = interaction.user.displayAvatarURL({ size: 256 });
-
+  // Construir Container V2 con MediaGallery para desplegar la imagen dentro del contenedor
   const container = new ContainerBuilder()
     .setAccentColor(0x0055a5) // Azul INE
     .addTextDisplayComponents(
@@ -310,7 +428,7 @@ export async function handleIneModalSubmit(
           new TextDisplayBuilder().setContent(`Documento **INE** de <@${interaction.user.id}>`)
         )
         .setThumbnailAccessory(
-          new ThumbnailBuilder().setURL(userAvatar)
+          new ThumbnailBuilder().setURL(avatarUrl)
         )
     )
     .addSeparatorComponents(
@@ -336,6 +454,14 @@ export async function handleIneModalSubmit(
           `**CLAVE DE ELECTOR:** \`${claveElector}\``,
           `**N.º DE INE:** \`${numIne}\``,
         ].join("\n")
+      )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL("attachment://ine.png")
       )
     )
     .addSeparatorComponents(
