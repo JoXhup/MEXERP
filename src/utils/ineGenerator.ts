@@ -301,7 +301,7 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
       if (avatarRes.ok) {
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
-        ctx.drawImage(avatarImg, 110, 285, 360, 520);
+        ctx.drawImage(avatarImg, 110, 230, 360, 560);
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
@@ -315,18 +315,18 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   const sexChar = options.sexo.toUpperCase().startsWith("M") ? "M" : "H";
   const domicilioCompleto = `${options.domicilio.toUpperCase()}, ${options.estado.toUpperCase()}`;
 
-  // 1. NOMBRE — multilínea si es muy largo (y empieza en 380, lineHeight 34)
+  // 1. NOMBRE — multilínea si es muy largo (y empieza en 400, lineHeight 34)
   ctx.font = "bold 30px Arial";
   const nombreLines = wrapText(ctx, options.nombre.toUpperCase(), 720);
-  let nombreY = 380;
+  let nombreY = 400;
   for (const line of nombreLines) {
     ctx.fillText(line, 550, nombreY);
     nombreY += 34;
   }
 
-  // 2. SEXO (A la derecha de la etiqueta, x=1540, y=365)
+  // 2. SEXO (x=1540, y=340)
   ctx.font = "bold 36px Arial";
-  ctx.fillText(sexChar, 1540, 365);
+  ctx.fillText(sexChar, 1540, 350);
 
   // 3. DOMICILIO — multilínea si es muy largo (y=545, lineHeight 28)
   ctx.font = "bold 24px Arial";
