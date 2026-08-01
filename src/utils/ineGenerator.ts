@@ -202,7 +202,7 @@ export function generateClaveElector(
   fechaNacimiento: string,
   sexo: "H" | "M",
   estado: string,
-  _anoRegistro: number = 2024
+  _anoRegistro: number = 2026
 ): string {
   const pat = removeAccents(apellidoPaterno);
   const mat = removeAccents(apellidoMaterno);
@@ -274,14 +274,14 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Cargar y dibujar avatar de usuario si existe
+  // Cargar y dibujar avatar de usuario si existe (Centrado en el recuadro blanco de la izquierda)
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
       if (avatarRes.ok) {
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
-        ctx.drawImage(avatarImg, 72, 345, 410, 520);
+        ctx.drawImage(avatarImg, 75, 300, 390, 530);
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
@@ -289,31 +289,38 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   }
 
   // Estilo de texto
-  ctx.fillStyle = "#1c1c1c";
+  ctx.fillStyle = "#111111";
 
   // Normalizar sexo
-  const sexChar = (options.sexo.toUpperCase().startsWith("M") ? "M" : "H");
+  const sexChar = options.sexo.toUpperCase().startsWith("M") ? "M" : "H";
   const domicilioCompleto = `${options.domicilio.toUpperCase()}, ${options.estado.toUpperCase()}`;
 
-  // 1. NOMBRE
-  ctx.font = "bold 34px Arial";
-  ctx.fillText(options.nombre.toUpperCase(), 550, 330);
+  // 1. NOMBRE (Debajo del texto "NOMBRE", y=375)
+  ctx.font = "bold 32px Arial";
+  const nombreTxt = options.nombre.toUpperCase();
+  if (ctx.measureText(nombreTxt).width > 700) {
+    ctx.font = "bold 26px Arial";
+  }
+  ctx.fillText(nombreTxt, 550, 375);
 
-  // 2. SEXO
+  // 2. SEXO (Más a la derecha y un poco abajo, x=1440, y=355)
   ctx.font = "bold 36px Arial";
-  ctx.fillText(sexChar, 1385, 330);
+  ctx.fillText(sexChar, 1440, 355);
 
-  // 3. DOMICILIO
-  ctx.font = "bold 26px Arial";
-  ctx.fillText(domicilioCompleto, 550, 525);
+  // 3. DOMICILIO (Debajo del texto "DOMICILIO", y=545)
+  ctx.font = "bold 24px Arial";
+  if (ctx.measureText(domicilioCompleto).width > 700) {
+    ctx.font = "bold 20px Arial";
+  }
+  ctx.fillText(domicilioCompleto, 550, 545);
 
   // 4. CLAVE DE ELECTOR
   ctx.font = "bold 32px Arial";
   ctx.fillText(options.claveElector.toUpperCase(), 550, 715);
 
-  // 5. AÑO DE REGISTRO
+  // 5. AÑO DE REGISTRO (Valor 2026, y=710)
   ctx.font = "bold 32px Arial";
-  ctx.fillText(options.anoRegistro ?? "2024", 1220, 715);
+  ctx.fillText(options.anoRegistro ?? "2026", 1220, 710);
 
   // 6. CURP
   ctx.font = "bold 32px Arial";
