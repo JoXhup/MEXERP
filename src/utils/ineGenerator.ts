@@ -274,14 +274,14 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Cargar y dibujar avatar de usuario si existe (Centrado en el recuadro blanco de la izquierda)
+  // Cargar y dibujar avatar de usuario si existe (Centrado en el recuadro de foto)
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
       if (avatarRes.ok) {
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
-        ctx.drawImage(avatarImg, 75, 300, 390, 530);
+        ctx.drawImage(avatarImg, 80, 350, 380, 450);
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
@@ -295,32 +295,32 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   const sexChar = options.sexo.toUpperCase().startsWith("M") ? "M" : "H";
   const domicilioCompleto = `${options.domicilio.toUpperCase()}, ${options.estado.toUpperCase()}`;
 
-  // 1. NOMBRE (Debajo del texto "NOMBRE", y=375)
+  // 1. NOMBRE (Debajo del texto "NOMBRE", y=390)
   ctx.font = "bold 32px Arial";
   const nombreTxt = options.nombre.toUpperCase();
   if (ctx.measureText(nombreTxt).width > 700) {
     ctx.font = "bold 26px Arial";
   }
-  ctx.fillText(nombreTxt, 550, 375);
+  ctx.fillText(nombreTxt, 550, 390);
 
-  // 2. SEXO (Más a la derecha y un poco abajo, x=1440, y=355)
+  // 2. SEXO (A la derecha de la etiqueta "SEXO", x=1490, y=340)
   ctx.font = "bold 36px Arial";
-  ctx.fillText(sexChar, 1440, 355);
+  ctx.fillText(sexChar, 1490, 340);
 
-  // 3. DOMICILIO (Debajo del texto "DOMICILIO", y=545)
+  // 3. DOMICILIO (Debajo del texto "DOMICILIO", y=560)
   ctx.font = "bold 24px Arial";
   if (ctx.measureText(domicilioCompleto).width > 700) {
     ctx.font = "bold 20px Arial";
   }
-  ctx.fillText(domicilioCompleto, 550, 545);
+  ctx.fillText(domicilioCompleto, 550, 560);
 
   // 4. CLAVE DE ELECTOR
   ctx.font = "bold 32px Arial";
   ctx.fillText(options.claveElector.toUpperCase(), 550, 715);
 
-  // 5. AÑO DE REGISTRO (Valor 2026, y=710)
+  // 5. AÑO DE REGISTRO (Subido a y=695, valor 2026)
   ctx.font = "bold 32px Arial";
-  ctx.fillText(options.anoRegistro ?? "2026", 1220, 710);
+  ctx.fillText(options.anoRegistro ?? "2026", 1220, 695);
 
   // 6. CURP
   ctx.font = "bold 32px Arial";
