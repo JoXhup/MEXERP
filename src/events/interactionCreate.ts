@@ -13,6 +13,7 @@ import {
   handleVerificationConfirm,
   handleVerificationModal,
 } from "../handlers/verificationHandler.js";
+import { handleIneModalSubmit } from "../handlers/ineHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -74,6 +75,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── MODALES ────────────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
+
+      // Modal de INE
+      if (id === "ine:modal") {
+        await handleIneModalSubmit(interaction, client);
+        return;
+      }
 
       // Modal de verificacion
       if (id === "verification:modal") {

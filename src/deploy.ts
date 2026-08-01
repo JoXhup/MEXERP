@@ -15,8 +15,17 @@ import despedirCommand from "./commands/despedir.js";
 import { data as jornadaData } from "./commands/jornada.js";
 import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
+import tramitarCommand from "./commands/tramitar.js";
+import ineCommand from "./commands/ine.js";
 
-const commands = [panelCommand, statsCommand, contratarCommand, despedirCommand].map(cmd => cmd.data);
+const commands = [
+  panelCommand,
+  statsCommand,
+  contratarCommand,
+  despedirCommand,
+  tramitarCommand,
+  ineCommand,
+].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
 commands.push(verificarData.toJSON() as any);

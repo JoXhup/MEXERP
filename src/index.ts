@@ -14,6 +14,8 @@ import despedirCommand from "./commands/despedir.js";
 import * as jornadaCommand from "./commands/jornada.js";
 import * as profileCommand from "./commands/profile.js";
 import * as verificarCommand from "./commands/verificar.js";
+import tramitarCommand from "./commands/tramitar.js";
+import ineCommand from "./commands/ine.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -50,6 +52,8 @@ const commands: Command[] = [
   jornadaCommand as unknown as Command,
   profileCommand as unknown as Command,
   verificarCommand as unknown as Command,
+  tramitarCommand,
+  ineCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
