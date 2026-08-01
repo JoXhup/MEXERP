@@ -136,8 +136,11 @@ export async function handleIneRevisarCommand(
     return;
   }
 
-  // Buscar avatar de Roblox
-  let avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+  // Avatar de Discord (para el thumbnail del embed)
+  const discordAvatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+
+  // Buscar avatar de Roblox (para la imagen Canvas de la credencial)
+  let robloxAvatarUrl: string | undefined;
   try {
     const verified = await VerifiedUser.findOne({ discordId: interaction.user.id });
     if (verified?.robloxId) {
@@ -147,7 +150,7 @@ export async function handleIneRevisarCommand(
       if (thumbRes.ok) {
         const thumbData = (await thumbRes.json()) as any;
         if (thumbData?.data?.[0]?.imageUrl) {
-          avatarUrl = thumbData.data[0].imageUrl;
+          robloxAvatarUrl = thumbData.data[0].imageUrl;
         }
       }
     }
@@ -158,7 +161,7 @@ export async function handleIneRevisarCommand(
   const nameParts = splitFullName(ineRecord.nombre);
   const sexChar = ineRecord.sexo.toUpperCase().startsWith("M") ? "M" : "H";
 
-  // Generar la imagen con los datos guardados
+  // Generar la imagen Canvas con avatar de Roblox
   let attachment: AttachmentBuilder;
   try {
     const buffer = await renderIneImage({
@@ -171,7 +174,7 @@ export async function handleIneRevisarCommand(
       claveElector: ineRecord.claveElector,
       seccion: ineRecord.seccion,
       vigencia: ineRecord.vigencia,
-      avatarUrl,
+      avatarUrl: robloxAvatarUrl,
     });
     attachment = new AttachmentBuilder(buffer, { name: "ine.png" });
   } catch (err) {
@@ -194,7 +197,7 @@ export async function handleIneRevisarCommand(
           new TextDisplayBuilder().setContent(`Documento **INE** de <@${interaction.user.id}>`)
         )
         .setThumbnailAccessory(
-          new ThumbnailBuilder().setURL(avatarUrl)
+          new ThumbnailBuilder().setURL(discordAvatarUrl)
         )
     )
     .addSeparatorComponents(

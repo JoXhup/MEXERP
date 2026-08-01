@@ -240,6 +240,26 @@ export function generateClaveElector(
   return `${l1}${l2}${l3}${yy}${mm}${dd}${estNum}${sexChar}${homoclave}`.toUpperCase();
 }
 
+/** Divide un texto en líneas que no superen maxWidth */
+function wrapText(ctx: any, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let currentLine = words[0] || "";
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const width = ctx.measureText(currentLine + " " + word).width;
+    if (width < maxWidth) {
+      currentLine += " " + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  lines.push(currentLine);
+  return lines;
+}
+
 export interface IneRenderOptions {
   nombre: string;
   domicilio: string;
@@ -274,14 +294,14 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Cargar y dibujar avatar de usuario si existe (Centrado en el recuadro de foto)
+  // Cargar y dibujar avatar de usuario si existe (más a la derecha y más arriba)
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
       if (avatarRes.ok) {
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
-        ctx.drawImage(avatarImg, 80, 350, 380, 450);
+        ctx.drawImage(avatarImg, 110, 285, 360, 520);
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
@@ -295,30 +315,33 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   const sexChar = options.sexo.toUpperCase().startsWith("M") ? "M" : "H";
   const domicilioCompleto = `${options.domicilio.toUpperCase()}, ${options.estado.toUpperCase()}`;
 
-  // 1. NOMBRE (Debajo del texto "NOMBRE", y=390)
-  ctx.font = "bold 32px Arial";
-  const nombreTxt = options.nombre.toUpperCase();
-  if (ctx.measureText(nombreTxt).width > 700) {
-    ctx.font = "bold 26px Arial";
+  // 1. NOMBRE — multilínea si es muy largo (y empieza en 380, lineHeight 34)
+  ctx.font = "bold 30px Arial";
+  const nombreLines = wrapText(ctx, options.nombre.toUpperCase(), 720);
+  let nombreY = 380;
+  for (const line of nombreLines) {
+    ctx.fillText(line, 550, nombreY);
+    nombreY += 34;
   }
-  ctx.fillText(nombreTxt, 550, 390);
 
-  // 2. SEXO (A la derecha de la etiqueta "SEXO", x=1490, y=340)
+  // 2. SEXO (A la derecha de la etiqueta, x=1540, y=365)
   ctx.font = "bold 36px Arial";
-  ctx.fillText(sexChar, 1490, 340);
+  ctx.fillText(sexChar, 1540, 365);
 
-  // 3. DOMICILIO (Debajo del texto "DOMICILIO", y=560)
+  // 3. DOMICILIO — multilínea si es muy largo (y=545, lineHeight 28)
   ctx.font = "bold 24px Arial";
-  if (ctx.measureText(domicilioCompleto).width > 700) {
-    ctx.font = "bold 20px Arial";
+  const domLines = wrapText(ctx, domicilioCompleto, 720);
+  let domY = 545;
+  for (const line of domLines) {
+    ctx.fillText(line, 550, domY);
+    domY += 28;
   }
-  ctx.fillText(domicilioCompleto, 550, 560);
 
   // 4. CLAVE DE ELECTOR
   ctx.font = "bold 32px Arial";
   ctx.fillText(options.claveElector.toUpperCase(), 550, 715);
 
-  // 5. AÑO DE REGISTRO (Subido a y=695, valor 2026)
+  // 5. AÑO DE REGISTRO (y=695, valor 2026)
   ctx.font = "bold 32px Arial";
   ctx.fillText(options.anoRegistro ?? "2026", 1220, 695);
 
