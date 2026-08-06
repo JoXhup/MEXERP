@@ -11,8 +11,8 @@ export async function execute(client: Client): Promise<void> {
 
   // Presencia del bot — rotacion entre actividades
   const activities = [
-    { name: "MEXERP", type: ActivityType.Playing },
-    { name: "Code: MEXERPA", type: ActivityType.Watching },
+    { name: "TMRP", type: ActivityType.Playing },
+    { name: "Code: TMRPA", type: ActivityType.Watching },
   ];
 
   let activityIndex = 0;
