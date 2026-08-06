@@ -54,4 +54,7 @@ export const config = {
     info: 0x6366f1,            // Indigo
     dark: 0x0f0f1a,            // Negro
   },
+
+  // ─── OPENAI ────────────────────────────────────────────────────────────────
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
 } as const;

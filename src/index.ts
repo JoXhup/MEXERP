@@ -15,6 +15,7 @@ import * as jornadaCommand from "./commands/jornada.js";
 import * as profileCommand from "./commands/profile.js";
 import * as verificarCommand from "./commands/verificar.js";
 import ineCommand from "./commands/ine.js";
+import chatgptCommand from "./commands/chatgpt.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -52,6 +53,7 @@ const commands: Command[] = [
   profileCommand as unknown as Command,
   verificarCommand as unknown as Command,
   ineCommand,
+  chatgptCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;

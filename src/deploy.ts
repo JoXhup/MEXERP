@@ -16,6 +16,7 @@ import { data as jornadaData } from "./commands/jornada.js";
 import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
 import ineCommand from "./commands/ine.js";
+import chatgptCommand from "./commands/chatgpt.js";
 
 const commands = [
   panelCommand,
@@ -23,6 +24,7 @@ const commands = [
   contratarCommand,
   despedirCommand,
   ineCommand,
+  chatgptCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
