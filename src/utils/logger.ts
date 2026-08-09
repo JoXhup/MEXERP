@@ -1,4 +1,4 @@
-import type { Client, TextChannel } from "discord.js";
+﻿import type { Client, TextChannel } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "./components.js";
@@ -52,7 +52,7 @@ export async function sendLog(
         }))
       )
       .setFooter({
-        text: `MEXERP System · ${getFooterTimestamp()}`,
+        text: `Sonora RP System · ${getFooterTimestamp()}`,
         iconURL: botAvatar,
       });
 

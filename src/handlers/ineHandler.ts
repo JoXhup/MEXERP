@@ -1,4 +1,4 @@
-import {
+﻿import {
   ModalBuilder,
   LabelBuilder,
   TextInputBuilder,
@@ -15,6 +15,13 @@ import {
   AttachmentBuilder,
   MessageFlags,
   SeparatorSpacingSize,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  PermissionFlagsBits,
+  type GuildMemberRoleManager,
+  type ButtonInteraction,
   type ModalSubmitInteraction,
   type ChatInputCommandInteraction,
   type Client,
@@ -34,7 +41,7 @@ import { getFooterTimestamp } from "../utils/components.js";
 export function buildIneModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ine:modal")
-    .setTitle("Tramite de INE — Tamaulipas RP");
+    .setTitle("Tramite de INE — Sonora RP");
 
   // 1. Nombre
   const l1 = new LabelBuilder()
@@ -115,10 +122,48 @@ export function buildIneModal(): ModalBuilder {
   return modal;
 }
 
-/** Maneja la ejecución del comando /tramitar ine */
+/** Maneja la ejecución del comando /ine tramitar */
 export async function handleTramitarCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
+  // Verificar si ya tiene una INE registrada
+  const existing = await Ine.findOne({ discordId: interaction.user.id });
+  if (existing) {
+    const errContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## INE Registrada")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          "Ya tienes una INE actualmente registrada, si se trata de un error infórmalo al equipo administrativo."
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          "Usa el comando **/ine revisar** para visualizar tu INE."
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
+    await interaction.reply({
+      components: [errContainer],
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    });
+    return;
+  }
+
   await interaction.showModal(buildIneModal());
 }
 
@@ -128,21 +173,49 @@ export async function handleIneRevisarCommand(
 ): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const ineRecord = await Ine.findOne({ discordId: interaction.user.id });
+  // Usuario objetivo (propio o de otra persona)
+  const targetUser = interaction.options.getUser("usuario") ?? interaction.user;
+  const isSelf = targetUser.id === interaction.user.id;
+
+  const ineRecord = await Ine.findOne({ discordId: targetUser.id });
   if (!ineRecord) {
+    // Embed de error: INE no encontrada
+    const errContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## INE no encontrada")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          isSelf
+            ? "Este usuario no tiene una INE registrada actualmente, usa el comando **/ine tramitar**"
+            : `<@${targetUser.id}> no tiene una INE registrada actualmente, usa el comando **/ine tramitar**`
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
     await interaction.editReply({
-      content: "❌ No tienes ninguna credencial de INE registrada. Utiliza **/ine tramitar** para solicitar la tuya.",
+      components: [errContainer],
+      flags: MessageFlags.IsComponentsV2,
     });
     return;
   }
 
-  // Avatar de Discord (para el thumbnail del embed)
-  const discordAvatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+  // Avatar de Discord del usuario objetivo (thumbnail del embed)
+  const discordAvatarUrl = targetUser.displayAvatarURL({ extension: "png", size: 256 });
 
   // Buscar avatar de Roblox (para la imagen Canvas de la credencial)
   let robloxAvatarUrl: string | undefined;
   try {
-    const verified = await VerifiedUser.findOne({ discordId: interaction.user.id });
+    const verified = await VerifiedUser.findOne({ discordId: targetUser.id });
     if (verified?.robloxId) {
       const thumbRes = (await fetch(
         `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${verified.robloxId}&size=420x420&format=Png&isCircular=false`
@@ -158,7 +231,6 @@ export async function handleIneRevisarCommand(
     console.error("[INE REVISAR] Error obteniendo avatar de Roblox:", err);
   }
 
-  const nameParts = splitFullName(ineRecord.nombre);
   const sexChar = ineRecord.sexo.toUpperCase().startsWith("M") ? "M" : "H";
 
   // Generar la imagen Canvas con avatar de Roblox
@@ -183,18 +255,19 @@ export async function handleIneRevisarCommand(
     return;
   }
 
+  // Rosa vibrante INE
+  const INE_ROSE = 0xf72585;
+
+  const robloxClean = ineRecord.robloxUsername ? ineRecord.robloxUsername.replace(/^@+/, '') : "N/A";
+
   const container = new ContainerBuilder()
-    .setAccentColor(0x0055a5)
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent("# INE")
-    )
-    .addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-    )
+    .setAccentColor(INE_ROSE)
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`Documento **INE** de <@${interaction.user.id}>`)
+          new TextDisplayBuilder().setContent(
+            `# INE - SONORA RP\nCredencial oficial para votar de <@${targetUser.id}>`
+          )
         )
         .setThumbnailAccessory(
           new ThumbnailBuilder().setURL(discordAvatarUrl)
@@ -206,8 +279,11 @@ export async function handleIneRevisarCommand(
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         [
-          `**Nombre:** ${ineRecord.nombre}`,
-          `**Roblox:** ${ineRecord.robloxUsername}`,
+          `**DATOS PERSONALES**`,
+          `› **Nombre:** ${ineRecord.nombre}`,
+          `› **Roblox:** **${robloxClean}**`,
+          `› **Sexo:** ${sexChar === "H" ? "Hombre" : "Mujer"}`,
+          `› **Domicilio:** ${ineRecord.domicilio}`,
         ].join("\n")
       )
     )
@@ -217,11 +293,12 @@ export async function handleIneRevisarCommand(
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         [
-          `**CURP:** \`${ineRecord.curp}\``,
-          `**SECCIÓN:** \`${ineRecord.seccion}\``,
-          `**VIGENCIA:** \`${ineRecord.vigencia}\``,
-          `**CLAVE DE ELECTOR:** \`${ineRecord.claveElector}\``,
-          `**N.º DE INE:** \`${ineRecord.numIne}\``,
+          `**DATOS DEL DOCUMENTO**`,
+          `› **CURP:** ${ineRecord.curp}`,
+          `› **Clave de Elector:** ${ineRecord.claveElector}`,
+          `› **Número del INE:** ${ineRecord.numIne}`,
+          `› **Sección:** ${ineRecord.seccion}`,
+          `› **Vigencia:** ${ineRecord.vigencia}`,
         ].join("\n")
       )
     )
@@ -237,7 +314,7 @@ export async function handleIneRevisarCommand(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# Tamaulipas RP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# Sonora System · ${getFooterTimestamp()}`)
     );
 
   await interaction.editReply({
@@ -471,7 +548,7 @@ export async function handleIneModalSubmit(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# Tamaulipas RP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# Sonora System · ${getFooterTimestamp()}`)
     );
 
   await interaction.editReply({
@@ -480,3 +557,206 @@ export async function handleIneModalSubmit(
     flags: MessageFlags.IsComponentsV2,
   });
 }
+
+/** Comprueba si el usuario tiene rol de Admin o el rol autorizado 1535360623544639508 */
+function isIneAdmin(interaction: ChatInputCommandInteraction | ButtonInteraction): boolean {
+  if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    return true;
+  }
+  const roles = interaction.member?.roles;
+  if (roles && "cache" in roles) {
+    return (roles as GuildMemberRoleManager).cache.has("1535360623544639508");
+  }
+  return false;
+}
+
+/** Maneja la ejecución del comando /ine eliminar */
+export async function handleIneEliminarCommand(
+  interaction: ChatInputCommandInteraction
+): Promise<void> {
+  // Verificar permisos
+  if (!isIneAdmin(interaction)) {
+    const errContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## Permisos Insuficientes")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          "No tienes permiso para ejecutar este comando. Requiere el rol autorizado o permisos de Administrador."
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
+    await interaction.reply({
+      components: [errContainer],
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    });
+    return;
+  }
+
+  const targetUser = interaction.options.getUser("usuario", true);
+  const ineRecord = await Ine.findOne({ discordId: targetUser.id });
+
+  if (!ineRecord) {
+    const errContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## INE no encontrada")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Este usuario (<@${targetUser.id}>) no tiene una INE registrada actualmente.`
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
+    await interaction.reply({
+      components: [errContainer],
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    });
+    return;
+  }
+
+  // Si existe INE: abrir embed normal (no container) con botones de confirmación
+  const createdTimestamp = Math.floor((ineRecord.createdAt || new Date()).getTime() / 1000);
+  const robloxClean = ineRecord.robloxUsername ? ineRecord.robloxUsername.replace(/^@+/, '') : "N/A";
+
+  const embed = new EmbedBuilder()
+    .setTitle("🪪 Confirmación de Eliminación de INE")
+    .setDescription(`¿Estás seguro de que deseas eliminar la credencial INE de <@${targetUser.id}>? Esta acción no se puede deshacer.`)
+    .setColor(0xe74c3c)
+    .setThumbnail(targetUser.displayAvatarURL({ extension: "png", size: 256 }))
+    .addFields(
+      { name: "👤 Nombre", value: ineRecord.nombre, inline: true },
+      { name: "🎮 Roblox", value: `**${robloxClean}**`, inline: true },
+      { name: "🆔 CURP", value: `\`${ineRecord.curp}\``, inline: false },
+      { name: "📄 Clave de Elector", value: `\`${ineRecord.claveElector}\``, inline: true },
+      { name: "📅 Fecha de Registro", value: `<t:${createdTimestamp}:R>`, inline: true }
+    )
+    .setFooter({ text: "Sonora System" })
+    .setTimestamp();
+
+  const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`ine:delete:confirm:${targetUser.id}`)
+      .setLabel("Confirmar")
+      .setEmoji("✅")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`ine:delete:cancel:${targetUser.id}`)
+      .setLabel("Cancelar")
+      .setEmoji("✖️")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await interaction.reply({
+    embeds: [embed],
+    components: [buttons],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+/** Maneja los botones de confirmación y cancelación de eliminación de INE */
+export async function handleIneDeleteButton(
+  interaction: ButtonInteraction,
+  _client: Client
+): Promise<void> {
+  if (!isIneAdmin(interaction)) {
+    await interaction.reply({
+      content: "❌ No tienes permiso para realizar esta acción.",
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const parts = interaction.customId.split(":");
+  const action = parts[2]; // "confirm" o "cancel"
+  const targetUserId = parts[3];
+
+  if (action === "confirm") {
+    // 1. Borrar de MongoDB
+    await Ine.deleteOne({ discordId: targetUserId });
+
+    // 2. Quitar rol 1531425402193449093 y dar rol 1531425281502613675
+    try {
+      const member = await interaction.guild?.members.fetch(targetUserId);
+      if (member) {
+        await member.roles.remove("1531425402193449093").catch(() => null);
+        await member.roles.add("1531425281502613675").catch(() => null);
+      }
+    } catch (err) {
+      console.error("[INE DELETE] Error ajustando roles del usuario:", err);
+    }
+
+    const successContainer = new ContainerBuilder()
+      .setAccentColor(0x2ecc71) // Verde
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## INE Borrado Exitosamente")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `La credencial INE de <@${targetUserId}> ha sido eliminada correctamente.`
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
+    await interaction.update({
+      embeds: [],
+      components: [successContainer],
+      flags: MessageFlags.IsComponentsV2,
+    });
+  } else {
+    // Cancelar
+    const cancelContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c) // Rojo
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("## Eliminación Cancelada")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Se ha cancelado la eliminación de la credencial INE del usuario <@${targetUserId}>.`
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# Sonora System")
+      );
+
+    await interaction.update({
+      embeds: [],
+      components: [cancelContainer],
+      flags: MessageFlags.IsComponentsV2,
+    });
+  }
+}
+

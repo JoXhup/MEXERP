@@ -15,7 +15,7 @@ const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("ine")
-        .setDescription("Tramita tu credencial para votar (INE) de Tamaulipas RP.")
+        .setDescription("Tramita tu credencial para votar (INE) de Sonora RP.")
     )
     .addSubcommand((sub) =>
       sub

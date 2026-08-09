@@ -17,6 +17,18 @@ import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
 import ineCommand from "./commands/ine.js";
 import chatgptCommand from "./commands/chatgpt.js";
+import arrestarCommand from "./commands/arrestar.js";
+import estadoCommand from "./commands/estado.js";
+import depositarCommand from "./commands/depositar.js";
+import retirarCommand from "./commands/retirar.js";
+import transferirCommand from "./commands/transferir.js";
+import transferenciasCommand from "./commands/transferencias.js";
+import cobrarCommand from "./commands/cobrar.js";
+import lavarCommand from "./commands/lavar.js";
+import historialCommand from "./commands/historial.js";
+import economiaCommand from "./commands/economia.js";
+import multarCommand from "./commands/multar.js";
+import multasCommand from "./commands/multas.js";
 
 const commands = [
   panelCommand,
@@ -25,6 +37,18 @@ const commands = [
   despedirCommand,
   ineCommand,
   chatgptCommand,
+  arrestarCommand,
+  estadoCommand,
+  depositarCommand,
+  retirarCommand,
+  transferirCommand,
+  transferenciasCommand,
+  cobrarCommand,
+  lavarCommand,
+  historialCommand,
+  economiaCommand,
+  multarCommand,
+  multasCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);

@@ -1,4 +1,4 @@
-import {
+﻿import {
   ContainerBuilder,
   SectionBuilder,
   TextDisplayBuilder,
@@ -114,7 +114,7 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
     )
     .addActionRowComponents(selectRow)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`)
     );
 }
 
@@ -176,7 +176,7 @@ export function buildJornadasPanelContainer(client: Client, guildIconUrl?: strin
     )
     .addActionRowComponents(row)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 }
 
@@ -241,7 +241,7 @@ export function buildAperturasPanelContainer(client: Client, guildIconUrl?: stri
     )
     .addActionRowComponents(row)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 }
 
@@ -271,7 +271,7 @@ export function buildTicketContainer(
   const cat = CATEGORIES[ticket.category]!;
 
   const staffPing = `<@&${config.staffRoleId}>`;
-  const headerText = `# ${cat.emoji} ${cat.label} - MEXERP\nHola, tu solicitud esta creada, espera a un miembro del staff para ser **atendid@** ${staffPing}`;
+  const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\nHola, tu solicitud esta creada, espera a un miembro del staff para ser **atendid@** ${staffPing}`;
 
   // Información de tu Ticket
   const infoLines: string[] = ["📝 **Información de tu Ticket:**"];
@@ -397,7 +397,7 @@ export function buildTicketContainer(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`)
     );
 
   return container;
@@ -435,7 +435,7 @@ export function buildLogContainer(
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 }
@@ -460,7 +460,7 @@ export function buildErrorContainer(
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 }
@@ -485,7 +485,7 @@ export function buildSuccessContainer(
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 }
@@ -540,7 +540,7 @@ export function buildPrioritySelectContainer(
     .addActionRowComponents(row)
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 }
@@ -586,7 +586,7 @@ export function buildStatsContainer(
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 }
@@ -696,6 +696,6 @@ export function buildStaffProfileContainer(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff · ${getFooterTimestamp()}`)
     );
 }

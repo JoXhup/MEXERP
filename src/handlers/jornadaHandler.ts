@@ -1,4 +1,4 @@
-import type { ButtonInteraction, Client, TextChannel, ThreadChannel } from "discord.js";
+﻿import type { ButtonInteraction, Client, TextChannel, ThreadChannel } from "discord.js";
 import {
   EmbedBuilder,
   ActionRowBuilder,
@@ -197,7 +197,7 @@ async function handleManage(interaction: ButtonInteraction, client: Client): Pro
     )
     .addActionRowComponents(row)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 
   await interaction.reply({
@@ -281,7 +281,7 @@ async function handlePause(interaction: ButtonInteraction, client: Client): Prom
     )
     .addActionRowComponents(row)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 
   await interaction.update({
@@ -361,7 +361,7 @@ async function handleResume(interaction: ButtonInteraction, client: Client): Pro
     )
     .addActionRowComponents(row)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 
   await interaction.update({
@@ -440,7 +440,7 @@ async function handleEnd(interaction: ButtonInteraction, client: Client): Promis
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# MEXERP Staff`)
+      new TextDisplayBuilder().setContent(`-# Sonora RP Staff`)
     );
 
   await interaction.update({
@@ -469,7 +469,7 @@ async function handleEnd(interaction: ButtonInteraction, client: Client): Promis
           { name: "📅 Hora de Inicio", value: `<t:${startTs}:F>  (<t:${startTs}:R>)`, inline: false },
           { name: "📅 Hora de Finalización", value: `<t:${endTs}:F>  (<t:${endTs}:R>)`, inline: false }
         )
-        .setFooter({ text: "MEXERP Staff" })
+        .setFooter({ text: "Sonora RP Staff" })
         .setTimestamp();
 
       await (logChannel as TextChannel | ThreadChannel).send({ embeds: [logEmbed] });

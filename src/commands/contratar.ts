@@ -160,7 +160,7 @@ const command: Command = {
               { name: "Fecha de Contratación", value: `<t:${Math.floor(hiredAt.getTime() / 1000)}:F>`, inline: false },
               { name: "Roles Otorgados", value: `${ROLES_TO_ADD.map(r => `<@&${r}>`).join(", ")} (${rolesOtorgados}/4 asignados)`, inline: false }
             )
-            .setFooter({ text: "MEXERP Staff Logging" })
+            .setFooter({ text: "Sonora RP Staff Logging" })
             .setTimestamp();
 
           await (logChannel as TextChannel).send({ embeds: [logEmbed] });

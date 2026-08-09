@@ -77,7 +77,7 @@ export async function execute(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("# <a:pins:1530640122633257041> Listo, disfruta de Tamaulipas RP, tu mejor opcion.")
+        new TextDisplayBuilder().setContent("<a:pins:1530640122633257041> *Listo, disfruta de Sonora RP, tu mejor opcion.*")
       )
       .addActionRowComponents(
         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -90,7 +90,7 @@ export async function execute(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# Tamaulipas RP System · ${getFooterTimestamp()}`
+          `-# Sonora RP System · ${getFooterTimestamp()}`
         )
       );
 

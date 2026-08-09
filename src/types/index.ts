@@ -71,7 +71,12 @@ declare module "discord.js" {
 }
 
 export interface Command {
-  data: import("discord.js").SlashCommandBuilder | import("discord.js").RESTPostAPIChatInputApplicationCommandsJSONBody;
+  data:
+    | import("discord.js").SlashCommandBuilder
+    | import("discord.js").SlashCommandOptionsOnlyBuilder
+    | import("discord.js").SlashCommandSubcommandsOnlyBuilder
+    | import("discord.js").RESTPostAPIChatInputApplicationCommandsJSONBody
+    | any;
   execute: (interaction: import("discord.js").ChatInputCommandInteraction, client?: import("discord.js").Client) => Promise<void>;
   adminOnly?: boolean;
 }

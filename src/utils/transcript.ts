@@ -1,4 +1,4 @@
-import type { TextChannel, Client } from "discord.js";
+﻿import type { TextChannel, Client } from "discord.js";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { ITicket } from "../models/Ticket.js";
@@ -182,7 +182,7 @@ export async function generateTranscript(
 <body>
   <header>
     <div class="meta">
-      <div class="logo">MEXERP</div>
+      <div class="logo">Sonora RP</div>
       <h1>${ticket.ticketId.toUpperCase()} <span class="badge">${cat.label}</span></h1>
     </div>
   </header>
@@ -236,7 +236,7 @@ export async function generateTranscript(
   </div>
 
   <footer>
-    Transcripcion generada por MEXERP System · ${new Date().toLocaleString("es-ES")}
+    Transcripcion generada por Sonora RP System · ${new Date().toLocaleString("es-ES")}
   </footer>
 </body>
 </html>`;

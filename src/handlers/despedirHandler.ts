@@ -134,7 +134,7 @@ export async function handleDespedirButton(
             { name: "Fecha de Despido", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
             { name: "Roles Revocados", value: removedRoleIds.length > 0 ? removedRoleIds.map(r => `<@&${r}>`).join(", ") : "Ningún rol revocado", inline: false }
           )
-          .setFooter({ text: "MEXERP Staff Logging" })
+          .setFooter({ text: "Sonora RP Staff Logging" })
           .setTimestamp();
 
         await (logChannel as TextChannel).send({ embeds: [logEmbed] });

@@ -72,7 +72,7 @@ export async function handleAperturaButton(
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           [
-            `> El servidor se encuentra actualmente abierto. Puedes entrar buscándonos en la lista como **MEXERP | ERLC** o por el código **MEXERPA**`,
+            `> El servidor se encuentra actualmente abierto. Puedes entrar buscándonos en la lista como **Sonora RP | ERLC** o por el código **SNRPA**`,
             ``,
             `<u>Si has votado, tienes 15 minutos para unirte o serás sancionado.</u>`,
             ``,
@@ -84,7 +84,7 @@ export async function handleAperturaButton(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Notificación de Apertura`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Notificación de Apertura`)
       );
   } else if (action === "mantenimiento") {
     statusTitle = "Mantenimiento";
@@ -111,7 +111,7 @@ export async function handleAperturaButton(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Estado del Servidor`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Estado del Servidor`)
       );
   } else {
     statusTitle = "Cerrado";
@@ -130,7 +130,7 @@ export async function handleAperturaButton(
             ``,
             `<u>Agradecemos a todos los ciudadanos y servicios de emergencia por participar.</u>`,
             ``,
-            `**¡Los esperamos en la próxima sesión de rol en MEXERP!**`,
+            `**¡Los esperamos en la próxima sesión de rol en Sonora RP!**`,
           ].join("\n")
         )
       )
@@ -138,7 +138,7 @@ export async function handleAperturaButton(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Cierre de Servidor`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Cierre de Servidor`)
       );
   }
 

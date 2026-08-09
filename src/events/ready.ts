@@ -2,6 +2,7 @@ import type { Client, TextChannel } from "discord.js";
 import { ActivityType, MessageFlags } from "discord.js";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
 import { buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
+import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 
 export const name = "clientReady";
 export const once = true;
@@ -11,8 +12,8 @@ export async function execute(client: Client): Promise<void> {
 
   // Presencia del bot — rotacion entre actividades
   const activities = [
-    { name: "TMRP", type: ActivityType.Playing },
-    { name: "Code: TMRPA", type: ActivityType.Watching },
+    { name: "SORP", type: ActivityType.Playing },
+    { name: "Code: SORPA", type: ActivityType.Watching },
   ];
 
   let activityIndex = 0;
@@ -85,5 +86,8 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Gestión de Aperturas:", aperturasErr);
   }
 
-  console.log(`[READY] MEXERP System listo. ${new Date().toLocaleString("es-ES")}`);
+  // 3. Restaurar arrestos activos
+  await restoreActiveArrests(client);
+
+  console.log(`[READY] Sonora RP System listo. ${new Date().toLocaleString("es-ES")}`);
 }

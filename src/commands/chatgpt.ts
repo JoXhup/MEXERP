@@ -64,7 +64,7 @@ const command: Command = {
             {
               role: "system",
               content:
-                "Eres un asistente útil del servidor de Discord 'Tamaulipas RP'. Responde de forma clara y concisa en español.",
+                "Eres un asistente útil del servidor de Discord 'Sonora RP'. Responde de forma clara y concisa en español.",
             },
             {
               role: "user",
@@ -131,7 +131,7 @@ const command: Command = {
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Tamaulipas RP · ChatGPT · ${getFooterTimestamp()}`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP · ChatGPT · ${getFooterTimestamp()}`)
       );
 
     await interaction.editReply({

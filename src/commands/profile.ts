@@ -222,7 +222,7 @@ export async function execute(
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# MEXERP System · ${getFooterTimestamp()}`
+        `-# Sonora RP System · ${getFooterTimestamp()}`
       )
     );
 
@@ -244,7 +244,7 @@ export async function execute(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# MEXERP System · ${getFooterTimestamp()}`
+          `-# Sonora RP System · ${getFooterTimestamp()}`
         )
       );
 

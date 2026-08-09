@@ -1,4 +1,4 @@
-import type { Guild, TextChannel, Client } from "discord.js";
+﻿import type { Guild, TextChannel, Client } from "discord.js";
 import {
   ChannelType,
   PermissionFlagsBits,
@@ -59,7 +59,7 @@ export async function createTicketChannel(
       ],
     },
     {
-      id: client.user!.id, // Bot MEXERP -> PUEDE VER Y GESTIONAR
+      id: client.user!.id, // Bot SNRP -> PUEDE VER Y GESTIONAR
       allow: [
         PermissionFlagsBits.ViewChannel,
         PermissionFlagsBits.SendMessages,

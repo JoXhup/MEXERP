@@ -106,7 +106,7 @@ export async function execute(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# MEXERP Staff")
+        new TextDisplayBuilder().setContent("-# Sonora RP Staff")
       );
 
     await interaction.reply({
@@ -147,7 +147,7 @@ export async function execute(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# MEXERP Staff")
+        new TextDisplayBuilder().setContent("-# Sonora RP Staff")
       );
 
     await interaction.reply({
@@ -206,7 +206,7 @@ export async function execute(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# MEXERP Staff")
+        new TextDisplayBuilder().setContent("-# Sonora RP Staff")
       );
 
     await interaction.reply({
@@ -243,7 +243,7 @@ export async function execute(
           new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
         )
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent("-# MEXERP Staff")
+          new TextDisplayBuilder().setContent("-# Sonora RP Staff")
         );
 
       await interaction.reply({
@@ -281,7 +281,7 @@ export async function execute(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# MEXERP Staff")
+        new TextDisplayBuilder().setContent("-# Sonora RP Staff")
       );
 
     await interaction.reply({
