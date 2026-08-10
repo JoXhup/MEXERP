@@ -13,15 +13,13 @@ import {
 import type { Command } from "../types/index.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
+import { documentCache } from "../utils/documentCache.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number; info: any }>;
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
-
-// Cache en memoria: guildId → texto del documento cargado
-const documentCache = new Map<string, { text: string; filename: string }>();
 
 const data = new SlashCommandBuilder()
   .setName("tryout")

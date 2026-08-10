@@ -13,6 +13,7 @@ import {
 import type { Command } from "../types/index.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
+import { documentCache } from "../utils/documentCache.js";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -41,7 +42,6 @@ const command: Command = {
     }
 
     const pregunta = interaction.options.getString("pregunta", true);
-
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     if (!config.groqApiKey) {
@@ -49,6 +49,32 @@ const command: Command = {
         content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`).",
       });
       return;
+    }
+
+    // ─── Verificar si hay documento cargado via /tryout ia ───────────────────
+    const guildId = interaction.guildId ?? "global";
+    const cachedDoc = documentCache.get(guildId);
+
+    // Construir el system prompt según si hay documento o no
+    let systemPrompt: string;
+    let modoDoc = false;
+
+    if (cachedDoc) {
+      modoDoc = true;
+      const maxDocLength = 12000;
+      const docContext = cachedDoc.text.length > maxDocLength
+        ? cachedDoc.text.substring(0, maxDocLength) + "\n\n[... documento truncado por límite de contexto ...]"
+        : cachedDoc.text;
+
+      systemPrompt =
+        `Eres un asistente inteligente de Sonora RP. Hay un documento activo cargado. ` +
+        `Si la pregunta está relacionada con el documento, responde ÚNICAMENTE basándote en su contenido. ` +
+        `Si la pregunta no tiene relación con el documento, responde de forma general en español.\n\n` +
+        `--- DOCUMENTO ACTIVO: ${cachedDoc.filename} ---\n${docContext}\n--- FIN DEL DOCUMENTO ---`;
+    } else {
+      systemPrompt =
+        "Eres un asistente útil del servidor de Discord 'Sonora RP'. " +
+        "Responde de forma clara y concisa en español.";
     }
 
     let respuesta = "";
@@ -62,23 +88,16 @@ const command: Command = {
         body: JSON.stringify({
           model: GROQ_MODEL,
           messages: [
-            {
-              role: "system",
-              content:
-                "Eres un asistente útil del servidor de Discord 'Sonora RP'. Responde de forma clara y concisa en español.",
-            },
-            {
-              role: "user",
-              content: pregunta,
-            },
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: pregunta },
           ],
           max_tokens: 1000,
-          temperature: 0.7,
+          temperature: modoDoc ? 0.3 : 0.7,
         }),
       }) as any;
 
       if (!res.ok) {
-        const errData = (await res.json()) as any;
+        const errData = await res.json() as any;
         console.error("[GROQ] Error de API:", errData);
         await interaction.editReply({
           content: `❌ Error de Groq: \`${errData?.error?.message ?? res.status}\``,
@@ -86,29 +105,31 @@ const command: Command = {
         return;
       }
 
-      const data = (await res.json()) as any;
+      const data = await res.json() as any;
       respuesta = data?.choices?.[0]?.message?.content?.trim() ?? "Sin respuesta.";
     } catch (err) {
       console.error("[GROQ] Error en fetch:", err);
-      await interaction.editReply({
-        content: "❌ Error al conectar con Groq AI.",
-      });
+      await interaction.editReply({ content: "❌ Error al conectar con Groq AI." });
       return;
     }
 
-    // Truncar si la respuesta supera el límite de Discord
     if (respuesta.length > 3900) {
       respuesta = respuesta.substring(0, 3900) + "\n\n*(Respuesta truncada)*";
     }
 
-    // Usar icono del servidor como thumbnail (URL estable, no expira como avatares de usuario)
+    // Thumbnail: icono del servidor (URL estable, no expira)
     const thumbnailUrl =
       interaction.guild?.iconURL({ extension: "png", size: 256, forceStatic: true }) ??
       interaction.client.user?.displayAvatarURL({ extension: "png", size: 256, forceStatic: true }) ??
       "https://i.imgur.com/AfFp7pu.png";
 
+    // Línea de contexto: si hay doc, mostrar cuál
+    const docInfo = modoDoc && cachedDoc
+      ? `**Documento activo:** \`${cachedDoc.filename}\`\n`
+      : "";
+
     const container = new ContainerBuilder()
-      .setAccentColor(0xf55036) // Color Groq
+      .setAccentColor(0xf55036)
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(
@@ -123,7 +144,7 @@ const command: Command = {
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}`
+          `${docInfo}**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}`
         )
       )
       .addSeparatorComponents(
@@ -136,7 +157,9 @@ const command: Command = {
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP · Asistente Virtual · ${getFooterTimestamp()}`)
+        new TextDisplayBuilder().setContent(
+          `-# Sonora RP · Asistente Virtual${modoDoc ? " · Modo Documento" : ""} · ${getFooterTimestamp()}`
+        )
       );
 
     await interaction.editReply({
