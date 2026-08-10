@@ -31,6 +31,7 @@ import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
 import cmdCommand from "./commands/cmd.js";
 import bienvenidaCommand from "./commands/bienvenida.js";
+import pingCommand from "./commands/ping.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -85,6 +86,7 @@ const commands: Command[] = [
   multasCommand,
   cmdCommand,
   bienvenidaCommand,
+  pingCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
