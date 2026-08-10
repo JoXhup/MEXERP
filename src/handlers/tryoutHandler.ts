@@ -262,9 +262,10 @@ export async function handleTryoutMainMenu(
       .setCustomId("contenido_url")
       .setLabel("Texto O Enlace (URL) de Imagen / PDF / Doc")
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Pega el texto O el enlace de la imagen/PDF (ej. https://cdn.discordapp.com/... o https://imgur.com/...)")
+      .setPlaceholder("Pega el texto O el enlace de la imagen/PDF (ej. https://cdn.discordapp.com/...)")
       .setRequired(true)
       .setMaxLength(3800);
+
 
     const inputPregunta = new TextInputBuilder()
       .setCustomId("pregunta")
