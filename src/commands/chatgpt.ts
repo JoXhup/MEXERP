@@ -14,22 +14,24 @@ import type { Command } from "../types/index.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
 
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("chatgpt")
-    .setDescription("Consulta algo a ChatGPT (solo administradores).")
+    .setDescription("Consulta algo a la IA de Sonora RP (solo administradores).")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addStringOption((opt) =>
       opt
         .setName("pregunta")
-        .setDescription("¿Qué quieres preguntarle a ChatGPT?")
+        .setDescription("¿Qué quieres preguntar?")
         .setRequired(true)
         .setMaxLength(1000)
     )
     .toJSON(),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Solo admins (doble verificación por si acaso)
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       await interaction.reply({
         content: "❌ Solo los administradores pueden usar este comando.",
@@ -40,26 +42,25 @@ const command: Command = {
 
     const pregunta = interaction.options.getString("pregunta", true);
 
-    // Defer con ephemeral mientras esperamos respuesta de OpenAI
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    if (!config.openaiApiKey) {
+    if (!config.groqApiKey) {
       await interaction.editReply({
-        content: "❌ No hay API Key de OpenAI configurada.",
+        content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`).",
       });
       return;
     }
 
     let respuesta = "";
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(GROQ_API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${config.openaiApiKey}`,
+          Authorization: `Bearer ${config.groqApiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: GROQ_MODEL,
           messages: [
             {
               role: "system",
@@ -78,9 +79,9 @@ const command: Command = {
 
       if (!res.ok) {
         const errData = (await res.json()) as any;
-        console.error("[CHATGPT] Error de OpenAI:", errData);
+        console.error("[GROQ] Error de API:", errData);
         await interaction.editReply({
-          content: `❌ Error de OpenAI: \`${errData?.error?.message ?? res.status}\``,
+          content: `❌ Error de Groq: \`${errData?.error?.message ?? res.status}\``,
         });
         return;
       }
@@ -88,14 +89,14 @@ const command: Command = {
       const data = (await res.json()) as any;
       respuesta = data?.choices?.[0]?.message?.content?.trim() ?? "Sin respuesta.";
     } catch (err) {
-      console.error("[CHATGPT] Error en fetch:", err);
+      console.error("[GROQ] Error en fetch:", err);
       await interaction.editReply({
-        content: "❌ Error al conectar con OpenAI.",
+        content: "❌ Error al conectar con Groq AI.",
       });
       return;
     }
 
-    // Truncar si la respuesta es muy larga para Discord (4096 char limit)
+    // Truncar si la respuesta supera el límite de Discord
     if (respuesta.length > 3900) {
       respuesta = respuesta.substring(0, 3900) + "\n\n*(Respuesta truncada)*";
     }
@@ -103,9 +104,9 @@ const command: Command = {
     const avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
 
     const container = new ContainerBuilder()
-      .setAccentColor(0x10a37f) // Verde de OpenAI
+      .setAccentColor(0xf55036) // Color Groq (naranja-rojo)
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("# 🤖 ChatGPT")
+        new TextDisplayBuilder().setContent("# Groq AI · Sonora RP")
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
@@ -131,7 +132,7 @@ const command: Command = {
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP · ChatGPT · ${getFooterTimestamp()}`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP · Groq AI (${GROQ_MODEL}) · ${getFooterTimestamp()}`)
       );
 
     await interaction.editReply({

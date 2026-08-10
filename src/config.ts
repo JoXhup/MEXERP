@@ -55,6 +55,6 @@ export const config = {
     dark: 0x0f0f1a,            // Negro
   },
 
-  // ─── OPENAI ────────────────────────────────────────────────────────────────
-  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  // ─── GROQ AI ──────────────────────────────────────────────────────────────────────────
+  groqApiKey: process.env.GROQ_API_KEY ?? "",
 } as const;
