@@ -1,108 +1,278 @@
 import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  type AutocompleteInteraction,
   type Client,
 } from "discord.js";
 import type { Command } from "../types/index.js";
 import { sendErlcApiErrorContainer } from "../handlers/erlcHandler.js";
 
-// Lista completa de los 42 comandos externos ERLC con sus descripciones y parámetros
-export const ERLC_COMMAND_LIST = [
-  { name: "h", desc: ":h [mensaje] — Enviar mensaje global", params: "[mensaje]" },
-  { name: "m", desc: ":m [mensaje] — Mensaje de moderador en pantalla", params: "[mensaje]" },
-  { name: "pm", desc: ":pm [jugador] [mensaje] — Mensaje privado", params: "[jugador] [mensaje]" },
-  { name: "kill", desc: ":kill [jugador] — Eliminar personaje", params: "[jugador]" },
-  { name: "down", desc: ":down [jugador] — Derribar personaje", params: "[jugador]" },
-  { name: "refresh", desc: ":refresh [jugador] — Refrescar personaje", params: "[jugador]" },
-  { name: "respawn", desc: ":respawn [jugador] — Reaparecer personaje", params: "[jugador]" },
-  { name: "load", desc: ":load [jugador] — Cargar datos de personaje", params: "[jugador]" },
-  { name: "heal", desc: ":heal [jugador] — Curar salud de personaje", params: "[jugador]" },
-  { name: "kick", desc: ":kick [jugador] [razón] — Expulsar del servidor", params: "[jugador] [razón]" },
-  { name: "ban", desc: ":ban [jugador/ID] — Banear del servidor", params: "[jugador/ID]" },
-  { name: "unban", desc: ":unban [jugador/ID] — Desbanear del servidor", params: "[jugador/ID]" },
-  { name: "jail", desc: ":jail [jugador] — Encarcelar personaje", params: "[jugador]" },
-  { name: "unjail", desc: ":unjail [jugador] — Liberar de cárcel", params: "[jugador]" },
-  { name: "free", desc: ":free [jugador] — Liberar personaje", params: "[jugador]" },
-  { name: "wanted", desc: ":wanted [jugador] — Poner en búsqueda policiaca", params: "[jugador]" },
-  { name: "unwanted", desc: ":unwanted [jugador] — Quitar búsqueda policiaca", params: "[jugador]" },
-  { name: "bring", desc: ":bring [jugador] — Traer personaje a tu posición", params: "[jugador]" },
-  { name: "to", desc: ":to [jugador] — Ir a la posición del personaje", params: "[jugador]" },
-  { name: "tp", desc: ":tp [jugador1] [jugador2] — Teletransportar entre personajes", params: "[jugador1] [jugador2]" },
-  { name: "tocar", desc: ":tocar — Traer vehículo asignado", params: "" },
-  { name: "toatv", desc: ":toatv — Traer ATV asignado", params: "" },
-  { name: "view", desc: ":view [jugador] — Observar vista del personaje", params: "[jugador]" },
-  { name: "time", desc: ":time [hora] — Cambiar hora del servidor", params: "[hora]" },
-  { name: "weather", desc: ":weather [tipo] — Cambiar clima del servidor", params: "[tipo]" },
-  { name: "startfire", desc: ":startfire [tipo] — Iniciar incendio", params: "[tipo]" },
-  { name: "startnearfire", desc: ":startnearfire [tipo] — Iniciar incendio cercano", params: "[tipo]" },
-  { name: "stopfire", desc: ":stopfire — Apagar todos los incendios", params: "" },
-  { name: "stopdumpsterfire", desc: ":stopdumpsterfire — Apagar incendios en contenedores", params: "" },
-  { name: "bans", desc: ":bans — Consultar lista de baneados", params: "" },
-  { name: "admins", desc: ":admins — Consultar lista de administradores", params: "" },
-  { name: "mods", desc: ":mods — Consultar lista de moderadores", params: "" },
-  { name: "helpers", desc: ":helpers — Consultar lista de helpers", params: "" },
-  { name: "cmds", desc: ":cmds — Consultar comandos disponibles", params: "" },
-  { name: "commands", desc: ":commands — Consultar comandos disponibles", params: "" },
-  { name: "logs", desc: ":logs — Consultar registros del servidor ERLC", params: "" },
-  { name: "mod", desc: ":mod [jugador] — Asignar rango Moderador", params: "[jugador]" },
-  { name: "unmod", desc: ":unmod [jugador] — Quitar rango Moderador", params: "[jugador]" },
-  { name: "helper", desc: ":helper [jugador] — Asignar rango Helper", params: "[jugador]" },
-  { name: "unhelper", desc: ":unhelper [jugador] — Quitar rango Helper", params: "[jugador]" },
-  { name: "admin", desc: ":admin [jugador] — Asignar rango Administrador", params: "[jugador]" },
-  { name: "unadmin", desc: ":unadmin [jugador] — Quitar rango Administrador", params: "[jugador]" },
-];
-
 const data = new SlashCommandBuilder()
   .setName("cmd")
-  .setDescription("Comandos externos de integración ERLC (Emergency Response: Liberty County).")
-  .addSubcommand((sub) =>
-    sub
+  .setDescription("Comandos externos de administración e integración para servidor ERLC.")
+
+  // ─── GRUPO 1: /cmd ext (25 subcomandos principales de moderación y jugadores) ────
+  .addSubcommandGroup((group) =>
+    group
       .setName("ext")
-      .setDescription("Ejecutar un comando externo en el servidor de ERLC.")
-      .addStringOption((opt) =>
-        opt
-          .setName("comando")
-          .setDescription("Nombre del comando ERLC a ejecutar (ej: unmod, kill, ban, h, m).")
-          .setRequired(true)
-          .setAutocomplete(true)
+      .setDescription("Comandos de administración, moderación y control de jugadores ERLC.")
+      .addSubcommand((sub) =>
+        sub
+          .setName("unmod")
+          .setDescription("Comando externo ERLC :unmod [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
       )
-      .addStringOption((opt) =>
-        opt
-          .setName("jugador")
-          .setDescription("Nombre de usuario de Roblox / Jugador in-game (Opcional).")
-          .setRequired(false)
+      .addSubcommand((sub) =>
+        sub
+          .setName("mod")
+          .setDescription("Comando externo ERLC :mod [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
       )
-      .addStringOption((opt) =>
-        opt
-          .setName("parametro")
-          .setDescription("Mensaje, Razón, Hora, Clima o Segundo Jugador (Opcional).")
-          .setRequired(false)
+      .addSubcommand((sub) =>
+        sub
+          .setName("admin")
+          .setDescription("Comando externo ERLC :admin [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unadmin")
+          .setDescription("Comando externo ERLC :unadmin [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("helper")
+          .setDescription("Comando externo ERLC :helper [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unhelper")
+          .setDescription("Comando externo ERLC :unhelper [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("kill")
+          .setDescription("Comando externo ERLC :kill [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("heal")
+          .setDescription("Comando externo ERLC :heal [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("kick")
+          .setDescription("Comando externo ERLC :kick [jugador] [razón]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+          .addStringOption((o) => o.setName("razon").setDescription("Motivo de expulsión").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("ban")
+          .setDescription("Comando externo ERLC :ban [jugador/ID]")
+          .addStringOption((o) => o.setName("target").setDescription("Jugador o ID de Roblox").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unban")
+          .setDescription("Comando externo ERLC :unban [jugador/ID]")
+          .addStringOption((o) => o.setName("target").setDescription("Jugador o ID de Roblox").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("jail")
+          .setDescription("Comando externo ERLC :jail [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unjail")
+          .setDescription("Comando externo ERLC :unjail [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("free")
+          .setDescription("Comando externo ERLC :free [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("bring")
+          .setDescription("Comando externo ERLC :bring [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("to")
+          .setDescription("Comando externo ERLC :to [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("tp")
+          .setDescription("Comando externo ERLC :tp [jugador1] [jugador2]")
+          .addStringOption((o) => o.setName("jugador1").setDescription("Jugador origen").setRequired(true))
+          .addStringOption((o) => o.setName("jugador2").setDescription("Jugador destino").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("pm")
+          .setDescription("Comando externo ERLC :pm [jugador] [mensaje]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+          .addStringOption((o) => o.setName("mensaje").setDescription("Mensaje privado").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("h")
+          .setDescription("Comando externo ERLC :h [mensaje]")
+          .addStringOption((o) => o.setName("mensaje").setDescription("Mensaje global").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("m")
+          .setDescription("Comando externo ERLC :m [mensaje]")
+          .addStringOption((o) => o.setName("mensaje").setDescription("Mensaje de moderador").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("wanted")
+          .setDescription("Comando externo ERLC :wanted [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unwanted")
+          .setDescription("Comando externo ERLC :unwanted [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("view")
+          .setDescription("Comando externo ERLC :view [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("refresh")
+          .setDescription("Comando externo ERLC :refresh [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("respawn")
+          .setDescription("Comando externo ERLC :respawn [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+  )
+
+  // ─── GRUPO 2: /cmd server (Comandos de servidor, entorno y utilidades) ───────────
+  .addSubcommandGroup((group) =>
+    group
+      .setName("server")
+      .setDescription("Comandos de control del servidor ERLC, clima, fuegos y consultas.")
+      .addSubcommand((sub) =>
+        sub
+          .setName("down")
+          .setDescription("Comando externo ERLC :down [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("load")
+          .setDescription("Comando externo ERLC :load [jugador]")
+          .addStringOption((o) => o.setName("jugador").setDescription("Nombre de usuario Roblox / In-game").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("tocar")
+          .setDescription("Comando externo ERLC :tocar")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("toatv")
+          .setDescription("Comando externo ERLC :toatv")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("time")
+          .setDescription("Comando externo ERLC :time [hora]")
+          .addStringOption((o) => o.setName("hora").setDescription("Hora del servidor ERLC").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("weather")
+          .setDescription("Comando externo ERLC :weather [tipo]")
+          .addStringOption((o) => o.setName("tipo").setDescription("Tipo de clima").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("startfire")
+          .setDescription("Comando externo ERLC :startfire [tipo]")
+          .addStringOption((o) => o.setName("tipo").setDescription("Tipo de incendio").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("startnearfire")
+          .setDescription("Comando externo ERLC :startnearfire [tipo]")
+          .addStringOption((o) => o.setName("tipo").setDescription("Tipo de incendio cercano").setRequired(true))
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("stopfire")
+          .setDescription("Comando externo ERLC :stopfire")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("stopdumpsterfire")
+          .setDescription("Comando externo ERLC :stopdumpsterfire")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("bans")
+          .setDescription("Comando externo ERLC :bans — Consulta de baneos activos")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("admins")
+          .setDescription("Comando externo ERLC :admins — Consulta de administradores")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("mods")
+          .setDescription("Comando externo ERLC :mods — Consulta de moderadores")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("helpers")
+          .setDescription("Comando externo ERLC :helpers — Consulta de helpers")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("cmds")
+          .setDescription("Comando externo ERLC :cmds — Lista de comandos")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("commands")
+          .setDescription("Comando externo ERLC :commands — Lista de comandos")
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("logs")
+          .setDescription("Comando externo ERLC :logs — Registros del servidor")
       )
   );
 
 const command: Command = {
   data,
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const sub = interaction.options.getSubcommand();
-    if (sub === "ext") {
-      const rawCmd = interaction.options.getString("comando", true).trim().toLowerCase();
-      const cleanCmd = rawCmd.startsWith(":") ? rawCmd.slice(1) : rawCmd;
-      await sendErlcApiErrorContainer(interaction, cleanCmd);
-    }
-  },
-  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-    const filtered = ERLC_COMMAND_LIST.filter(
-      (c) => c.name.toLowerCase().includes(focusedValue) || c.desc.toLowerCase().includes(focusedValue)
-    ).slice(0, 25);
-
-    await interaction.respond(
-      filtered.map((c) => ({
-        name: `${c.name} ${c.params}`.trim(),
-        value: c.name,
-      }))
-    );
+    const subCmd = interaction.options.getSubcommand();
+    await sendErlcApiErrorContainer(interaction, subCmd);
   },
 };
 
