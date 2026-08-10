@@ -29,10 +29,12 @@ import historialCommand from "./commands/historial.js";
 import economiaCommand from "./commands/economia.js";
 import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
+import { erlcCommands } from "./commands/erlcCommands.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
 import * as interactionEvent from "./events/interactionCreate.js";
+import * as messageCreateEvent from "./events/messageCreate.js";
 
 import { DefaultWebSocketManagerOptions } from "@discordjs/ws";
 
@@ -79,6 +81,7 @@ const commands: Command[] = [
   economiaCommand,
   multarCommand,
   multasCommand,
+  ...erlcCommands,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
@@ -94,6 +97,10 @@ client.once("clientReady", () => {
 
 client.on(interactionEvent.name, async (...args) => {
   await interactionEvent.execute(args[0] as any, client);
+});
+
+client.on(messageCreateEvent.name, async (...args) => {
+  await messageCreateEvent.execute(args[0] as any);
 });
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────

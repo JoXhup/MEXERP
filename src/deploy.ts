@@ -29,6 +29,7 @@ import historialCommand from "./commands/historial.js";
 import economiaCommand from "./commands/economia.js";
 import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
+import { erlcCommands } from "./commands/erlcCommands.js";
 
 const commands = [
   panelCommand,
@@ -49,6 +50,7 @@ const commands = [
   economiaCommand,
   multarCommand,
   multasCommand,
+  ...erlcCommands,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
