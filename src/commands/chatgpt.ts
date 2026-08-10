@@ -20,7 +20,7 @@ const GROQ_MODEL = "llama-3.3-70b-versatile";
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName("chatgpt")
-    .setDescription("Consulta algo a la IA de Sonora RP (solo administradores).")
+    .setDescription("Consulta algo al Asistente Virtual de Sonora RP (solo administradores).")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addStringOption((opt) =>
       opt
@@ -101,26 +101,30 @@ const command: Command = {
       respuesta = respuesta.substring(0, 3900) + "\n\n*(Respuesta truncada)*";
     }
 
-    const avatarUrl = interaction.user.displayAvatarURL({ extension: "png", size: 256 });
+    // Usar icono del servidor como thumbnail (URL estable, no expira como avatares de usuario)
+    const thumbnailUrl =
+      interaction.guild?.iconURL({ extension: "png", size: 256, forceStatic: true }) ??
+      interaction.client.user?.displayAvatarURL({ extension: "png", size: 256, forceStatic: true }) ??
+      "https://i.imgur.com/AfFp7pu.png";
 
     const container = new ContainerBuilder()
-      .setAccentColor(0xf55036) // Color Groq (naranja-rojo)
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("# Groq AI · Sonora RP")
+      .setAccentColor(0xf55036) // Color Groq
+      .addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("# Asistente Virtual · Sinaloa RP")
+          )
+          .setThumbnailAccessory(
+            new ThumbnailBuilder().setURL(thumbnailUrl)
+          )
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(
-              `**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}`
-            )
-          )
-          .setThumbnailAccessory(
-            new ThumbnailBuilder().setURL(avatarUrl)
-          )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}`
+        )
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
@@ -132,7 +136,7 @@ const command: Command = {
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP · Groq AI (${GROQ_MODEL}) · ${getFooterTimestamp()}`)
+        new TextDisplayBuilder().setContent(`-# Sonora RP · Asistente Virtual · ${getFooterTimestamp()}`)
       );
 
     await interaction.editReply({

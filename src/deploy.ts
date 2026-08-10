@@ -32,6 +32,7 @@ import multasCommand from "./commands/multas.js";
 import cmdCommand from "./commands/cmd.js";
 import bienvenidaCommand from "./commands/bienvenida.js";
 import pingCommand from "./commands/ping.js";
+import tryoutCommand from "./commands/tryout.js";
 
 const commands = [
   panelCommand,
@@ -55,6 +56,7 @@ const commands = [
   cmdCommand,
   bienvenidaCommand,
   pingCommand,
+  tryoutCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
