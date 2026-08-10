@@ -40,7 +40,9 @@ const TIPOS_IMAGEN = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 export const TODOS_TIPOS = [...TIPOS_PDF, ...TIPOS_WORD, ...TIPOS_EXCEL, ...TIPOS_TEXTO, ...TIPOS_IMAGEN];
 
 export function getExtension(name: string): string {
-  return name.toLowerCase().substring(name.lastIndexOf("."));
+  const cleanName = name.split("?")[0].toLowerCase();
+  const lastDot = cleanName.lastIndexOf(".");
+  return lastDot !== -1 ? cleanName.substring(lastDot) : "";
 }
 
 export function getTipoLabel(ext: string): "PDF" | "Word" | "Excel" | "Imagen" | "Texto" {
@@ -110,7 +112,7 @@ export async function describirImagen(imageUrl: string, groqKey: string): Promis
   return data?.choices?.[0]?.message?.content?.trim() ?? "No se pudo describir la imagen.";
 }
 
-// ─── HELPER DE EMBED / CONTAINER V2 ──────────────────────────────────────────
+// ─── HELPER DE CONTAINER V2 ──────────────────────────────────────────────────
 export function buildTryoutContainer(
   guild: Guild | null,
   user: User,
@@ -159,20 +161,20 @@ export function buildMainMenuRow(guildId: string): ActionRowBuilder<StringSelect
     .setPlaceholder("📌 Selecciona una opción del panel de IA...")
     .addOptions(
       new StringSelectMenuOptionBuilder()
-        .setLabel("Consultar IA (Modal V2)")
-        .setValue("ask")
-        .setDescription("Abre Modal V2 para hacer preguntas a la IA.")
-        .setEmoji("💡"),
+        .setLabel("Cargar Archivo / Imagen / Link (Modal V2)")
+        .setValue("upload_url_modal")
+        .setDescription("Abre Modal V2 para ingresar URL de imagen/PDF O texto directo.")
+        .setEmoji("📁"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Agregar Texto Manual (Modal V2)")
         .setValue("add_text")
         .setDescription("Abre Modal V2 para guardar notas, reglas o texto directo.")
         .setEmoji("📝"),
       new StringSelectMenuOptionBuilder()
-        .setLabel("Cargar Archivos / Imágenes")
-        .setValue("upload_info")
-        .setDescription("Instrucciones para subir PDF, Word, Excel o imágenes (Groq Vision).")
-        .setEmoji("📁"),
+        .setLabel("Consultar IA (Modal V2)")
+        .setValue("ask")
+        .setDescription("Abre Modal V2 para hacer preguntas a la IA.")
+        .setEmoji("💡"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Eliminar Documentos (Multi-Select)")
         .setValue("delete_docs")
@@ -201,13 +203,13 @@ export async function renderTryoutPanel(
   const items = documentCache.getItems(guildId);
 
   const body = [
-    "### 🤖 Panel Interactivo Tryout IA · Sonora RP",
+    "### 🤖 Panel Interactivo Tryout IA · Sonora RP (Modals V2)",
     "Gestión de conocimiento y consultas en tiempo real para administradores.",
     "",
     `› **Fuentes activas:** \`${items.length} fuente(s)\``,
-    `› **Formatos aceptados:** PDF, Word, Excel, Imágenes (Groq Vision), TXT, MD, JSON.`,
+    `› **Formatos aceptados:** PDF, Word, Excel, Imágenes (Groq Vision), URLs, TXT, MD, JSON.`,
     "",
-    "Utiliza el **Menú de Selección** abajo para interactuar con los **Modals V2** y la IA.",
+    "Utiliza el **Menú de Selección** abajo para interactuar con los **Modals V2** de la IA.",
   ].join("\n");
 
   const container = buildTryoutContainer(
@@ -241,7 +243,46 @@ export async function handleTryoutMainMenu(
   const value = interaction.values[0];
   const guildId = interaction.guildId ?? "global";
 
-  // 1. CONSULTAR IA -> Abrir Modal V2
+  // 1. CARGAR ARCHIVO / IMAGEN / LINK (MODAL V2)
+  if (value === "upload_url_modal") {
+    const modal = new ModalBuilder()
+      .setCustomId("tryout:modal_upload_url")
+      .setTitle("Cargar Archivo/Imagen (Modal V2)");
+
+    const inputTitulo = new TextInputBuilder()
+      .setCustomId("titulo")
+      .setLabel("Título o Nombre de la Fuente")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("Ej. Reglamento de Policía / Captura de Pantalla")
+      .setRequired(true)
+      .setMaxLength(100);
+
+    const inputContenido = new TextInputBuilder()
+      .setCustomId("contenido_url")
+      .setLabel("Texto O Enlace (URL) de Imagen / PDF / Doc")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder("Pega el texto O el enlace de la imagen/PDF (ej. https://cdn.discordapp.com/... o https://imgur.com/...)")
+      .setRequired(true)
+      .setMaxLength(3800);
+
+    const inputPregunta = new TextInputBuilder()
+      .setCustomId("pregunta")
+      .setLabel("Pregunta opcional a la IA")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("Ej. Resumen o datos principales")
+      .setRequired(false)
+      .setMaxLength(500);
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(inputTitulo),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(inputPregunta)
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
+  // 2. CONSULTAR IA -> Abrir Modal V2
   if (value === "ask") {
     const modal = new ModalBuilder()
       .setCustomId("tryout:modal_ask")
@@ -260,7 +301,7 @@ export async function handleTryoutMainMenu(
     return;
   }
 
-  // 2. AGREGAR TEXTO MANUAL -> Abrir Modal V2
+  // 3. AGREGAR TEXTO MANUAL -> Abrir Modal V2
   if (value === "add_text") {
     const modal = new ModalBuilder()
       .setCustomId("tryout:modal_add_text")
@@ -287,34 +328,6 @@ export async function handleTryoutMainMenu(
       new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido)
     );
     await interaction.showModal(modal);
-    return;
-  }
-
-  // 3. CARGAR ARCHIVOS E IMÁGENES -> Mostrar guía
-  if (value === "upload_info") {
-    await interaction.deferUpdate();
-    const container = buildTryoutContainer(
-      interaction.guild,
-      interaction.user,
-      0x3b82f6,
-      "# Tryout IA · Subir Archivos e Imágenes",
-      [
-        "### 📁 ¿Cómo subir archivos o imágenes al bot?",
-        "",
-        "Para subir documentos o imágenes y agregarlos a la base de conocimiento de la IA:",
-        "",
-        "› **Comando:** `/tryout ia archivo:[adjuntar tu archivo]`",
-        "",
-        "**Formatos aceptados:**",
-        "• 📄 **Documentos:** PDF (`.pdf`), Word (`.docx`), Excel (`.xlsx`, `.xls`)",
-        "• 🖼️ **Imágenes (Groq Vision):** PNG, JPG, JPEG, WEBP, GIF",
-        "• 📝 **Texto:** TXT, Markdown (`.md`), CSV, JSON, XML",
-        "",
-        "También puedes agregar una pregunta opcional en el mismo comando.",
-      ].join("\n"),
-      buildMainMenuRow(guildId)
-    );
-    await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     return;
   }
 
@@ -360,7 +373,7 @@ export async function renderDeleteMultiSelect(
       interaction.user,
       0x6b7280,
       "# Tryout IA · Eliminar Documentos",
-      "ℹ️ **No hay documentos cargados en este servidor.**\nUsa `/tryout ia` para cargar archivos o textos.",
+      "ℹ️ **No hay documentos cargados en este servidor.**\nUsa el menú principal para cargar archivos o textos.",
       buildMainMenuRow(guildId)
     );
     if (interaction.isRepliable()) {
@@ -499,14 +512,134 @@ export async function renderInfoView(
   await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
-// ─── HANDLER PARA MODALS V2 (PREGUNTA, AGREGAR TEXTO) ─────────────────────────
+// ─── HANDLER PARA MODALS V2 (URL/TEXTO, PREGUNTA, AGREGAR TEXTO) ──────────────
 export async function handleTryoutModalSubmit(
   interaction: ModalSubmitInteraction
 ): Promise<void> {
   const id = interaction.customId;
   const guildId = interaction.guildId ?? "global";
 
-  // 1. MODAL V2: PREGUNTA (tryout:modal_ask)
+  // ── 1. MODAL V2: CARGAR URL O TEXTO (tryout:modal_upload_url) ───────────
+  if (id === "tryout:modal_upload_url") {
+    const titulo = interaction.fields.getTextInputValue("titulo").trim();
+    const inputVal = interaction.fields.getTextInputValue("contenido_url").trim();
+    const preguntaVal = interaction.fields.getTextInputValue("pregunta")?.trim() ?? "";
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const esUrl = /^https?:\/\//i.test(inputVal);
+    let textoFinal = "";
+    let tipoFuente: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
+
+    if (esUrl) {
+      // Descargar desde URL (Discord CDN link, Imgur, PDF link, etc.)
+      try {
+        const res: any = await fetch(inputVal);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+        const ext = getExtension(inputVal) || (contentType.includes("pdf") ? ".pdf" : contentType.includes("image") ? ".png" : ".txt");
+        tipoFuente = getTipoLabel(ext);
+
+        const fileBuffer = Buffer.from(await res.arrayBuffer());
+        const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, inputVal);
+
+        if (esImagen || contentType.includes("image")) {
+          if (!config.groqApiKey) {
+            await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
+            return;
+          }
+          const descripcion = await describirImagen(inputVal, config.groqApiKey);
+          textoFinal = `[Contenido de imagen "${titulo}"]:\n${descripcion}`;
+          tipoFuente = "Imagen";
+        } else {
+          textoFinal = texto;
+        }
+      } catch (err) {
+        console.error(`[TRYOUT_IA] Error descargando desde URL ${inputVal}:`, err);
+        await interaction.editReply({
+          content: `❌ No se pudo descargar ni procesar el contenido desde el enlace proporcionado.\nAsegúrate de que la URL sea pública e inténtalo de nuevo.`,
+        });
+        return;
+      }
+    } else {
+      // Es texto manual directo ingresado en el modal V2
+      textoFinal = inputVal;
+      tipoFuente = "Texto";
+    }
+
+    if (!textoFinal || textoFinal.length < 5) {
+      await interaction.editReply({ content: "⚠️ No se pudo extraer texto suficiente." });
+      return;
+    }
+
+    // Guardar en cache
+    const item = documentCache.addItem(guildId, {
+      name: titulo,
+      type: tipoFuente,
+      text: textoFinal,
+    });
+
+    // Si había pregunta opcional, consultar a Groq AI
+    let respuestaIA = "";
+    if (preguntaVal) {
+      const combined = documentCache.getCombined(guildId);
+      if (config.groqApiKey && combined.count > 0) {
+        try {
+          const res = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${config.groqApiKey}`,
+            },
+            body: JSON.stringify({
+              model: GROQ_MODEL,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    `Eres un asistente inteligente de Sonora RP. Responde basándote en el conocimiento cargado.\n\n` +
+                    `--- CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN ---`,
+                },
+                { role: "user", content: preguntaVal },
+              ],
+              max_tokens: 1000,
+              temperature: 0.3,
+            }),
+          }) as any;
+
+          if (res.ok) {
+            const data = await res.json() as any;
+            respuestaIA = data?.choices?.[0]?.message?.content?.trim() ?? "";
+          }
+        } catch (e) {
+          console.error("[TRYOUT_IA] Error consultando IA tras guardar modal:", e);
+        }
+      }
+    }
+
+    const items = documentCache.getItems(guildId);
+    const container = buildTryoutContainer(
+      interaction.guild,
+      interaction.user,
+      0x2ecc71,
+      "# Tryout IA · Fuente Almacenada (Modal V2)",
+      [
+        `✅ **Nueva fuente memorizada exitosamente.**`,
+        `› **Título:** \`${item.name}\``,
+        `› **Tipo:** \`${item.type}\``,
+        `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
+        `› **Total de fuentes en el bot:** \`${items.length}\``,
+        respuestaIA ? `\n---\n**Pregunta:** > ${preguntaVal}\n\n**Respuesta IA:**\n${respuestaIA}` : "",
+      ].join("\n"),
+      buildMainMenuRow(guildId)
+    );
+
+    await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  // ── 2. MODAL V2: PREGUNTA (tryout:modal_ask) ─────────────────────────────
   if (id === "tryout:modal_ask") {
     const pregunta = interaction.fields.getTextInputValue("pregunta");
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -588,7 +721,7 @@ export async function handleTryoutModalSubmit(
     return;
   }
 
-  // 2. MODAL V2: AGREGAR TEXTO (tryout:modal_add_text)
+  // ── 3. MODAL V2: AGREGAR TEXTO (tryout:modal_add_text) ───────────────────
   if (id === "tryout:modal_add_text") {
     const titulo = interaction.fields.getTextInputValue("titulo").trim();
     const contenido = interaction.fields.getTextInputValue("contenido").trim();
