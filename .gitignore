@@ -4,3 +4,4 @@ node_modules/
 transcripts/generated/*.html
 *.log
 .DS_Store
+dist/
