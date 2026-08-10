@@ -30,11 +30,13 @@ import economiaCommand from "./commands/economia.js";
 import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
 import cmdCommand from "./commands/cmd.js";
+import bienvenidaCommand from "./commands/bienvenida.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
 import * as interactionEvent from "./events/interactionCreate.js";
 import * as messageCreateEvent from "./events/messageCreate.js";
+import * as guildMemberAddEvent from "./events/guildMemberAdd.js";
 
 import { DefaultWebSocketManagerOptions } from "@discordjs/ws";
 
@@ -82,6 +84,7 @@ const commands: Command[] = [
   multarCommand,
   multasCommand,
   cmdCommand,
+  bienvenidaCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
@@ -101,6 +104,10 @@ client.on(interactionEvent.name, async (...args) => {
 
 client.on(messageCreateEvent.name, async (...args) => {
   await messageCreateEvent.execute(args[0] as any);
+});
+
+client.on(guildMemberAddEvent.name, async (...args) => {
+  await guildMemberAddEvent.execute(args[0] as any);
 });
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────

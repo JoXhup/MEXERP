@@ -30,6 +30,7 @@ import economiaCommand from "./commands/economia.js";
 import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
 import cmdCommand from "./commands/cmd.js";
+import bienvenidaCommand from "./commands/bienvenida.js";
 
 const commands = [
   panelCommand,
@@ -51,6 +52,7 @@ const commands = [
   multarCommand,
   multasCommand,
   cmdCommand,
+  bienvenidaCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
