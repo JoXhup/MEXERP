@@ -96,9 +96,15 @@ async function renderLiquidGlassV3({ username, memberCount, avatarUrl }) {
   // ── Fondo en canvas separado ──
   const bgCanvas = createCanvas(width, height);
   const bgCtx = bgCanvas.getContext("2d");
-  const bgPath = path.join(process.cwd(), "assets", "BienvenidasSinaloaRP.png");
+  const bgPath = path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png");
   if (fs.existsSync(bgPath)) {
-    bgCtx.drawImage(await loadImage(bgPath), 0, 0, width, height);
+    const bgImg = await loadImage(bgPath);
+    // Recortar la máscara de óvalo negra exterior tomando el área central útil (16:9 limpia)
+    const cropX = Math.round(bgImg.width * 0.11);
+    const cropY = Math.round(bgImg.height * 0.08);
+    const cropW = Math.round(bgImg.width * 0.78);
+    const cropH = Math.round(bgImg.height * 0.84);
+    bgCtx.drawImage(bgImg, cropX, cropY, cropW, cropH, 0, 0, width, height);
   } else {
     bgCtx.fillStyle = "#0c0d1a";
     bgCtx.fillRect(0, 0, width, height);

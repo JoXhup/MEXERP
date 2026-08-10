@@ -23,20 +23,32 @@ function roundedRect(ctx: any, x: number, y: number, w: number, h: number, r: nu
 }
 
 /**
- * Renderiza la tarjeta de bienvenida oficial de Sonora RP con diseño Liquid Glass refinado.
+ * Renderiza la tarjeta de bienvenida oficial de Sonora RP usando BienvenidasSonoraRP.png (16:9 limpia)
  */
 export async function renderWelcomeCard(options: RenderWelcomeOptions): Promise<Buffer> {
   const width = 1024;
   const height = 576;
 
-  // 1. Cargar fondo en canvas separado
+  // 1. Cargar fondo en canvas separado y recortar bordes negros exteriores
   const bgCanvas = createCanvas(width, height);
   const bgCtx = bgCanvas.getContext("2d");
 
-  const bgPath = path.join(process.cwd(), "assets", "BienvenidasSinaloaRP.png");
-  if (fs.existsSync(bgPath)) {
-    const bgImage = await loadImage(bgPath);
-    bgCtx.drawImage(bgImage, 0, 0, width, height);
+  const bgPaths = [
+    path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png"),
+    path.join(process.cwd(), "src", "utils", "Assets", "BienvenidasSonoraRP.png"),
+    path.join(process.cwd(), "assets", "BienvenidasSinaloaRP.png"),
+  ];
+
+  let bgPath = bgPaths.find((p) => fs.existsSync(p));
+
+  if (bgPath) {
+    const bgImg = await loadImage(bgPath);
+    // Recortar esquinas negras externas del PNG para llenar todo el recuadro 16:9 limpiamente
+    const cropX = Math.round(bgImg.width * 0.11);
+    const cropY = Math.round(bgImg.height * 0.08);
+    const cropW = Math.round(bgImg.width * 0.78);
+    const cropH = Math.round(bgImg.height * 0.84);
+    bgCtx.drawImage(bgImg, cropX, cropY, cropW, cropH, 0, 0, width, height);
   } else {
     bgCtx.fillStyle = "#0c0d1a";
     bgCtx.fillRect(0, 0, width, height);

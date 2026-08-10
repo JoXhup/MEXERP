@@ -1,11 +1,10 @@
-import { loadImage, createCanvas } from "@napi-rs/canvas";
+import { loadImage } from "@napi-rs/canvas";
 import path from "path";
-import fs from "fs";
 
-async function testImage() {
-  const imgPath = path.join(process.cwd(), "assets", "BienvenidasSinaloaRP.png");
+async function check() {
+  const imgPath = path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png");
   const img = await loadImage(imgPath);
-  console.log(`Dimensions: ${img.width}x${img.height}`);
+  console.log(`BienvenidasSonoraRP.png dimensions: ${img.width}x${img.height}`);
 }
 
-testImage().catch(console.error);
+check().catch(console.error);

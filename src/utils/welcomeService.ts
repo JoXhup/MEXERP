@@ -1,6 +1,13 @@
 import {
-  EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  SectionBuilder,
+  ThumbnailBuilder,
+  MediaGalleryBuilder,
   AttachmentBuilder,
+  MessageFlags,
   type GuildMember,
   type TextChannel,
 } from "discord.js";
@@ -9,7 +16,7 @@ import { renderWelcomeCard } from "./welcomeCanvas.js";
 export const WELCOME_CHANNEL_ID = "1528571135678087340";
 
 /**
- * Ejecuta el flujo completo de bienvenida para un miembro (Canal de bienvenidas + DM de verificación)
+ * Ejecuta el flujo completo de bienvenida para un miembro usando Containers V2
  */
 export async function processWelcomeFlow(member: GuildMember): Promise<{
   welcomeSent: boolean;
@@ -49,33 +56,52 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
     console.error("[WELCOME_SERVICE] Error generando tarjeta Canvas:", err);
   }
 
-  // ─── 2. ENVIAR A CANAL DE BIENVENIDAS ───────────────────────────────────────
+  // ─── 2. ENVIAR A CANAL DE BIENVENIDAS (CONTAINER V2) ─────────────────────────
   const welcomeChannel = guild.channels.cache.get(WELCOME_CHANNEL_ID) as TextChannel | undefined
     ?? (await guild.channels.fetch(WELCOME_CHANNEL_ID).catch(() => null) as TextChannel | null);
 
   if (welcomeChannel && welcomeChannel.isTextBased()) {
     try {
-      const files: AttachmentBuilder[] = [];
-
-      const channelEmbed = new EmbedBuilder()
-        .setColor(0x0005ff) // Embed color #0005ff
-        .setTitle("Bienvenid@ to Sonora RP")
-        .setDescription(
-          "Gracias por unirte a nuestra comunidad de **Roleplay** en ER:LC, revisa nuestros canales informativos y reglamentos para evitar sanciones por parte del staff."
+      const channelContainer = new ContainerBuilder()
+        .setAccentColor(0x0005ff) // Embed color #0005ff
+        .addSectionComponents(
+          new SectionBuilder()
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                `# Bienvenid@ to Sonora RP\n\nHola <@${member.id}>, gracias por unirte a nuestra comunidad de **Roleplay** en ER:LC, revisa nuestros canales informativos y reglamentos para evitar sanciones por parte del staff.`
+              )
+            )
+            .setThumbnailAccessory(new ThumbnailBuilder().setURL(guildIcon))
         )
-        .setThumbnail(guildIcon)
-        .setFooter({ text: `SORP System · ${dateStr}` });
+        .addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+        );
+
+      const files: AttachmentBuilder[] = [];
 
       if (canvasBuffer) {
         const attachment = new AttachmentBuilder(canvasBuffer, { name: "bienvenida.png" });
         files.push(attachment);
-        channelEmbed.setImage("attachment://bienvenida.png");
+
+        channelContainer.addMediaGalleryComponents(
+          new MediaGalleryBuilder().addItems({
+            media: { url: "attachment://bienvenida.png" },
+          })
+        );
       }
 
+      channelContainer
+        .addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
+        );
+
       await welcomeChannel.send({
-        content: `<@${member.id}>`,
-        embeds: [channelEmbed],
+        components: [channelContainer],
         files,
+        flags: MessageFlags.IsComponentsV2,
       });
 
       welcomeSent = true;
@@ -84,19 +110,35 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
     }
   }
 
-  // ─── 3. ENVIAR AL DM DEL USUARIO ───────────────────────────────────────────
+  // ─── 3. ENVIAR AL DM DEL USUARIO (CONTAINER V2) ──────────────────────────────
   try {
-    const dmEmbed = new EmbedBuilder()
-      .setColor(0xe74c3c) // Color embed Red (#e74c3c)
-      .setTitle("Welcome")
-      .setDescription(
-        `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
+    const dmContainer = new ContainerBuilder()
+      .setAccentColor(0xe74c3c) // Color container Red (#e74c3c)
+      .addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("# Welcome")
+          )
+          .setThumbnailAccessory(new ThumbnailBuilder().setURL(botIcon))
       )
-      .setThumbnail(botIcon)
-      .setFooter({ text: `SORP System · ${dateStr}` });
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
+        )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
+      );
 
     await member.send({
-      embeds: [dmEmbed],
+      components: [dmContainer],
+      flags: MessageFlags.IsComponentsV2,
     });
 
     dmSent = true;
