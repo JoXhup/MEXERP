@@ -51,26 +51,20 @@ const command: Command = {
       return;
     }
 
-    // ─── Verificar si hay documento cargado via /tryout ia ───────────────────
+    // ─── Verificar si hay documentos cargados via /tryout ia ─────────────────
     const guildId = interaction.guildId ?? "global";
-    const cachedDoc = documentCache.get(guildId);
+    const combined = documentCache.getCombined(guildId);
 
-    // Construir el system prompt según si hay documento o no
     let systemPrompt: string;
     let modoDoc = false;
 
-    if (cachedDoc) {
+    if (combined.count > 0) {
       modoDoc = true;
-      const maxDocLength = 12000;
-      const docContext = cachedDoc.text.length > maxDocLength
-        ? cachedDoc.text.substring(0, maxDocLength) + "\n\n[... documento truncado por límite de contexto ...]"
-        : cachedDoc.text;
-
       systemPrompt =
-        `Eres un asistente inteligente de Sonora RP. Hay un documento activo cargado. ` +
-        `Si la pregunta está relacionada con el documento, responde ÚNICAMENTE basándote en su contenido. ` +
-        `Si la pregunta no tiene relación con el documento, responde de forma general en español.\n\n` +
-        `--- DOCUMENTO ACTIVO: ${cachedDoc.filename} ---\n${docContext}\n--- FIN DEL DOCUMENTO ---`;
+        `Eres un asistente inteligente de Sonora RP. Hay (${combined.count}) documento(s)/fuente(s) de conocimiento activa(s).\n` +
+        `Si la pregunta está relacionada con el conocimiento cargado, responde ÚNICAMENTE basándote en su contenido.\n` +
+        `Si la pregunta no tiene relación, responde de forma general en español.\n\n` +
+        `--- CONOCIMIENTO CARGADO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
     } else {
       systemPrompt =
         "Eres un asistente útil del servidor de Discord 'Sonora RP'. " +
@@ -117,15 +111,14 @@ const command: Command = {
       respuesta = respuesta.substring(0, 3900) + "\n\n*(Respuesta truncada)*";
     }
 
-    // Thumbnail: icono del servidor (URL estable, no expira)
+    // Thumbnail: icono del servidor
     const thumbnailUrl =
       interaction.guild?.iconURL({ extension: "png", size: 256, forceStatic: true }) ??
       interaction.client.user?.displayAvatarURL({ extension: "png", size: 256, forceStatic: true }) ??
       "https://i.imgur.com/AfFp7pu.png";
 
-    // Línea de contexto: si hay doc, mostrar cuál
-    const docInfo = modoDoc && cachedDoc
-      ? `**Documento activo:** \`${cachedDoc.filename}\`\n`
+    const docInfo = modoDoc
+      ? `**Conocimiento activo (${combined.count}):** \`${combined.sources}\`\n`
       : "";
 
     const container = new ContainerBuilder()
@@ -158,7 +151,7 @@ const command: Command = {
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# Sonora RP · Asistente Virtual${modoDoc ? " · Modo Documento" : ""} · ${getFooterTimestamp()}`
+          `-# Sonora RP · Asistente Virtual${modoDoc ? ` · ${combined.count} Fuentes` : ""} · ${getFooterTimestamp()}`
         )
       );
 

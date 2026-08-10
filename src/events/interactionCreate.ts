@@ -22,6 +22,11 @@ import {
   handleMyActiveFinesButton,
   handleMultarModalSubmit,
 } from "../handlers/fineHandler.js";
+import {
+  handleTryoutMainMenu,
+  handleTryoutDeleteSelect,
+  handleTryoutModalSubmit,
+} from "../handlers/tryoutHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -160,6 +165,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
         await handleSecondaryModals(interaction, client);
         return;
       }
+
+      // Modales de Tryout IA
+      if (id.startsWith("tryout:modal_")) {
+        await handleTryoutModalSubmit(interaction);
+        return;
+      }
       return;
     }
 
@@ -174,6 +185,17 @@ export async function execute(interaction: Interaction, client: Client): Promise
 
       if (id.startsWith("ticket:management:")) {
         await handleTicketManagementSelect(interaction, client);
+        return;
+      }
+
+      // Select Menus de Tryout IA
+      if (id === "tryout:main_menu") {
+        await handleTryoutMainMenu(interaction);
+        return;
+      }
+
+      if (id === "tryout:delete_select") {
+        await handleTryoutDeleteSelect(interaction);
         return;
       }
     }

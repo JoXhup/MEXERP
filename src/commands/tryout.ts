@@ -2,123 +2,30 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
-  ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  SectionBuilder,
-  ThumbnailBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { Command } from "../types/index.js";
 import { config } from "../config.js";
-import { getFooterTimestamp } from "../utils/components.js";
 import { documentCache } from "../utils/documentCache.js";
-import { createRequire } from "module";
+import {
+  renderTryoutPanel,
+  renderDeleteMultiSelect,
+  renderInfoView,
+  parsearArchivo,
+  describirImagen,
+  getExtension,
+  getTipoLabel,
+  TODOS_TIPOS,
+  buildTryoutContainer,
+  buildMainMenuRow,
+} from "../handlers/tryoutHandler.js";
 
-const require = createRequire(import.meta.url);
-const pdfParse  = require("pdf-parse")  as (buf: Buffer) => Promise<{ text: string }>;
-const mammoth   = require("mammoth")    as { extractRawText(input: { buffer: Buffer }): Promise<{ value: string }> };
-const XLSX      = require("xlsx")       as typeof import("xlsx");
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
 
-const GROQ_API_URL        = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL          = "llama-3.3-70b-versatile";
-const GROQ_VISION_MODEL   = "meta-llama/llama-4-scout-17b-16e-instruct"; // Soporta vision
-
-// ─── Tipos de archivo soportados ─────────────────────────────────────────────
-const TIPOS_TEXTO   = [".txt", ".md", ".csv", ".json", ".yaml", ".yml", ".xml", ".log"];
-const TIPOS_PDF     = [".pdf"];
-const TIPOS_WORD    = [".docx", ".doc"];
-const TIPOS_EXCEL   = [".xlsx", ".xls", ".ods"];
-const TIPOS_IMAGEN  = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
-const TODOS_TIPOS   = [...TIPOS_PDF, ...TIPOS_WORD, ...TIPOS_EXCEL, ...TIPOS_TEXTO, ...TIPOS_IMAGEN];
-
-function getExtension(name: string): string {
-  return name.toLowerCase().substring(name.lastIndexOf("."));
-}
-
-function getTipoLabel(ext: string): string {
-  if (TIPOS_PDF.includes(ext))    return "PDF";
-  if (TIPOS_WORD.includes(ext))   return "Word";
-  if (TIPOS_EXCEL.includes(ext))  return "Excel";
-  if (TIPOS_IMAGEN.includes(ext)) return "Imagen";
-  return "Texto";
-}
-
-// ─── Parsear archivo según su tipo ───────────────────────────────────────────
-async function parsearArchivo(
-  buffer: Buffer,
-  ext: string,
-  url: string
-): Promise<{ texto: string; esImagen: boolean }> {
-  // PDF
-  if (TIPOS_PDF.includes(ext)) {
-    const parsed = await pdfParse(buffer);
-    return { texto: parsed.text.trim(), esImagen: false };
-  }
-
-  // Word
-  if (TIPOS_WORD.includes(ext)) {
-    const result = await mammoth.extractRawText({ buffer });
-    return { texto: result.value.trim(), esImagen: false };
-  }
-
-  // Excel
-  if (TIPOS_EXCEL.includes(ext)) {
-    const wb = XLSX.read(buffer, { type: "buffer" });
-    const lineas: string[] = [];
-    for (const sheetName of wb.SheetNames) {
-      const ws = wb.Sheets[sheetName];
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      lineas.push(`=== Hoja: ${sheetName} ===\n${csv}`);
-    }
-    return { texto: lineas.join("\n\n").trim(), esImagen: false };
-  }
-
-  // Imagen
-  if (TIPOS_IMAGEN.includes(ext)) {
-    return { texto: url, esImagen: true };
-  }
-
-  // Texto plano y demás
-  return { texto: buffer.toString("utf-8").trim(), esImagen: false };
-}
-
-// ─── Describir imagen con Groq Vision ────────────────────────────────────────
-async function describirImagen(imageUrl: string, groqKey: string): Promise<string> {
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_VISION_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Describe detalladamente el contenido de esta imagen en español. Extrae todo el texto visible, tablas, datos, etc.",
-            },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-    }),
-  }) as any;
-
-  if (!res.ok) throw new Error(`Groq Vision error: ${res.status}`);
-  const data = (await res.json()) as any;
-  return data?.choices?.[0]?.message?.content?.trim() ?? "No se pudo describir la imagen.";
-}
-
-// ─── Comando ─────────────────────────────────────────────────────────────────
 const data = new SlashCommandBuilder()
   .setName("tryout")
-  .setDescription("Sistema de conocimiento IA para Sonora RP (solo admins).")
+  .setDescription("Sistema de conocimiento e IA para Sonora RP (solo admins).")
 
   .addSubcommand((sub) =>
     sub
@@ -147,28 +54,33 @@ const data = new SlashCommandBuilder()
       .addStringOption((opt) =>
         opt
           .setName("modo")
-          .setDescription("¿Reemplazar el conocimiento actual o añadir? (default: reemplazar)")
+          .setDescription("¿Reemplazar el conocimiento actual o añadir? (default: añadir)")
           .setRequired(false)
           .addChoices(
-            { name: "Reemplazar todo", value: "reemplazar" },
-            { name: "Añadir al conocimiento actual", value: "añadir" }
+            { name: "Añadir al conocimiento actual", value: "añadir" },
+            { name: "Reemplazar todo", value: "reemplazar" }
           )
       )
   )
 
   .addSubcommand((sub) =>
     sub
+      .setName("panel")
+      .setDescription("Abre el Panel Interactivo V2 con menú de opciones (solo admins).")
+  )
+
+  .addSubcommand((sub) =>
+    sub
       .setName("limpiar")
-      .setDescription("Elimina TODO el conocimiento almacenado en la IA (solo admins).")
+      .setDescription("Abre el Menú de Selección Múltiple para borrar documentos (solo admins).")
   )
 
   .addSubcommand((sub) =>
     sub
       .setName("info")
-      .setDescription("Muestra qué conocimiento tiene cargado la IA actualmente (solo admins).")
+      .setDescription("Muestra la lista de documentos y conocimiento almacenado (solo admins).")
   );
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
 const command: Command = {
   data,
   adminOnly: false,
@@ -181,115 +93,50 @@ const command: Command = {
       return;
     }
 
+    const sub = interaction.options.getSubcommand(false) ?? "panel";
+    const guildId = interaction.guildId ?? "global";
+
+    // ─── Subcomando: /tryout panel ───────────────────────────────────────────
+    if (sub === "panel") {
+      await renderTryoutPanel(interaction);
+      return;
+    }
+
+    // ─── Subcomando: /tryout limpiar (abre el Multi-Select de eliminación) ───
+    if (sub === "limpiar") {
+      await renderDeleteMultiSelect(interaction);
+      return;
+    }
+
+    // ─── Subcomando: /tryout info ─────────────────────────────────────────────
+    if (sub === "info") {
+      await renderInfoView(interaction);
+      return;
+    }
+
+    // ─── Subcomando: /tryout ia ───────────────────────────────────────────────
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const sub      = interaction.options.getSubcommand();
-    const guildId  = interaction.guildId ?? "global";
-
-    const thumbnailUrl =
-      interaction.guild?.iconURL({ extension: "png", size: 256, forceStatic: true }) ??
-      interaction.client.user?.displayAvatarURL({ extension: "png", size: 256, forceStatic: true }) ??
-      "https://i.imgur.com/AfFp7pu.png";
-
-    // ── Función helper: construir embed base ─────────────────────────────────
-    const buildContainer = (color: number, title: string, body: string, footer?: string) =>
-      new ContainerBuilder()
-        .setAccentColor(color)
-        .addSectionComponents(
-          new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(title))
-            .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnailUrl))
-        )
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        )
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(body))
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            `-# Sonora RP · Tryout IA · ${footer ?? getFooterTimestamp()}`
-          )
-        );
-
-    // ════════════════════════════════════════════════════════════════════════
-    // /tryout limpiar
-    // ════════════════════════════════════════════════════════════════════════
-    if (sub === "limpiar") {
-      const habia = documentCache.has(guildId);
-      const info  = documentCache.get(guildId);
-      documentCache.delete(guildId);
-
-      await interaction.editReply({
-        components: [
-          buildContainer(
-            habia ? 0xef4444 : 0x6b7280,
-            "# Tryout IA · Conocimiento Eliminado",
-            habia
-              ? `✅ El conocimiento **\`${info?.filename}\`** ha sido eliminado.\nLa IA responderá de forma general a partir de ahora.`
-              : "ℹ️ No había ningún conocimiento cargado."
-          ),
-        ],
-        flags: MessageFlags.IsComponentsV2,
-      });
-      return;
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // /tryout info
-    // ════════════════════════════════════════════════════════════════════════
-    if (sub === "info") {
-      const cachedDoc = documentCache.get(guildId);
-
-      await interaction.editReply({
-        components: [
-          buildContainer(
-            cachedDoc ? 0x2ecc71 : 0x6b7280,
-            "# Tryout IA · Estado del Conocimiento",
-            cachedDoc
-              ? [
-                  `› **Estado:** ✅ Conocimiento activo`,
-                  `› **Fuente:** \`${cachedDoc.filename}\``,
-                  `› **Caracteres almacenados:** \`${cachedDoc.text.length.toLocaleString("es-MX")}\``,
-                  ``,
-                  `Usa \`/tryout ia pregunta:[...]\` o \`/chatgpt\` para consultarlo.`,
-                  `Usa \`/tryout limpiar\` para borrar el conocimiento.`,
-                ].join("\n")
-              : [
-                  `› **Estado:** ❌ Sin conocimiento cargado`,
-                  ``,
-                  `Usa \`/tryout ia archivo:[archivo]\` o \`/tryout ia texto:[...]\` para cargar.`,
-                ].join("\n")
-          ),
-        ],
-        flags: MessageFlags.IsComponentsV2,
-      });
-      return;
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // /tryout ia
-    // ════════════════════════════════════════════════════════════════════════
     const attachment  = interaction.options.getAttachment("archivo");
     const textoInput  = interaction.options.getString("texto");
     const pregunta    = interaction.options.getString("pregunta");
-    const modo        = interaction.options.getString("modo") ?? "reemplazar";
+    const modo        = interaction.options.getString("modo") ?? "añadir";
 
     if (!attachment && !textoInput && !pregunta) {
-      await interaction.editReply({
-        content: "❌ Debes proporcionar al menos: `archivo`, `texto`, o `pregunta`.",
-      });
+      // Si no se proporcionó ningún parámetro, mostramos el Panel Interactivo
+      await renderTryoutPanel(interaction);
       return;
     }
 
     let nuevoTexto  = "";
     let nuevaFuente = "";
+    let tipoFuente: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
     let seCargoAlgo = false;
 
-    // ── Procesar archivo ─────────────────────────────────────────────────────
+    // ── 1. Procesar Archivo (PDF, Word, Excel, Imagen, TXT, etc.) ─────────────
     if (attachment) {
       const ext = getExtension(attachment.name);
+      tipoFuente = getTipoLabel(ext);
 
       if (!TODOS_TIPOS.includes(ext)) {
         await interaction.editReply({
@@ -301,7 +148,6 @@ const command: Command = {
         return;
       }
 
-      // Descargar
       let fileBuffer: Buffer;
       try {
         const res: any = await fetch(attachment.url);
@@ -313,14 +159,12 @@ const command: Command = {
         return;
       }
 
-      // Parsear
       try {
         const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, attachment.url);
 
         if (esImagen) {
-          // Usar Groq Vision para describir la imagen
           if (!config.groqApiKey) {
-            await interaction.editReply({ content: "❌ No hay API Key de Groq configurada." });
+            await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
             return;
           }
           try {
@@ -328,34 +172,30 @@ const command: Command = {
             nuevoTexto  = `[Contenido de imagen "${attachment.name}"]:\n${descripcion}`;
             nuevaFuente = `Imagen: ${attachment.name}`;
           } catch (err) {
-            console.error("[TRYOUT_IA] Error en Groq Vision:", err);
-            await interaction.editReply({
-              content: "❌ No se pudo analizar la imagen con IA.",
-            });
+            console.error("[TRYOUT_IA] Error Groq Vision:", err);
+            await interaction.editReply({ content: "❌ No se pudo analizar la imagen con IA." });
             return;
           }
         } else {
           if (!texto || texto.length < 5) {
-            await interaction.editReply({
-              content: "⚠️ El archivo no contiene texto legible.",
-            });
+            await interaction.editReply({ content: "⚠️ El archivo no contiene texto legible." });
             return;
           }
           nuevoTexto  = texto;
-          nuevaFuente = `${getTipoLabel(ext)}: ${attachment.name}`;
+          nuevaFuente = attachment.name;
         }
 
         seCargoAlgo = true;
       } catch (err) {
         console.error("[TRYOUT_IA] Error parseando archivo:", err);
         await interaction.editReply({
-          content: `❌ No se pudo procesar el archivo \`${attachment.name}\`. ¿Está dañado o protegido?`,
+          content: `❌ No se pudo procesar el archivo \`${attachment.name}\`.`,
         });
         return;
       }
     }
 
-    // ── Procesar texto manual ─────────────────────────────────────────────────
+    // ── 2. Procesar Texto Manual ──────────────────────────────────────────────
     if (textoInput?.trim()) {
       const textoLimpio = textoInput.trim();
       if (seCargoAlgo) {
@@ -363,75 +203,74 @@ const command: Command = {
         nuevaFuente = `${nuevaFuente} + texto manual`;
       } else {
         nuevoTexto  = textoLimpio;
-        nuevaFuente = "Texto manual";
+        nuevaFuente = `Texto manual (${new Date().toLocaleTimeString("es-MX")})`;
+        tipoFuente  = "Texto";
       }
       seCargoAlgo = true;
     }
 
-    // ── Guardar en cache ──────────────────────────────────────────────────────
+    // ── 3. Guardar en Cache ───────────────────────────────────────────────────
     if (seCargoAlgo) {
-      const existente = documentCache.get(guildId);
-
-      if (modo === "añadir" && existente) {
-        documentCache.set(guildId, {
-          text:     existente.text + "\n\n" + nuevoTexto,
-          filename: `${existente.filename} + ${nuevaFuente}`,
-        });
-      } else {
-        documentCache.set(guildId, { text: nuevoTexto, filename: nuevaFuente });
+      if (modo === "reemplazar") {
+        documentCache.clear(guildId);
       }
 
-      // Solo confirmar carga si no hay pregunta
-      if (!pregunta) {
-        const cached = documentCache.get(guildId)!;
+      documentCache.addItem(guildId, {
+        name: nuevaFuente,
+        type: tipoFuente,
+        text: nuevoTexto,
+      });
 
-        await interaction.editReply({
-          components: [
-            buildContainer(
-              0x2ecc71,
-              "# Tryout IA · Conocimiento Cargado",
-              [
-                `› **Fuente:** \`${cached.filename}\``,
-                `› **Modo:** \`${modo === "añadir" ? "Añadido al conocimiento anterior" : "Reemplazado"}\``,
-                `› **Caracteres totales:** \`${cached.text.length.toLocaleString("es-MX")}\``,
-                `› **Estado:** ✅ Listo para consultas`,
-                ``,
-                `Puedes consultar con \`/tryout ia pregunta:[...]\` o \`/chatgpt pregunta:[...]\`.`,
-                `Para borrar: \`/tryout limpiar\` · Para ver estado: \`/tryout info\``,
-              ].join("\n")
-            ),
-          ],
-          flags: MessageFlags.IsComponentsV2,
-        });
+      if (!pregunta) {
+        const items = documentCache.getItems(guildId);
+        const container = buildTryoutContainer(
+          interaction.guild,
+          interaction.user,
+          0x2ecc71,
+          "# Tryout IA · Conocimiento Cargado Exitosamente",
+          [
+            `✅ **Se memorizó nueva fuente de información.**`,
+            `› **Nombre:** \`${nuevaFuente}\``,
+            `› **Tipo:** \`${tipoFuente}\``,
+            `› **Modo:** \`${modo === "reemplazar" ? "Reemplazado todo" : "Añadido al conocimiento existente"}\``,
+            `› **Total de fuentes activas:** \`${items.length}\``,
+            "",
+            "Usa el menú de opciones abajo para consultar o gestionar.",
+          ].join("\n"),
+          buildMainMenuRow(guildId)
+        );
+
+        await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
         return;
       }
     }
 
-    // ── Responder pregunta ────────────────────────────────────────────────────
+    // ── 4. Responder Pregunta si la hay ───────────────────────────────────────
     if (!pregunta) {
-      await interaction.editReply({
-        content: "❌ Proporciona `archivo`, `texto`, o una `pregunta` si ya hay conocimiento cargado.",
-      });
+      await renderTryoutPanel(interaction);
       return;
     }
 
-    const cachedDoc = documentCache.get(guildId);
-    if (!cachedDoc) {
-      await interaction.editReply({
-        content: "⚠️ No hay conocimiento cargado.\nUsa `/tryout ia archivo:[...]` o `/tryout ia texto:[...]` primero.",
-      });
-      return;
-    }
-
+    const combined = documentCache.getCombined(guildId);
     if (!config.groqApiKey) {
       await interaction.editReply({ content: "❌ No hay API Key de Groq configurada." });
       return;
     }
 
-    const maxLen     = 12000;
-    const docContext = cachedDoc.text.length > maxLen
-      ? cachedDoc.text.substring(0, maxLen) + "\n\n[... contexto truncado ...]"
-      : cachedDoc.text;
+    let systemPrompt: string;
+    let modoDoc = false;
+
+    if (combined.count > 0) {
+      modoDoc = true;
+      systemPrompt =
+        `Eres un asistente inteligente de Sonora RP. Hay (${combined.count}) documento(s)/fuente(s) de conocimiento activa(s).\n` +
+        `Si la pregunta está relacionada con el conocimiento cargado, responde ÚNICAMENTE basándote en su contenido.\n` +
+        `Si la pregunta no tiene relación, responde de forma general en español.\n\n` +
+        `--- CONOCIMIENTO CARGADO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
+    } else {
+      systemPrompt =
+        "Eres un asistente útil del servidor de Discord 'Sonora RP'. Responde de forma clara y concisa en español.";
+    }
 
     let respuesta = "";
     try {
@@ -444,26 +283,18 @@ const command: Command = {
         body: JSON.stringify({
           model: GROQ_MODEL,
           messages: [
-            {
-              role: "system",
-              content:
-                `Eres un asistente inteligente de Sonora RP. ` +
-                `Responde ÚNICAMENTE basándote en el siguiente conocimiento. ` +
-                `Si la respuesta no está en el conocimiento, indícalo claramente. ` +
-                `Responde siempre en español de forma clara y precisa.\n\n` +
-                `--- CONOCIMIENTO: ${cachedDoc.filename} ---\n${docContext}\n--- FIN ---`,
-            },
+            { role: "system", content: systemPrompt },
             { role: "user", content: pregunta },
           ],
           max_tokens: 1000,
-          temperature: 0.3,
+          temperature: modoDoc ? 0.3 : 0.7,
         }),
       }) as any;
 
       if (!res.ok) {
-        const err = (await res.json()) as any;
+        const errData = (await res.json()) as any;
         await interaction.editReply({
-          content: `❌ Error de Groq: \`${err?.error?.message ?? res.status}\``,
+          content: `❌ Error de Groq: \`${errData?.error?.message ?? res.status}\``,
         });
         return;
       }
@@ -471,7 +302,7 @@ const command: Command = {
       const resData = (await res.json()) as any;
       respuesta = resData?.choices?.[0]?.message?.content?.trim() ?? "Sin respuesta.";
     } catch (err) {
-      console.error("[TRYOUT_IA] Error Groq:", err);
+      console.error("[TRYOUT_IA] Error en fetch Groq:", err);
       await interaction.editReply({ content: "❌ Error al conectar con Groq AI." });
       return;
     }
@@ -480,35 +311,18 @@ const command: Command = {
       respuesta = respuesta.substring(0, 3900) + "\n\n*(Respuesta truncada)*";
     }
 
-    const container = new ContainerBuilder()
-      .setAccentColor(0xf55036)
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent("# Tryout IA · Consulta")
-          )
-          .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnailUrl))
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `**Conocimiento activo:** \`${cachedDoc.filename}\`\n**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}`
-        )
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`**Respuesta:**\n${respuesta}`)
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP · Tryout IA · ${getFooterTimestamp()}`)
-      );
+    const docInfo = modoDoc
+      ? `**Conocimiento activo (${combined.count}):** \`${combined.sources}\`\n`
+      : "";
+
+    const container = buildTryoutContainer(
+      interaction.guild,
+      interaction.user,
+      0xf55036,
+      "# Tryout IA · Respuesta",
+      `${docInfo}**Pregunta de <@${interaction.user.id}>:**\n> ${pregunta}\n\n**Respuesta:**\n${respuesta}`,
+      buildMainMenuRow(guildId)
+    );
 
     await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
   },
