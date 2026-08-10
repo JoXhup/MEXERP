@@ -24,9 +24,16 @@ import { documentCache } from "../utils/documentCache.js";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
 const mammoth  = require("mammoth")   as { extractRawText(input: { buffer: Buffer }): Promise<{ value: string }> };
 const XLSX     = require("xlsx")      as typeof import("xlsx");
+
+// Extraer texto de PDF con unpdf (compatible con Bun Canary)
+async function extractPDFText(buf: Buffer): Promise<string> {
+  const { extractText } = await import("unpdf");
+  const uint8 = new Uint8Array(buf);
+  const { text } = await extractText(uint8, { mergePages: true });
+  return text ?? "";
+}
 
 const GROQ_API_URL       = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL         = "llama-3.3-70b-versatile";
@@ -59,8 +66,8 @@ export async function parsearArchivo(
   url: string
 ): Promise<{ texto: string; esImagen: boolean }> {
   if (TIPOS_PDF.includes(ext)) {
-    const parsed = await pdfParse(buffer);
-    return { texto: parsed.text.trim(), esImagen: false };
+    const texto = await extractPDFText(buffer);
+    return { texto: texto.trim(), esImagen: false };
   }
   if (TIPOS_WORD.includes(ext)) {
     const result = await mammoth.extractRawText({ buffer });
