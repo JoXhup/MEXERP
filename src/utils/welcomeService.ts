@@ -36,7 +36,8 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
 
   const guildIcon = guild.iconURL({ extension: "png", size: 256 })
     ?? "https://i.erlc.gg/erlc-logo.png";
-  const botIcon = client.user.displayAvatarURL({ extension: "png", size: 256 });
+  const botIcon = client.user?.displayAvatarURL({ extension: "png", size: 256 })
+    ?? guildIcon;
 
   // ─── 1. DIBUJAR TARJETA CANVAS ──────────────────────────────────────────────
   const memberCount = guild.memberCount;
@@ -72,7 +73,7 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
             .setThumbnailAccessory(new ThumbnailBuilder().setURL(guildIcon))
         )
         .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
         );
 
       const files: AttachmentBuilder[] = [];
@@ -90,12 +91,10 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
 
       channelContainer
         .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
         )
-        .addSectionComponents(
-          new SectionBuilder().addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`SORP System · ${dateStr}`)
-          )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
         );
 
       await welcomeChannel.send({
@@ -122,22 +121,18 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
           .setThumbnailAccessory(new ThumbnailBuilder().setURL(botIcon))
       )
       .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
-      .addSectionComponents(
-        new SectionBuilder().addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
-          )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
         )
       )
       .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
-      .addSectionComponents(
-        new SectionBuilder().addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`SORP System · ${dateStr}`)
-        )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
       );
 
     await member.send({
