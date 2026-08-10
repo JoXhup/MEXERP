@@ -1,11 +1,5 @@
 import {
-  ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  SectionBuilder,
-  ThumbnailBuilder,
-  MediaGalleryBuilder,
+  EmbedBuilder,
   AttachmentBuilder,
   type GuildMember,
   type TextChannel,
@@ -61,45 +55,26 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
 
   if (welcomeChannel && welcomeChannel.isTextBased()) {
     try {
-      const channelContainer = new ContainerBuilder()
-        .setAccentColor(0x0005ff) // Embed color #0005ff
-        .addSectionComponents(
-          new SectionBuilder()
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent(
-                `# Bienvenid@ to Sonora RP\n\nGracias por unirte a nuestra comunidad de **Roleplay** en ER:LC, revisa nuestros canales informativos y reglamentos para evitar sanciones por parte del staff.`
-              )
-            )
-            .setThumbnailAccessory(new ThumbnailBuilder().setURL(guildIcon))
-        )
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        );
-
       const files: AttachmentBuilder[] = [];
+
+      const channelEmbed = new EmbedBuilder()
+        .setColor(0x0005ff) // Embed color #0005ff
+        .setTitle("Bienvenid@ to Sonora RP")
+        .setDescription(
+          "Gracias por unirte a nuestra comunidad de **Roleplay** en ER:LC, revisa nuestros canales informativos y reglamentos para evitar sanciones por parte del staff."
+        )
+        .setThumbnail(guildIcon)
+        .setFooter({ text: `SORP System · ${dateStr}` });
 
       if (canvasBuffer) {
         const attachment = new AttachmentBuilder(canvasBuffer, { name: "bienvenida.png" });
         files.push(attachment);
-
-        channelContainer.addMediaGalleryComponents(
-          new MediaGalleryBuilder().addItems({
-            media: { url: "attachment://bienvenida.png" },
-          })
-        );
+        channelEmbed.setImage("attachment://bienvenida.png");
       }
-
-      channelContainer
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
-        );
 
       await welcomeChannel.send({
         content: `<@${member.id}>`,
-        components: [channelContainer],
+        embeds: [channelEmbed],
         files,
       });
 
@@ -111,32 +86,17 @@ export async function processWelcomeFlow(member: GuildMember): Promise<{
 
   // ─── 3. ENVIAR AL DM DEL USUARIO ───────────────────────────────────────────
   try {
-    const dmContainer = new ContainerBuilder()
-      .setAccentColor(0xe74c3c) // Color embed Red
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent("# Welcome")
-          )
-          .setThumbnailAccessory(new ThumbnailBuilder().setURL(botIcon))
+    const dmEmbed = new EmbedBuilder()
+      .setColor(0xe74c3c) // Color embed Red (#e74c3c)
+      .setTitle("Welcome")
+      .setDescription(
+        `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
       )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `Recuerda verificarte para tener acceso completo al servidor.\n\n> Dirigete al canal https://discord.com/channels/1528571127352262866/1528973867362812024\n\n* Completa el cap chat solicitado, si tienes problemas al realizarlo ve al canal de https://discord.com/channels/1528571127352262866/1528868846906114321 para ser atendido por un moderador.`
-        )
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# SORP System · ${dateStr}`)
-      );
+      .setThumbnail(botIcon)
+      .setFooter({ text: `SORP System · ${dateStr}` });
 
     await member.send({
-      components: [dmContainer],
+      embeds: [dmEmbed],
     });
 
     dmSent = true;
