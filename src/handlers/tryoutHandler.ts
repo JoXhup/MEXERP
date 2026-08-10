@@ -244,10 +244,11 @@ export async function handleTryoutMainMenu(
   const guildId = interaction.guildId ?? "global";
 
   // 1. CARGAR ARCHIVO / IMAGEN / LINK (MODAL V2)
-  if (value === "upload_url_modal") {
+  if (value === "upload_url_modal" || value === "upload_file" || value === "upload_info") {
     const modal = new ModalBuilder()
       .setCustomId("tryout:modal_upload_url")
       .setTitle("Cargar Archivo/Imagen (Modal V2)");
+
 
     const inputTitulo = new TextInputBuilder()
       .setCustomId("titulo")
@@ -520,12 +521,15 @@ export async function handleTryoutModalSubmit(
   const guildId = interaction.guildId ?? "global";
 
   // ── 1. MODAL V2: CARGAR URL O TEXTO (tryout:modal_upload_url) ───────────
-  if (id === "tryout:modal_upload_url") {
+  if (id === "tryout:modal_upload_url" || id === "tryout:modal_upload_file") {
     const titulo = interaction.fields.getTextInputValue("titulo").trim();
     const inputVal = interaction.fields.getTextInputValue("contenido_url").trim();
-    const preguntaVal = interaction.fields.getTextInputValue("pregunta")?.trim() ?? "";
+    const preguntaVal = interaction.fields.fields.has("pregunta")
+      ? interaction.fields.getTextInputValue("pregunta")?.trim() ?? ""
+      : "";
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
 
     const esUrl = /^https?:\/\//i.test(inputVal);
     let textoFinal = "";
