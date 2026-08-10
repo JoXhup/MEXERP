@@ -110,7 +110,7 @@ export async function handleDespedirButton(interaction, client) {
                     .setTitle("🚨 Registro de Despido de Staff")
                     .setDescription("Se ha procesado el despido de un miembro del equipo.")
                     .addFields({ name: "Usuario Despedido", value: `<@${targetUserId}>`, inline: true }, { name: "Despedido Por", value: `<@${interaction.user.id}> (@${interaction.user.username})`, inline: true }, { name: "Fecha de Despido", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false }, { name: "Roles Revocados", value: removedRoleIds.length > 0 ? removedRoleIds.map(r => `<@&${r}>`).join(", ") : "Ningún rol revocado", inline: false })
-                    .setFooter({ text: "MEXERP Staff Logging" })
+                    .setFooter({ text: "Sonora RP Staff Logging" })
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });
             }

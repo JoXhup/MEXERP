@@ -43,7 +43,7 @@ async function getHeadshot(userId) {
 function buildVerificationModal() {
     const modal = new ModalBuilder()
         .setCustomId("verification:modal")
-        .setTitle("Verificacion — MEXERP");
+        .setTitle("Verificacion — Sonora RP");
     // Label 1: Usuario de Roblox
     const l1 = new LabelBuilder()
         .setLabel("Usuario de Roblox")
@@ -58,7 +58,7 @@ function buildVerificationModal() {
     // Label 2: Como te uniste
     const l2 = new LabelBuilder()
         .setLabel("Como te uniste al servidor?")
-        .setDescription("Cuentanos como llegaste a conocer MEXERP")
+        .setDescription("Cuentanos como llegaste a conocer Sonora RP")
         .setTextInputComponent(new TextInputBuilder()
         .setCustomId("como_uniste")
         .setStyle(TextInputStyle.Paragraph)
@@ -93,7 +93,7 @@ function buildProfileEmbed(user, headshotUrl, client) {
     return new EmbedBuilder()
         .setColor(0xf97316) // Naranja — pendiente de confirmar
         .setAuthor({
-        name: "Verificacion — MEXERP",
+        name: "Verificacion — Sonora RP",
         iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
         .setTitle(`${user.hasVerifiedBadge ? "☑ " : ""}${user.displayName}`)
@@ -107,7 +107,7 @@ function buildProfileEmbed(user, headshotUrl, client) {
         .addFields({ name: "Miembro desde", value: fechaCreacion, inline: true }, { name: "Tiempo en Roblox", value: edadTexto, inline: true }, { name: "Badge verificado", value: user.hasVerifiedBadge ? "Si" : "No", inline: true })
         .setThumbnail(headshotUrl || null)
         .setFooter({
-        text: "MEXERP System — Confirma si este es tu perfil",
+        text: "Sonora RP System — Confirma si este es tu perfil",
         iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
         .setTimestamp();
@@ -142,7 +142,7 @@ export async function handleVerificationStart(interaction) {
                     .setDescription(yaEnDB
                     ? `Tu cuenta de Discord ya esta vinculada a **@${yaEnDB.robloxName}** en Roblox.\nNo puedes verificarte dos veces.`
                     : "Ya tienes el rol de verificado asignado. No es necesario verificarte de nuevo.")
-                    .setFooter({ text: "MEXERP System — Verificacion" })
+                    .setFooter({ text: "Sonora RP System — Verificacion" })
                     .setTimestamp(),
             ],
             flags: MessageFlags.Ephemeral,
@@ -218,7 +218,7 @@ export async function handleVerificationModal(interaction, client) {
                     ? `La cuenta **@${user.name}** ya esta vinculada a tu Discord. Ya estas verificado.`
                     : `La cuenta **@${user.name}** ya esta en uso por otro miembro del servidor.\nSi crees que es un error, contacta a un administrador.`)
                     .setThumbnail(headshotUrl || null)
-                    .setFooter({ text: "MEXERP System — Verificacion" })
+                    .setFooter({ text: "Sonora RP System — Verificacion" })
                     .setTimestamp(),
             ],
             components: [
@@ -320,13 +320,13 @@ export async function handleVerificationConfirm(interaction, client) {
         iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
         .setDescription([
-        `Bienvenido a **MEXERP**, <@${interaction.user.id}>!`,
+        `Bienvenido a **Sonora RP**, <@${interaction.user.id}>!`,
         ``,
         `Tu cuenta de Roblox **${robloxName}** ha sido vinculada correctamente.`,
         rolAsignado ? `\nSe te ha asignado el rol de verificado.` : "",
     ].join("\n"))
         .setFooter({
-        text: "MEXERP System — Verificacion Roblox",
+        text: "Sonora RP System — Verificacion Roblox",
         iconURL: client.user?.displayAvatarURL() ?? undefined,
     })
         .setTimestamp();

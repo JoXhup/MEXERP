@@ -72,7 +72,7 @@ export function buildPanelContainer(client, guildIconUrl) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(recuerdaText))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(selectRow)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 // ─── PANEL DE JORNADAS STAFF (CHANNEL 1528869236687110215) ─────────────────
 export function buildJornadasPanelContainer(client, guildIconUrl) {
@@ -103,7 +103,7 @@ export function buildJornadasPanelContainer(client, guildIconUrl) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("Si tienes dudas en el funcionamiento comunicate con un administrador."))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
 }
 // ─── PANEL DE GESTIÓN DE APERTURAS (CHANNEL 1532163697559208027) ─────────────
 export function buildAperturasPanelContainer(client, guildIconUrl) {
@@ -137,7 +137,7 @@ export function buildAperturasPanelContainer(client, guildIconUrl) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("Usalo correctamente, el mal uso sera sancionado."))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
 }
 // ─── HELPER COLOR ALEATORIO ───────────────────────────────────────────────────
 export function getRandomColor() {
@@ -158,7 +158,7 @@ export function buildTicketContainer(ticket, client, guildIconUrl) {
     const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
     const cat = CATEGORIES[ticket.category];
     const staffPing = `<@&${config.staffRoleId}>`;
-    const headerText = `# ${cat.emoji} ${cat.label} - MEXERP\nHola, tu solicitud esta creada, espera a un miembro del staff para ser **atendid@** ${staffPing}`;
+    const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\nHola, tu solicitud esta creada, espera a un miembro del staff para ser **atendid@** ${staffPing}`;
     // Información de tu Ticket
     const infoLines = ["📝 **Información de tu Ticket:**"];
     const imageUrls = [];
@@ -250,7 +250,7 @@ export function buildTicketContainer(ticket, client, guildIconUrl) {
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(selectRow)
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
     return container;
 }
 // ─── CONTAINER DE LOG ─────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ export function buildLogContainer(action, description, fields, client) {
         .setSpacing(SeparatorSpacingSize.Small)
         .setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(fieldsText))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 // ─── CONTAINER DE ERROR ───────────────────────────────────────────────────────
 export function buildErrorContainer(message, client) {
@@ -275,7 +275,7 @@ export function buildErrorContainer(message, client) {
         .addSectionComponents(new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ❌ Permisos Insuficientes / Error\n${message}`))
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl)))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 // ─── CONTAINER DE EXITO ───────────────────────────────────────────────────────
 export function buildSuccessContainer(title, message, client) {
@@ -284,7 +284,7 @@ export function buildSuccessContainer(title, message, client) {
         .addSectionComponents(new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${title}\n${message}`))
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl)))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 // ─── CONTAINER DE PRIORIDAD ───────────────────────────────────────────────────
 export function buildPrioritySelectContainer(channelId, client) {
@@ -315,7 +315,7 @@ export function buildPrioritySelectContainer(channelId, client) {
         .setSpacing(SeparatorSpacingSize.Small)
         .setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 // ─── CONTAINER DE ESTADISTICAS ────────────────────────────────────────────────
 export function buildStatsContainer(stats, client) {
@@ -331,7 +331,7 @@ export function buildStatsContainer(stats, client) {
         .setSpacing(SeparatorSpacingSize.Small)
         .setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(rows || "Sin datos registrados."))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
 }
 export function formatShiftTime(ms) {
     if (!ms || ms <= 0)
@@ -399,5 +399,5 @@ export function buildStaffProfileContainer(targetMember, processedCount, robloxN
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(sancionesText))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff · ${getFooterTimestamp()}`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff · ${getFooterTimestamp()}`));
 }

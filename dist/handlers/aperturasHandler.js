@@ -45,14 +45,14 @@ export async function handleAperturaButton(interaction, client) {
             .addTextDisplayComponents(new TextDisplayBuilder().setContent("@everyone\n# SERVIDOR ABIERTO"))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent([
-            `> El servidor se encuentra actualmente abierto. Puedes entrar buscándonos en la lista como **MEXERP | ERLC** o por el código **MEXERPA**`,
+            `> El servidor se encuentra actualmente abierto. Puedes entrar buscándonos en la lista como **Sonora RP | ERLC** o por el código **SNRPA**`,
             ``,
             `<u>Si has votado, tienes 15 minutos para unirte o serás sancionado.</u>`,
             ``,
             `**Disfruta de los mejores roles en nuestro servidor, y llévate una experiencia INCREIBLE**`,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Notificación de Apertura`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Notificación de Apertura`));
     }
     else if (action === "mantenimiento") {
         statusTitle = "Mantenimiento";
@@ -68,7 +68,7 @@ export async function handleAperturaButton(interaction, client) {
             `**Agradecemos tu paciencia y comprensión para brindarte una mejor experiencia de rol.**`,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Estado del Servidor`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Estado del Servidor`));
     }
     else {
         statusTitle = "Cerrado";
@@ -81,10 +81,10 @@ export async function handleAperturaButton(interaction, client) {
             ``,
             `<u>Agradecemos a todos los ciudadanos y servicios de emergencia por participar.</u>`,
             ``,
-            `**¡Los esperamos en la próxima sesión de rol en MEXERP!**`,
+            `**¡Los esperamos en la próxima sesión de rol en Sonora RP!**`,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP | ERLC · Cierre de Servidor`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP | ERLC · Cierre de Servidor`));
     }
     // Enviar mensaje en el canal de notificaciones 1529455296832082124 (Components V2 container incluye @everyone dentro del TextDisplay)
     await notifChannel.send({

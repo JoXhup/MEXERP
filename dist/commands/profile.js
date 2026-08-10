@@ -128,7 +128,7 @@ export async function execute(interaction, client) {
                 .setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**Avatar completo:** [Ver imagen](${bodyUrl})`));
         }
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
         await interaction.editReply({
             components: [container],
             flags: MessageFlags.IsComponentsV2,
@@ -140,7 +140,7 @@ export async function execute(interaction, client) {
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(isNotFound
             ? `## Usuario no encontrado\nNo existe un usuario de Roblox con la ID **${userId}**.\nVerifica que sea una ID numerica valida.`
             : `## Error al obtener el perfil\nNo se pudo conectar con la API de Roblox. Intenta de nuevo en unos momentos.`))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
         await interaction.editReply({
             components: [errContainer],
             flags: MessageFlags.IsComponentsV2,

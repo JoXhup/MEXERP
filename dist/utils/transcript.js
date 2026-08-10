@@ -165,7 +165,7 @@ export async function generateTranscript(ticket, channel, client) {
 <body>
   <header>
     <div class="meta">
-      <div class="logo">MEXERP</div>
+      <div class="logo">Sonora RP</div>
       <h1>${ticket.ticketId.toUpperCase()} <span class="badge">${cat.label}</span></h1>
     </div>
   </header>
@@ -219,7 +219,7 @@ export async function generateTranscript(ticket, channel, client) {
   </div>
 
   <footer>
-    Transcripcion generada por MEXERP System · ${new Date().toLocaleString("es-ES")}
+    Transcripcion generada por Sonora RP System · ${new Date().toLocaleString("es-ES")}
   </footer>
 </body>
 </html>`;

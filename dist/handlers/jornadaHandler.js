@@ -136,7 +136,7 @@ async function handleManage(interaction, client) {
     ].join("\n")))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
     await interaction.reply({
         // @ts-ignore — Components V2
         components: [container],
@@ -194,7 +194,7 @@ async function handlePause(interaction, client) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("Presiona **⏯️ Volver** cuando te reincorpores a moderar."))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
     await interaction.update({
         // @ts-ignore — Components V2
         components: [container],
@@ -252,7 +252,7 @@ async function handleResume(interaction, client) {
     ].join("\n")))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
         .addActionRowComponents(row)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
     await interaction.update({
         // @ts-ignore — Components V2
         components: [container],
@@ -305,7 +305,7 @@ async function handleEnd(interaction, client) {
         `¡Gracias por tu servicio de moderación!`,
     ].join("\n")))
         .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP Staff`));
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff`));
     await interaction.update({
         // @ts-ignore — Components V2
         components: [container],
@@ -323,7 +323,7 @@ async function handleEnd(interaction, client) {
                 .setTitle("🚨 Registro de Jornada Finalizada")
                 .setDescription("Se ha registrado el cierre de turno de un miembro del equipo.")
                 .addFields({ name: "👤 Staff", value: `<@${interaction.user.id}> (@${interaction.user.username})`, inline: true }, { name: `${shift.device.split(" ")[0]} Dispositivo`, value: shift.device, inline: true }, { name: "⏱️ Duración Activa", value: `**${formattedActive}**`, inline: true }, { name: "⏸️ Tiempo en Pausa", value: formattedPaused || "0", inline: true }, { name: "📅 Hora de Inicio", value: `<t:${startTs}:F>  (<t:${startTs}:R>)`, inline: false }, { name: "📅 Hora de Finalización", value: `<t:${endTs}:F>  (<t:${endTs}:R>)`, inline: false })
-                .setFooter({ text: "MEXERP Staff" })
+                .setFooter({ text: "Sonora RP Staff" })
                 .setTimestamp();
             await logChannel.send({ embeds: [logEmbed] });
         }

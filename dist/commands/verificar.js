@@ -38,13 +38,13 @@ export async function execute(interaction, client) {
         ].join("\n")))
             .setThumbnailAccessory(new ThumbnailBuilder().setURL(guildIcon)))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent("# <a:pins:1530640122633257041> Listo, disfruta de MEXERP, tu mejor opcion."))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent("<a:pins:1530640122633257041> *Listo, disfruta de Sonora RP, tu mejor opcion.*"))
             .addActionRowComponents(new ActionRowBuilder().addComponents(new ButtonBuilder()
             .setCustomId("verification:start")
             .setLabel("Iniciar")
             .setStyle(ButtonStyle.Success)
             .setEmoji("✅")))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# MEXERP System · ${getFooterTimestamp()}`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
         await channel.send({
             components: [panel],
             flags: MessageFlags.IsComponentsV2,

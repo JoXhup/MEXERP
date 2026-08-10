@@ -66,7 +66,7 @@ export async function execute(interaction, client) {
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent("No cuentas con el rol necesario (`1531426497942781972`) o permisos administrativos para usar este comando."))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# MEXERP Staff"));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# Sonora RP Staff"));
         await interaction.reply({
             // @ts-ignore — Components V2
             components: [errorContainer],
@@ -92,7 +92,7 @@ export async function execute(interaction, client) {
             `• \`h\` = Horas (ej. \`2h\` o \`1h 30m\`)`,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# MEXERP Staff"));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# Sonora RP Staff"));
         await interaction.reply({
             // @ts-ignore — Components V2
             components: [invalidContainer],
@@ -133,7 +133,7 @@ export async function execute(interaction, client) {
             `**📊 Nuevo Total Acumulado:**  \`${formatShiftTime(newTotalMs)}\``,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# MEXERP Staff"));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# Sonora RP Staff"));
         await interaction.reply({
             // @ts-ignore — Components V2
             components: [greenContainer],
@@ -156,7 +156,7 @@ export async function execute(interaction, client) {
                 `*El valor a reducir supera el tiempo acumulado registrado.*`,
             ].join("\n")))
                 .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# MEXERP Staff"));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# Sonora RP Staff"));
             await interaction.reply({
                 // @ts-ignore — Components V2
                 components: [redErrorContainer],
@@ -179,7 +179,7 @@ export async function execute(interaction, client) {
             `**📊 Nuevo Total Acumulado:**  \`${formatShiftTime(newTotalMs)}\``,
         ].join("\n")))
             .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# MEXERP Staff"));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent("-# Sonora RP Staff"));
         await interaction.reply({
             // @ts-ignore — Components V2
             components: [redContainer],

@@ -116,7 +116,7 @@ const command = {
                         .setTitle("📋 Registro de Contratación de Staff")
                         .setDescription(`Se ha contratado exitosamente a un nuevo miembro del equipo.`)
                         .addFields({ name: "Usuario Contratado", value: `<@${targetUser.id}> (@${targetUser.username})`, inline: true }, { name: "Contratado Por", value: `<@${interaction.user.id}> (@${interaction.user.username})`, inline: true }, { name: "Rango Asignado", value: "**Trial Mod.**", inline: true }, { name: "Fecha de Contratación", value: `<t:${Math.floor(hiredAt.getTime() / 1000)}:F>`, inline: false }, { name: "Roles Otorgados", value: `${ROLES_TO_ADD.map(r => `<@&${r}>`).join(", ")} (${rolesOtorgados}/4 asignados)`, inline: false })
-                        .setFooter({ text: "MEXERP Staff Logging" })
+                        .setFooter({ text: "Sonora RP Staff Logging" })
                         .setTimestamp();
                     await logChannel.send({ embeds: [logEmbed] });
                 }

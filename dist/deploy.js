@@ -13,7 +13,48 @@ import despedirCommand from "./commands/despedir.js";
 import { data as jornadaData } from "./commands/jornada.js";
 import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
-const commands = [panelCommand, statsCommand, contratarCommand, despedirCommand].map(cmd => cmd.data);
+import ineCommand from "./commands/ine.js";
+import chatgptCommand from "./commands/chatgpt.js";
+import arrestarCommand from "./commands/arrestar.js";
+import estadoCommand from "./commands/estado.js";
+import depositarCommand from "./commands/depositar.js";
+import retirarCommand from "./commands/retirar.js";
+import transferirCommand from "./commands/transferir.js";
+import transferenciasCommand from "./commands/transferencias.js";
+import cobrarCommand from "./commands/cobrar.js";
+import lavarCommand from "./commands/lavar.js";
+import historialCommand from "./commands/historial.js";
+import economiaCommand from "./commands/economia.js";
+import multarCommand from "./commands/multar.js";
+import multasCommand from "./commands/multas.js";
+import cmdCommand from "./commands/cmd.js";
+import bienvenidaCommand from "./commands/bienvenida.js";
+import pingCommand from "./commands/ping.js";
+import tryoutCommand from "./commands/tryout.js";
+const commands = [
+    panelCommand,
+    statsCommand,
+    contratarCommand,
+    despedirCommand,
+    ineCommand,
+    chatgptCommand,
+    arrestarCommand,
+    estadoCommand,
+    depositarCommand,
+    retirarCommand,
+    transferirCommand,
+    transferenciasCommand,
+    cobrarCommand,
+    lavarCommand,
+    historialCommand,
+    economiaCommand,
+    multarCommand,
+    multasCommand,
+    cmdCommand,
+    bienvenidaCommand,
+    pingCommand,
+    tryoutCommand,
+].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON());
 commands.push(profileData.toJSON());
 commands.push(verificarData.toJSON());

@@ -41,7 +41,7 @@ export async function createTicketChannel(guild, ownerId, ownerTag, category, mo
             ],
         },
         {
-            id: client.user.id, // Bot MEXERP -> PUEDE VER Y GESTIONAR
+            id: client.user.id, // Bot SNRP -> PUEDE VER Y GESTIONAR
             allow: [
                 PermissionFlagsBits.ViewChannel,
                 PermissionFlagsBits.SendMessages,

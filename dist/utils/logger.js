@@ -29,7 +29,7 @@ export async function sendLog(client, action, description, fields) {
             inline: true, // Columnas al lado de cada uno
         })))
             .setFooter({
-            text: `MEXERP System · ${getFooterTimestamp()}`,
+            text: `Sonora RP System · ${getFooterTimestamp()}`,
             iconURL: botAvatar,
         });
         await channel.send({

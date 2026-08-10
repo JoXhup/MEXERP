@@ -6,6 +6,10 @@ import { handleModalSubmit } from "../handlers/modalHandler.js";
 import { handleSecondaryModals } from "../handlers/secondaryModalHandler.js";
 import { handleSelectCategory, handleTicketManagementSelect } from "../handlers/selectMenuHandler.js";
 import { handleVerificationStart, handleVerificationRetry, handleVerificationConfirm, handleVerificationModal, } from "../handlers/verificationHandler.js";
+import { handleIneModalSubmit, handleIneDeleteButton } from "../handlers/ineHandler.js";
+import { handleArrestarModalSubmit, handleCpButton } from "../handlers/arrestHandler.js";
+import { handlePayFineButton, handleLookupModalButton, handleLookupModalSubmit, handleMyActiveFinesButton, handleMultarModalSubmit, } from "../handlers/fineHandler.js";
+import { handleTryoutMainMenu, handleTryoutDeleteSelect, handleTryoutModalSubmit, } from "../handlers/tryoutHandler.js";
 export const name = "interactionCreate";
 export const once = false;
 export async function execute(interaction, client) {
@@ -20,9 +24,35 @@ export async function execute(interaction, client) {
             await command.execute(interaction, client);
             return;
         }
+        // ─── AUTOCOMPLETE ───────────────────────────────────────────────────────
+        if (interaction.isAutocomplete()) {
+            const command = client.commands.get(interaction.commandName);
+            if (command && typeof command.autocomplete === "function") {
+                await command.autocomplete(interaction);
+            }
+            return;
+        }
         // ─── BOTONES ────────────────────────────────────────────────────────────
         if (interaction.isButton()) {
             const id = interaction.customId;
+            // Multas
+            if (id.startsWith("fine:pay:")) {
+                await handlePayFineButton(interaction, client);
+                return;
+            }
+            if (id === "fine:lookup_modal") {
+                await handleLookupModalButton(interaction);
+                return;
+            }
+            if (id === "fine:my_active" || id.startsWith("fine:user_active:")) {
+                await handleMyActiveFinesButton(interaction);
+                return;
+            }
+            // Eliminación de INE
+            if (id.startsWith("ine:delete:")) {
+                await handleIneDeleteButton(interaction, client);
+                return;
+            }
             // Aperturas de servidor
             if (id.startsWith("apertura:")) {
                 await handleAperturaButton(interaction, client);
@@ -36,6 +66,11 @@ export async function execute(interaction, client) {
             // Despido de staff
             if (id.startsWith("despedir:")) {
                 await handleDespedirButton(interaction, client);
+                return;
+            }
+            // Cadena perpetua (aceptar/rechazar)
+            if (id.startsWith("arrest:cp:")) {
+                await handleCpButton(interaction, client);
                 return;
             }
             // Verificacion
@@ -58,6 +93,26 @@ export async function execute(interaction, client) {
         // ─── MODALES ────────────────────────────────────────────────────────────
         if (interaction.isModalSubmit()) {
             const id = interaction.customId;
+            // Modal de expedición de multa
+            if (id === "multar:modal") {
+                await handleMultarModalSubmit(interaction, client);
+                return;
+            }
+            // Modal de consulta de multa
+            if (id === "fine:modal_lookup") {
+                await handleLookupModalSubmit(interaction);
+                return;
+            }
+            // Modal de Arresto
+            if (id === "arrestar:modal") {
+                await handleArrestarModalSubmit(interaction, client);
+                return;
+            }
+            // Modal de INE
+            if (id === "ine:modal") {
+                await handleIneModalSubmit(interaction, client);
+                return;
+            }
             // Modal de verificacion
             if (id === "verification:modal") {
                 await handleVerificationModal(interaction, client);
@@ -73,6 +128,11 @@ export async function execute(interaction, client) {
                 await handleSecondaryModals(interaction, client);
                 return;
             }
+            // Modales de Tryout IA
+            if (id.startsWith("tryout:modal_")) {
+                await handleTryoutModalSubmit(interaction);
+                return;
+            }
             return;
         }
         // ─── SELECT MENUS ───────────────────────────────────────────────────────
@@ -86,25 +146,31 @@ export async function execute(interaction, client) {
                 await handleTicketManagementSelect(interaction, client);
                 return;
             }
+            // Select Menus de Tryout IA
+            if (id === "tryout:main_menu") {
+                await handleTryoutMainMenu(interaction);
+                return;
+            }
+            if (id === "tryout:delete_select") {
+                await handleTryoutDeleteSelect(interaction);
+                return;
+            }
         }
     }
     catch (err) {
-        // 10062 = Unknown Interaction — ocurre cuando alguien pulsa un boton de
-        // un mensaje de una sesion anterior del bot (token expirado). Es inofensivo.
         if (err?.code === 10062)
             return;
         console.error("[INTERACTION] Error no manejado:", err);
-        // Intentar responder con error si no se ha respondido aun
         try {
             if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content: "Ocurrio un error procesando tu solicitud.",
-                    flags: 64, // Ephemeral
+                    flags: 64,
                 });
             }
         }
         catch {
-            // Silenciar error de respuesta
+            // Silenciar
         }
     }
 }

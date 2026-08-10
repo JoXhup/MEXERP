@@ -1,19 +1,38 @@
 import "dotenv/config";
 
-// ─── VALIDACION DE VARIABLES DE ENTORNO ────────────────────────────────────────
-const required = ["TOKEN", "CLIENT_ID", "GUILD_ID", "MONGO_URI"] as const;
-for (const key of required) {
-  if (!process.env[key]) {
-    console.error(`[CONFIG] Falta la variable de entorno: ${key}`);
-    process.exit(1);
+// ─── RESOLUCION FLEXIBLE DE VARIABLES DE ENTORNO ─────────────────────────────
+const token     = process.env.TOKEN      ?? process.env.DISCORD_TOKEN ?? process.env.BOT_TOKEN     ?? "";
+const clientId  = process.env.CLIENT_ID  ?? process.env.APPLICATION_ID?? process.env.BOT_ID        ?? "";
+const guildId   = process.env.GUILD_ID   ?? process.env.SERVER_ID     ?? "";
+const mongoUri  = process.env.MONGO_URI  ?? process.env.MONGODB_URI   ?? process.env.MONGO_URL     ?? "";
+
+const faltantes: string[] = [];
+if (!token)    faltantes.push("TOKEN (o DISCORD_TOKEN)");
+if (!clientId) faltantes.push("CLIENT_ID (o APPLICATION_ID)");
+if (!guildId)  faltantes.push("GUILD_ID (o SERVER_ID)");
+if (!mongoUri) faltantes.push("MONGO_URI (o MONGODB_URI)");
+
+if (faltantes.length > 0) {
+  console.error("════════════════════════════════════════════════════════════════");
+  console.error("❌ ERROR CRITICO DE CONFIGURACION DE ENTORNO (.env)");
+  console.error("Faltan las siguientes variables de entorno requeridas:");
+  for (const f of faltantes) {
+    console.error(`  • ${f}`);
   }
+  console.error("");
+  console.error("Por favor agrega estas variables en tu archivo .env o en el panel Pterodactyl.");
+  console.error("════════════════════════════════════════════════════════════════");
+
+  // Esperar 15 segundos antes de salir para que el usuario pueda ver el log en Pterodactyl
+  await new Promise((resolve) => setTimeout(resolve, 15_000));
+  process.exit(1);
 }
 
 export const config = {
-  token: process.env.TOKEN!,
-  clientId: process.env.CLIENT_ID!,
-  guildId: process.env.GUILD_ID!,
-  mongoUri: process.env.MONGO_URI!,
+  token,
+  clientId,
+  guildId,
+  mongoUri,
 
   // ─── IDS DEL SERVIDOR ──────────────────────────────────────────────────────
   categoryId:            process.env.CATEGORY_ID             ?? "1528927098641715331",
@@ -31,13 +50,11 @@ export const config = {
 
   // ─── SISTEMA DE VERIFICACION ───────────────────────────────────────────────
   verificationChannelId: process.env.VERIFICATION_CHANNEL_ID ?? "1528973867362812024",
-  // Roles que se asignan al verificarse
   verifiedRoleIds: [
     "1529584400126181516",
     "1528974991813771304",
     "1531425281502613675",
   ],
-  // Rol que se retira al verificarse
   unverifiedRoleId: "1528974924805312562",
 
   // ─── SISTEMA DE TICKETS ────────────────────────────────────────────────────
@@ -55,6 +72,6 @@ export const config = {
     dark: 0x0f0f1a,            // Negro
   },
 
-  // ─── GROQ AI ──────────────────────────────────────────────────────────────────────────
+  // ─── GROQ AI ───────────────────────────────────────────────────────────────
   groqApiKey: process.env.GROQ_API_KEY ?? "",
 } as const;
