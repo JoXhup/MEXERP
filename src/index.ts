@@ -38,6 +38,7 @@ import * as readyEvent from "./events/ready.js";
 import * as interactionEvent from "./events/interactionCreate.js";
 import * as messageCreateEvent from "./events/messageCreate.js";
 import * as guildMemberAddEvent from "./events/guildMemberAdd.js";
+import * as guildMemberUpdateEvent from "./events/guildMemberUpdate.js";
 
 import { DefaultWebSocketManagerOptions } from "@discordjs/ws";
 
@@ -110,6 +111,10 @@ client.on(messageCreateEvent.name, async (...args) => {
 
 client.on(guildMemberAddEvent.name, async (...args) => {
   await guildMemberAddEvent.execute(args[0] as any);
+});
+
+client.on(guildMemberUpdateEvent.name, async (...args) => {
+  await guildMemberUpdateEvent.execute(args[0] as any, args[1] as any);
 });
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
