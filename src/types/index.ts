@@ -78,5 +78,6 @@ export interface Command {
     | import("discord.js").RESTPostAPIChatInputApplicationCommandsJSONBody
     | any;
   execute: (interaction: import("discord.js").ChatInputCommandInteraction, client?: import("discord.js").Client) => Promise<void>;
+  autocomplete?: (interaction: import("discord.js").AutocompleteInteraction) => Promise<void>;
   adminOnly?: boolean;
 }

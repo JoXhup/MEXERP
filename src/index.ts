@@ -29,7 +29,7 @@ import historialCommand from "./commands/historial.js";
 import economiaCommand from "./commands/economia.js";
 import multarCommand from "./commands/multar.js";
 import multasCommand from "./commands/multas.js";
-import { erlcCommands } from "./commands/erlcCommands.js";
+import cmdCommand from "./commands/cmd.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -81,7 +81,7 @@ const commands: Command[] = [
   economiaCommand,
   multarCommand,
   multasCommand,
-  ...erlcCommands,
+  cmdCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;

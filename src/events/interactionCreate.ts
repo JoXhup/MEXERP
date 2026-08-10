@@ -39,6 +39,15 @@ export async function execute(interaction: Interaction, client: Client): Promise
       return;
     }
 
+    // ─── AUTOCOMPLETE ───────────────────────────────────────────────────────
+    if (interaction.isAutocomplete()) {
+      const command = client.commands.get(interaction.commandName);
+      if (command && typeof command.autocomplete === "function") {
+        await command.autocomplete(interaction);
+      }
+      return;
+    }
+
     // ─── BOTONES ────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
       const id = interaction.customId;
