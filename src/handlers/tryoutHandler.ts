@@ -17,6 +17,7 @@ import {
   type ChatInputCommandInteraction,
   type Guild,
   type User,
+  Routes,
 } from "discord.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
@@ -253,42 +254,90 @@ export async function handleTryoutMainMenu(
   const guildId = interaction.guildId ?? "global";
   await documentCache.ensureLoaded(guildId);
 
-  // 1. CARGAR ARCHIVO / IMAGEN / LINK (MODAL V2)
+  // 1. CARGAR ARCHIVO / IMAGEN / LINK (MODAL V2 CON FILE UPLOAD TYPE 19)
   if (value === "upload_url_modal" || value === "upload_file" || value === "upload_info") {
-    const modal = new ModalBuilder()
-      .setCustomId("tryout:modal_upload_url")
-      .setTitle("Cargar Archivo/Imagen/Link (Modal V2)");
+    try {
+      await interaction.client.rest.post(
+        Routes.interactionCallback(interaction.id, interaction.token),
+        {
+          body: {
+            type: 9,
+            data: {
+              custom_id: "tryout:modal_upload_url",
+              title: "Cargar Archivo / Imagen (Modal V2)",
+              components: [
+                {
+                  type: 18, // ComponentType.LABEL
+                  label: "Subir Archivo o Imagen",
+                  description: "Selecciona o arrastra tu archivo (PDF, Imagen, Word, Excel, TXT)",
+                  component: {
+                    type: 19, // ComponentType.FILE_UPLOAD
+                    custom_id: "file_upload",
+                    min_values: 1,
+                    max_values: 10,
+                    required: false,
+                  },
+                },
+                {
+                  type: 18, // ComponentType.LABEL
+                  label: "Título de la Fuente",
+                  description: "Nombre o título asignado a este conocimiento",
+                  component: {
+                    type: 4, // TextInput
+                    custom_id: "titulo",
+                    style: 1, // Short
+                    placeholder: "Ej. Reglamento de Facciones / Captura",
+                    required: false,
+                    max_length: 100,
+                  },
+                },
+                {
+                  type: 18, // ComponentType.LABEL
+                  label: "Texto o Enlace alternativo (Opcional)",
+                  description: "Pega el texto directo o una URL si no subes un archivo arriba",
+                  component: {
+                    type: 4, // TextInput
+                    custom_id: "contenido_url",
+                    style: 2, // Paragraph
+                    placeholder: "Pega el texto o URL si aplica...",
+                    required: false,
+                    max_length: 3800,
+                  },
+                },
+              ],
+            },
+          },
+        }
+      );
+    } catch (err) {
+      console.error("[TRYOUT_MODAL_V2] Error enviando Modal V2 de File Upload:", err);
+      // Fallback a modal estándar si la versión de API no soporta type 19
+      const modal = new ModalBuilder()
+        .setCustomId("tryout:modal_upload_url")
+        .setTitle("Cargar Archivo/Imagen/Link");
 
-    const inputTitulo = new TextInputBuilder()
-      .setCustomId("titulo")
-      .setLabel("Título o Nombre del Archivo/Imagen")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Ej. Captura de Reglamento / PDF de Sanciones")
-      .setRequired(true)
-      .setMaxLength(100);
+      const inputTitulo = new TextInputBuilder()
+        .setCustomId("titulo")
+        .setLabel("Título o Nombre del Archivo/Imagen")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ej. Captura de Reglamento / PDF de Sanciones")
+        .setRequired(true)
+        .setMaxLength(100);
 
-    const inputContenido = new TextInputBuilder()
-      .setCustomId("contenido_url")
-      .setLabel("URL de Imagen / PDF / Doc O Texto directo")
-      .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Pega el enlace de la imagen (Discord CDN/Imgur), PDF o el texto directo...")
-      .setRequired(true)
-      .setMaxLength(3800);
+      const inputContenido = new TextInputBuilder()
+        .setCustomId("contenido_url")
+        .setLabel("URL de Imagen / PDF / Doc O Texto directo")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Pega el enlace de la imagen (Discord CDN/Imgur), PDF o texto...")
+        .setRequired(true)
+        .setMaxLength(3800);
 
-    const inputPregunta = new TextInputBuilder()
-      .setCustomId("pregunta")
-      .setLabel("Pregunta opcional a la IA")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Ej. Resume los puntos clave de este documento")
-      .setRequired(false)
-      .setMaxLength(500);
-
-    modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputTitulo),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputPregunta)
-    );
-    await interaction.showModal(modal);
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(inputTitulo),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido)
+      );
+      await interaction.showModal(modal);
+    }
     return;
   }
 
@@ -534,66 +583,126 @@ export async function handleTryoutModalSubmit(
 
   // ── 1. MODAL V2: CARGAR URL O TEXTO (tryout:modal_upload_url) ───────────
   if (id === "tryout:modal_upload_url" || id === "tryout:modal_upload_file") {
-    const titulo = interaction.fields.getTextInputValue("titulo").trim();
-    const inputVal = interaction.fields.getTextInputValue("contenido_url").trim();
-    const preguntaVal = interaction.fields.fields.has("pregunta")
-      ? interaction.fields.getTextInputValue("pregunta")?.trim() ?? ""
-      : "";
-
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const esUrl = /^https?:\/\//i.test(inputVal);
-    let textoFinal = "";
-    let tipoFuente: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
+    // 1. Extraer archivos adjuntos subidos directamente en el Modal V2 (FILE_UPLOAD type 19)
+    const rawData = (interaction as any).data;
+    const resolvedAttachments = rawData?.resolved?.attachments;
+    const attachmentsList: Array<{ url: string; filename: string }> = [];
 
-    if (esUrl) {
-      // Descargar desde URL (Discord CDN link, Imgur, PDF link, etc.)
-      try {
-        const res: any = await fetch(inputVal);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
-        const ext = getExtension(inputVal) || (contentType.includes("pdf") ? ".pdf" : contentType.includes("image") ? ".png" : ".txt");
-        tipoFuente = getTipoLabel(ext);
-
-        const fileBuffer = Buffer.from(await res.arrayBuffer());
-        const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, inputVal);
-
-        if (esImagen || contentType.includes("image")) {
-          if (!config.groqApiKey) {
-            await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
-            return;
-          }
-          const descripcion = await describirImagen(inputVal, config.groqApiKey);
-          textoFinal = `[Contenido de imagen "${titulo}"]:\n${descripcion}`;
-          tipoFuente = "Imagen";
-        } else {
-          textoFinal = texto;
+    if (resolvedAttachments) {
+      for (const att of Object.values(resolvedAttachments) as any[]) {
+        if (att?.url && att?.filename) {
+          attachmentsList.push({ url: att.url, filename: att.filename });
         }
-      } catch (err) {
-        console.error(`[TRYOUT_IA] Error descargando desde URL ${inputVal}:`, err);
-        await interaction.editReply({
-          content: `❌ No se pudo descargar ni procesar el contenido desde el enlace proporcionado.\nAsegúrate de que la URL sea pública e inténtalo de nuevo.`,
-        });
-        return;
       }
-    } else {
-      // Es texto manual directo ingresado en el modal V2
-      textoFinal = inputVal;
-      tipoFuente = "Texto";
     }
 
-    if (!textoFinal || textoFinal.length < 5) {
-      await interaction.editReply({ content: "⚠️ No se pudo extraer texto suficiente." });
+    let titulo = "";
+    try {
+      titulo = interaction.fields.getTextInputValue("titulo")?.trim() ?? "";
+    } catch {}
+
+    let inputVal = "";
+    try {
+      inputVal = interaction.fields.getTextInputValue("contenido_url")?.trim() ?? "";
+    } catch {}
+
+    let preguntaVal = "";
+    try {
+      preguntaVal = interaction.fields.getTextInputValue("pregunta")?.trim() ?? "";
+    } catch {}
+
+    const itemsProcesados: Array<{ name: string; type: any; text: string }> = [];
+
+    // PROCESAR ARCHIVOS SUBIDOS DIRECTAMENTE EN EL MODAL V2 (type 19)
+    if (attachmentsList.length > 0) {
+      for (const fileAtt of attachmentsList) {
+        const ext = getExtension(fileAtt.filename);
+        const tipoFuente = getTipoLabel(ext);
+
+        try {
+          const res: any = await fetch(fileAtt.url);
+          if (!res.ok) continue;
+          const fileBuffer = Buffer.from(await res.arrayBuffer());
+          const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, fileAtt.url);
+
+          let textoDoc = "";
+          let finalTipo = tipoFuente;
+
+          if (esImagen) {
+            if (config.groqApiKey) {
+              const descripcion = await describirImagen(fileAtt.url, config.groqApiKey);
+              textoDoc = `[Contenido de imagen "${fileAtt.filename}"]:\n${descripcion}`;
+              finalTipo = "Imagen";
+            }
+          } else {
+            textoDoc = texto;
+          }
+
+          if (textoDoc && textoDoc.length >= 5) {
+            const itemGuardado = await documentCache.addItem(guildId, {
+              name: titulo ? `${titulo} (${fileAtt.filename})` : fileAtt.filename,
+              type: finalTipo,
+              text: textoDoc,
+            });
+            itemsProcesados.push(itemGuardado);
+          }
+        } catch (err) {
+          console.error(`[TRYOUT_IA] Error procesando adjunto ${fileAtt.filename}:`, err);
+        }
+      }
+    } else if (inputVal) {
+      // PROCESAR URL O TEXTO DEL CAMPO DE TEXTO
+      const esUrl = /^https?:\/\//i.test(inputVal);
+      let textoFinal = "";
+      let tipoFuente: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
+
+      if (esUrl) {
+        try {
+          const res: any = await fetch(inputVal);
+          if (res.ok) {
+            const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+            const ext = getExtension(inputVal) || (contentType.includes("pdf") ? ".pdf" : contentType.includes("image") ? ".png" : ".txt");
+            tipoFuente = getTipoLabel(ext);
+
+            const fileBuffer = Buffer.from(await res.arrayBuffer());
+            const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, inputVal);
+
+            if (esImagen || contentType.includes("image")) {
+              if (config.groqApiKey) {
+                const descripcion = await describirImagen(inputVal, config.groqApiKey);
+                textoFinal = `[Contenido de imagen "${titulo || "Imagen"}"]:\n${descripcion}`;
+                tipoFuente = "Imagen";
+              }
+            } else {
+              textoFinal = texto;
+            }
+          }
+        } catch (err) {
+          console.error(`[TRYOUT_IA] Error descargando desde URL ${inputVal}:`, err);
+        }
+      } else {
+        textoFinal = inputVal;
+        tipoFuente = "Texto";
+      }
+
+      if (textoFinal && textoFinal.length >= 5) {
+        const itemGuardado = await documentCache.addItem(guildId, {
+          name: titulo || "Documento / Texto",
+          type: tipoFuente,
+          text: textoFinal,
+        });
+        itemsProcesados.push(itemGuardado);
+      }
+    }
+
+    if (itemsProcesados.length === 0) {
+      await interaction.editReply({
+        content: "⚠️ No se pudo procesar ningún archivo o texto. Por favor sube un archivo en el modal o ingresa una URL/texto.",
+      });
       return;
     }
-
-    // Guardar en MongoDB
-    const item = await documentCache.addItem(guildId, {
-      name: titulo,
-      type: tipoFuente,
-      text: textoFinal,
-    });
 
     // Si había pregunta opcional, consultar a Groq AI
     let respuestaIA = "";
@@ -634,6 +743,7 @@ export async function handleTryoutModalSubmit(
       }
     }
 
+    const primerItem = itemsProcesados[0];
     const items = documentCache.getItems(guildId);
     const container = buildTryoutContainer(
       interaction.guild,
@@ -642,9 +752,10 @@ export async function handleTryoutModalSubmit(
       "# Tryout IA · Fuente Guardada en MongoDB",
       [
         `✅ **Nueva fuente memorizada y guardada en la base de datos.**`,
-        `› **Título:** \`${item.name}\``,
-        `› **Tipo:** \`${item.type}\``,
-        `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
+        `› **Título:** \`${primerItem.name}\``,
+        `› **Tipo:** \`${primerItem.type}\``,
+        `› **Caracteres:** \`${primerItem.text.length.toLocaleString("es-MX")}\``,
+        `› **Total de fuentes procesadas en esta entrega:** \`${itemsProcesados.length}\``,
         `› **Total de fuentes en DB:** \`${items.length}\``,
         respuestaIA ? `\n---\n**Pregunta:** > ${preguntaVal}\n\n**Respuesta IA:**\n${respuestaIA}` : "",
       ].join("\n"),
