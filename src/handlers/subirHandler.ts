@@ -30,19 +30,46 @@ import {
   findModalFieldValue,
 } from "./tryoutHandler.js";
 
-// Roles autorizados
+// ─── Roles autorizados ─────────────────────────────────────────────────────────
 export const SUBIR_ROLES = ["1532578233973739732", "1531426497942781972"];
 
-// Canales de destino
+// ─── Canales de destino ────────────────────────────────────────────────────────
 export const DEST_CHANNELS = {
   legal: "1528875517430857829",   // Foro Facción Legal
   ilegal: "1528875559461978283",  // Foro Facción Ilegal
   empresa: "1528868964749283450", // Canal de Texto Empresas
 };
 
-/**
- * Verifica si el usuario tiene al menos uno de los roles autorizados.
- */
+// ─── Cache temporal de datos del Modal 1 (TTL 10 min) ────────────────────────
+interface PendingInstData {
+  tipo: "legal" | "ilegal" | "empresa";
+  tituloForo: string;
+  rolId: string;
+  descripcion: string;
+  linkServer: string;
+  imageUrl?: string;
+  expiresAt: number;
+}
+const pendingInstData = new Map<string, PendingInstData>();
+
+/** Guarda los datos del Modal 1 en caché, keyed por userId. */
+function savePendingData(userId: string, data: PendingInstData): void {
+  pendingInstData.set(userId, data);
+  // Limpiar entradas expiradas
+  const now = Date.now();
+  for (const [k, v] of pendingInstData.entries()) {
+    if (v.expiresAt < now) pendingInstData.delete(k);
+  }
+}
+
+/** Recupera y elimina los datos del Modal 1 del caché. */
+function popPendingData(userId: string): PendingInstData | null {
+  const data = pendingInstData.get(userId) ?? null;
+  if (data) pendingInstData.delete(userId);
+  return data;
+}
+
+// ─── Permisos ─────────────────────────────────────────────────────────────────
 export function checkSubirPermissions(member: any): boolean {
   if (!member || !("roles" in member)) return false;
   if (Array.isArray(member.roles)) {
@@ -54,9 +81,29 @@ export function checkSubirPermissions(member: any): boolean {
   return false;
 }
 
-/**
- * Genera el contenedor V2 para la institución (Facción Legal, Ilegal o Empresa).
- */
+// ─── Helper recursivo para extraer values de componentes anidados ─────────────
+function searchCompValues(list: any[], targetId: string): string | null {
+  for (const comp of list) {
+    if (
+      (comp.custom_id === targetId || comp.customId === targetId) &&
+      Array.isArray(comp.values) &&
+      comp.values[0]
+    ) {
+      return comp.values[0];
+    }
+    if (comp.component) {
+      const r = searchCompValues([comp.component], targetId);
+      if (r) return r;
+    }
+    if (comp.components && Array.isArray(comp.components)) {
+      const r = searchCompValues(comp.components, targetId);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+
+// ─── Builder del Container V2 de Institución ──────────────────────────────────
 export function buildInstitucionContainer(
   guild: Guild | null,
   author: User,
@@ -65,39 +112,44 @@ export function buildInstitucionContainer(
   rolId: string,
   descripcion: string,
   linkServer: string,
+  jefeId?: string,
+  subjefeId?: string,
   imageUrl?: string
 ): ContainerBuilder {
-  // Server icon as thumbnail
   const iconUrl = guild?.iconURL({ extension: "png", size: 256 }) ?? "";
 
   const configMap = {
     legal: {
-      color: 0x2563eb, // Azul medio-fuerte (Azul no tan fuerte pero si fuerte)
-      emoji: "🏛️",
+      color: 0x2563eb,
       nombre: "Facción Legal",
+      jefeLabel: "Jefe Faccionario",
+      subjefeLabel: "Sub Jefe Faccionario",
     },
     ilegal: {
-      color: 0x991b1b, // Rojo / Carmesí oscuro
-      emoji: "💀",
+      color: 0x991b1b,
       nombre: "Facción Ilegal",
+      jefeLabel: "Jefe Faccionario",
+      subjefeLabel: "Sub Jefe Faccionario",
     },
     empresa: {
-      color: 0xd97706, // Dorado / Ámbar
-      emoji: "💼",
+      color: 0xd97706,
       nombre: "Empresa",
+      jefeLabel: "Jefe Empresarial",
+      subjefeLabel: "",
     },
   };
 
   const c = configMap[tipo];
   const roleDisplay = rolId ? `<@&${rolId}>` : "Rol Institucional";
 
-  // El título del container es el Rol faccionario / empresarial
-  const headerContent = `# ${c.emoji} ${roleDisplay}\n**${tituloForo}**`;
+  // Rol en texto normal (sin # grande ni emoji) + título en negrita
+  const headerContent = `${roleDisplay}\n**${tituloForo}**`;
 
   const infoLines = [
     `📌 **Categoría:** \`${c.nombre}\``,
     `👤 **Publicado por:** ${author} (\`${author.tag}\`)`,
-    `🏷️ **Rol Faccionario / Empresa:** ${roleDisplay}`,
+    jefeId ? `👑 **${c.jefeLabel}:** <@${jefeId}>` : "",
+    subjefeId && c.subjefeLabel ? `⭐ **${c.subjefeLabel}:** <@${subjefeId}>` : "",
     linkServer
       ? `🔗 **Link Server:** ${linkServer.startsWith("http") ? linkServer : `https://${linkServer}`}`
       : "",
@@ -132,19 +184,15 @@ export function buildInstitucionContainer(
       new TextDisplayBuilder().setContent(descLines)
     );
 
-  // Agregar 1 imagen de portada si existe
   if (imageUrl) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     );
     (container as any).components.push({
-      type: 12, // MediaGallery
+      type: 12,
       items: [{ media: { url: imageUrl } }],
       toJSON() {
-        return {
-          type: 12,
-          items: [{ media: { url: imageUrl } }],
-        };
+        return { type: 12, items: [{ media: { url: imageUrl } }] };
       },
     });
   }
@@ -160,10 +208,7 @@ export function buildInstitucionContainer(
   return container;
 }
 
-/**
- * Handler del comando /subir institucion.
- * Despliega el menú de selección de categoría (Legal, Ilegal, Empresa).
- */
+// ─── /subir institucion — Comando principal ────────────────────────────────────
 export async function handleSubirCommand(
   interaction: ChatInputCommandInteraction,
   client: Client
@@ -173,7 +218,7 @@ export async function handleSubirCommand(
 
   if (!checkSubirPermissions(interaction.member)) {
     const errorContainer = buildErrorContainer(
-      `Solo el personal autorizado de instituciones (<@&${SUBIR_ROLES[0]}> / <@&${SUBIR_ROLES[1]}>) puede usar este comando.`,
+      `Solo el personal autorizado (<@&${SUBIR_ROLES[0]}> / <@&${SUBIR_ROLES[1]}>) puede usar este comando.`,
       client
     );
     await interaction.reply({
@@ -205,8 +250,10 @@ export async function handleSubirCommand(
     );
 
   const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-
-  const iconUrl = interaction.guild?.iconURL({ extension: "png", size: 256 }) ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+  const iconUrl =
+    interaction.guild?.iconURL({ extension: "png", size: 256 }) ??
+    client.user?.displayAvatarURL({ size: 256 }) ??
+    "";
 
   const container = new ContainerBuilder()
     .setAccentColor(0x3b82f6)
@@ -233,10 +280,7 @@ export async function handleSubirCommand(
   });
 }
 
-/**
- * Handler cuando el usuario selecciona una categoría en el select menu `subir:select_categoria`.
- * Abre el Modal V2 correspondiente.
- */
+// ─── Select categoría → abre Modal 1 ─────────────────────────────────────────
 export async function handleSubirSelectCategory(
   interaction: StringSelectMenuInteraction,
   client: Client
@@ -252,10 +296,74 @@ export async function handleSubirSelectCategory(
   }
 
   const titles = {
-    legal: "Publicar Facción Legal (Modal V2)",
-    ilegal: "Publicar Facción Ilegal (Modal V2)",
-    empresa: "Publicar Empresa (Modal V2)",
+    legal: "Publicar Facción Legal — Paso 1/2",
+    ilegal: "Publicar Facción Ilegal — Paso 1/2",
+    empresa: "Publicar Empresa — Paso 1/2",
   };
+
+  // Modal 1 — 5 campos base (límite máximo)
+  const modal1Components = [
+    {
+      type: 18,
+      label: "Addfiles (1 Imagen de Portada)",
+      description: "Adjunta la imagen o logo de portada (Máximo 1 imagen)",
+      component: {
+        type: 19,
+        custom_id: "inst_addfiles",
+        min_values: 0,
+        max_values: 1,
+        required: false,
+      },
+    },
+    {
+      type: 18,
+      label: "Título Foro",
+      component: {
+        type: 4,
+        custom_id: "inst_titulo_foro",
+        style: 1,
+        placeholder: "Ej. [Oficial] Policía Estatal de Sonora / Cártel...",
+        required: true,
+        max_length: 100,
+      },
+    },
+    {
+      type: 18,
+      label: "Rol Faccionario / Empresa",
+      description: "Selecciona el rol oficial que identificará al container",
+      component: {
+        type: 6, // RoleSelect
+        custom_id: "inst_rol_select",
+        placeholder: "Elige el rol de la institución...",
+        min_values: 1,
+        max_values: 1,
+      },
+    },
+    {
+      type: 18,
+      label: "Descripción Detallada",
+      component: {
+        type: 4,
+        custom_id: "inst_descripcion",
+        style: 2,
+        placeholder: "Escribe la historia, requisitos, normativas o servicios...",
+        required: true,
+        max_length: 2400,
+      },
+    },
+    {
+      type: 18,
+      label: "Link Server (Invitación Discord)",
+      component: {
+        type: 4,
+        custom_id: "inst_link_server",
+        style: 1,
+        placeholder: "https://discord.gg/tu-comunidad",
+        required: true,
+        max_length: 200,
+      },
+    },
+  ];
 
   try {
     await client.rest.post(
@@ -264,128 +372,166 @@ export async function handleSubirSelectCategory(
         body: {
           type: 9,
           data: {
-            custom_id: `subir:modal_submit:${tipo}`,
+            custom_id: `subir:modal1:${tipo}`,
             title: titles[tipo],
-            components: [
-              {
-                type: 18, // LABEL
-                label: "Addfiles (1 Imagen de Portada)",
-                description: "Adjunta la imagen o logo de portada (Máximo 1 imagen)",
-                component: {
-                  type: 19, // FILE_UPLOAD
-                  custom_id: "inst_addfiles",
-                  min_values: 0,
-                  max_values: 1,
-                  required: false,
-                },
-              },
-              {
-                type: 18, // LABEL
-                label: "Título Foro",
-                component: {
-                  type: 4, // TextInput
-                  custom_id: "inst_titulo_foro",
-                  style: 1, // Short
-                  placeholder: "Ej. [Oficial] Policía Estatal de Sonora / Cártel...",
-                  required: true,
-                  max_length: 100,
-                },
-              },
-              {
-                type: 18, // LABEL
-                label: "Rol Faccionario / Empresa",
-                description: "Selecciona el rol oficial que identificará al container",
-                component: {
-                  type: 6, // RoleSelect
-                  custom_id: "inst_rol_select",
-                  placeholder: "Elige el rol de la institución...",
-                  min_values: 1,
-                  max_values: 1,
-                },
-              },
-              {
-                type: 18, // LABEL
-                label: "Descripción Detallada",
-                component: {
-                  type: 4, // TextInput
-                  custom_id: "inst_descripcion",
-                  style: 2, // Paragraph
-                  placeholder: "Escribe la historia, requisitos, normativas o servicios...",
-                  required: true,
-                  max_length: 2400,
-                },
-              },
-              {
-                type: 18, // LABEL
-                label: "Link Server (Invitación Discord)",
-                component: {
-                  type: 4, // TextInput
-                  custom_id: "inst_link_server",
-                  style: 1, // Short
-                  placeholder: "https://discord.gg/tu-comunidad",
-                  required: true,
-                  max_length: 200,
-                },
-              },
-            ],
+            components: modal1Components,
           },
         },
       }
     );
   } catch (err) {
-    console.error("[SUBIR_INSTITUCION] Error enviando Modal V2, probando fallback:", err);
-    // Fallback modal estándar
+    console.error("[SUBIR] Error enviando Modal V2 paso 1, fallback:", err);
     const modal = new ModalBuilder()
-      .setCustomId(`subir:modal_submit:${tipo}`)
+      .setCustomId(`subir:modal1:${tipo}`)
       .setTitle(titles[tipo]);
 
-    const inputTitulo = new TextInputBuilder()
-      .setCustomId("inst_titulo_foro")
-      .setLabel("Título Foro")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Ej. [Oficial] Nombre de la Institución")
-      .setRequired(true)
-      .setMaxLength(100);
-
-    const inputRol = new TextInputBuilder()
-      .setCustomId("inst_rol_id")
-      .setLabel("ID o Mención del Rol Faccionario")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Pega el ID o mención del rol aquí...")
-      .setRequired(true)
-      .setMaxLength(50);
-
-    const inputDesc = new TextInputBuilder()
-      .setCustomId("inst_descripcion")
-      .setLabel("Descripción Detallada")
-      .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Escribe la descripción o requisitos...")
-      .setRequired(true)
-      .setMaxLength(2400);
-
-    const inputLink = new TextInputBuilder()
-      .setCustomId("inst_link_server")
-      .setLabel("Link Server (Invitación Discord)")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("https://discord.gg/ejemplo")
-      .setRequired(true)
-      .setMaxLength(200);
-
     modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputTitulo),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputRol),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputDesc),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputLink)
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("inst_titulo_foro")
+          .setLabel("Título Foro")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(100)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("inst_rol_id")
+          .setLabel("ID del Rol Faccionario")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(50)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("inst_descripcion")
+          .setLabel("Descripción Detallada")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true)
+          .setMaxLength(2400)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("inst_link_server")
+          .setLabel("Link Server")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(200)
+      )
     );
 
     await interaction.showModal(modal);
   }
 }
 
-/**
- * Handler del envío del modal de institución (`subir:modal_submit:<tipo>`).
- */
-export async function handleSubirModalSubmit(
+// ─── Modal 1 submit → guarda datos y abre Modal 2 (Jefe/SubJefe) ──────────────
+export async function handleSubirModal1Submit(
+  interaction: ModalSubmitInteraction,
+  client: Client
+): Promise<void> {
+  const parts = interaction.customId.split(":");
+  const tipo = (parts[2] ?? "legal") as "legal" | "ilegal" | "empresa";
+
+  // Extraer imagen del rawInteractionStore (Modal V2)
+  const attachmentsList = extractModalAttachments(interaction);
+  const imageUrl = attachmentsList[0]?.url;
+
+  // Extraer campos de texto
+  const tituloForo =
+    findModalFieldValue(interaction, "inst_titulo_foro") || "Institución Sin Título";
+  const descripcion =
+    findModalFieldValue(interaction, "inst_descripcion") || "Sin descripción.";
+  const linkServer = findModalFieldValue(interaction, "inst_link_server") || "";
+
+  const rawComponents =
+    (interaction as any).data?.components ??
+    (interaction as any).components ??
+    [];
+
+  let rolId =
+    searchCompValues(rawComponents, "inst_rol_select") ??
+    findModalFieldValue(interaction, "inst_rol_id") ??
+    "";
+  if (rolId.includes("<@&")) rolId = rolId.replace(/[^0-9]/g, "");
+
+  // Guardar en caché (10 minutos)
+  savePendingData(interaction.user.id, {
+    tipo,
+    tituloForo,
+    rolId,
+    descripcion,
+    linkServer,
+    imageUrl,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
+
+  console.log(
+    `[SUBIR] Modal 1 guardado para ${interaction.user.tag} — tipo=${tipo}, rol=${rolId}`
+  );
+
+  // Abrir Modal 2 con los UserSelects de Jefe / Sub Jefe
+  const modal2Titles = {
+    legal: "Facción Legal — Paso 2/2 · Mandos",
+    ilegal: "Facción Ilegal — Paso 2/2 · Mandos",
+    empresa: "Empresa — Paso 2/2 · Mando",
+  };
+
+  const jefeLabelTitle =
+    tipo === "empresa" ? "Jefe Empresarial" : "Jefe Faccionario";
+  const modal2Components: any[] = [
+    {
+      type: 18,
+      label: jefeLabelTitle,
+      description: `Selecciona al ${jefeLabelTitle} de la institución`,
+      component: {
+        type: 5, // UserSelect
+        custom_id: "inst_jefe",
+        placeholder: `Selecciona el ${jefeLabelTitle}...`,
+        min_values: 1,
+        max_values: 1,
+      },
+    },
+  ];
+
+  if (tipo === "legal" || tipo === "ilegal") {
+    modal2Components.push({
+      type: 18,
+      label: "Sub Jefe Faccionario",
+      description: "Selecciona al Sub Jefe (Opcional)",
+      component: {
+        type: 5, // UserSelect
+        custom_id: "inst_subjefe",
+        placeholder: "Selecciona el Sub Jefe Faccionario...",
+        min_values: 0,
+        max_values: 1,
+        required: false,
+      },
+    });
+  }
+
+  try {
+    await client.rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 9, // MODAL
+          data: {
+            custom_id: `subir:modal2:${tipo}`,
+            title: modal2Titles[tipo],
+            components: modal2Components,
+          },
+        },
+      }
+    );
+  } catch (err) {
+    console.error("[SUBIR] Error abriendo Modal 2:", err);
+    // Si falla el modal 2, publicar sin jefe/subjefe directamente
+    await publishInstitucion(interaction, client, tipo, tituloForo, rolId, descripcion, linkServer, undefined, undefined, imageUrl, true);
+  }
+}
+
+// ─── Modal 2 submit → publica la institución ─────────────────────────────────
+export async function handleSubirModal2Submit(
   interaction: ModalSubmitInteraction,
   client: Client
 ): Promise<void> {
@@ -394,44 +540,61 @@ export async function handleSubirModalSubmit(
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  // 1. Extraer adjuntos / imágenes
-  const attachmentsList = extractModalAttachments(interaction);
-  const imageUrl = attachmentsList[0]?.url;
-
-  // 2. Extraer campos
-  const tituloForo = findModalFieldValue(interaction, "inst_titulo_foro") || "Institución Sin Título";
-  const descripcion = findModalFieldValue(interaction, "inst_descripcion") || "Sin descripción.";
-  const linkServer = findModalFieldValue(interaction, "inst_link_server") || "";
-
-  // Extraer rol seleccionado del componente RoleSelect
-  let rolId = "";
-  const rawComponents = (interaction as any).data?.components ?? (interaction as any).components ?? [];
-
-  function searchRoleValues(list: any[]): string | null {
-    for (const comp of list) {
-      if ((comp.custom_id === "inst_rol_select" || comp.customId === "inst_rol_select") && Array.isArray(comp.values) && comp.values[0]) {
-        return comp.values[0];
-      }
-      if (comp.component) {
-        const res = searchRoleValues([comp.component]);
-        if (res) return res;
-      }
-      if (comp.components && Array.isArray(comp.components)) {
-        const res = searchRoleValues(comp.components);
-        if (res) return res;
-      }
-    }
-    return null;
+  // Recuperar datos del Modal 1
+  const pending = popPendingData(interaction.user.id);
+  if (!pending) {
+    await interaction.editReply({
+      content:
+        "❌ Los datos del formulario anterior expiraron o no se encontraron. Vuelve a usar `/subir institucion`.",
+    });
+    return;
   }
 
-  rolId = searchRoleValues(rawComponents) ?? findModalFieldValue(interaction, "inst_rol_id") ?? "";
+  const rawComponents =
+    (interaction as any).data?.components ??
+    (interaction as any).components ??
+    [];
 
-  // Si rolId vino como mención <@&123456>, extraer solo números
-  if (rolId.includes("<@&")) {
-    rolId = rolId.replace(/[^0-9]/g, "");
+  const jefeId = searchCompValues(rawComponents, "inst_jefe") ?? undefined;
+  const subjefeId = searchCompValues(rawComponents, "inst_subjefe") ?? undefined;
+
+  console.log(
+    `[SUBIR] Modal 2 recibido — tipo=${tipo}, jefe=${jefeId}, subjefe=${subjefeId}`
+  );
+
+  await publishInstitucion(
+    interaction,
+    client,
+    pending.tipo,
+    pending.tituloForo,
+    pending.rolId,
+    pending.descripcion,
+    pending.linkServer,
+    jefeId,
+    subjefeId,
+    pending.imageUrl,
+    false
+  );
+}
+
+// ─── Función de publicación compartida ───────────────────────────────────────
+async function publishInstitucion(
+  interaction: ModalSubmitInteraction,
+  client: Client,
+  tipo: "legal" | "ilegal" | "empresa",
+  tituloForo: string,
+  rolId: string,
+  descripcion: string,
+  linkServer: string,
+  jefeId: string | undefined,
+  subjefeId: string | undefined,
+  imageUrl: string | undefined,
+  needsDefer: boolean
+): Promise<void> {
+  if (needsDefer) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   }
 
-  // 3. Crear el contenedor V2
   const container = buildInstitucionContainer(
     interaction.guild,
     interaction.user,
@@ -440,10 +603,11 @@ export async function handleSubirModalSubmit(
     rolId,
     descripcion,
     linkServer,
+    jefeId,
+    subjefeId,
     imageUrl
   );
 
-  // 4. Determinar canal de destino
   const targetChannelId = DEST_CHANNELS[tipo];
   const targetChannel = await client.channels.fetch(targetChannelId).catch(() => null);
 
@@ -455,8 +619,8 @@ export async function handleSubirModalSubmit(
   }
 
   try {
-    // Si el destino es un ForumChannel (Facción Legal / Ilegal)
     if ((targetChannel as any).isThreadOnly?.() || (targetChannel as any).type === 15) {
+      // ForumChannel (Facción Legal / Ilegal)
       const forumChannel = targetChannel as import("discord.js").ForumChannel;
       const thread = await forumChannel.threads.create({
         name: tituloForo.substring(0, 100),
@@ -466,33 +630,36 @@ export async function handleSubirModalSubmit(
           flags: MessageFlags.IsComponentsV2,
         },
       });
-      console.log(`[SUBIR_INSTITUCION] Publicado hilo en foro (${tipo}): ${thread.name} (${thread.id})`);
+      console.log(`[SUBIR_INST] Hilo creado en foro (${tipo}): ${thread.name} (${thread.id})`);
     } else if ((targetChannel as any).isTextBased?.()) {
-      // Si el destino es un TextChannel (Empresa)
+      // TextChannel (Empresa)
       const textChannel = targetChannel as import("discord.js").TextChannel;
       await textChannel.send({
         components: [container],
         // @ts-ignore
         flags: MessageFlags.IsComponentsV2,
       });
-      console.log(`[SUBIR_INSTITUCION] Publicado mensaje en canal (${tipo}): ${targetChannelId}`);
+      console.log(`[SUBIR_INST] Publicado en canal (${tipo}): ${targetChannelId}`);
     }
   } catch (pubErr) {
-    console.error("[SUBIR_INSTITUCION] Error al publicar en canal de destino:", pubErr);
+    console.error("[SUBIR_INST] Error publicando:", pubErr);
     await interaction.editReply({
-      content: `❌ Error al crear la publicación en el canal <#${targetChannelId}>.`,
+      content: `❌ Error al crear la publicación en <#${targetChannelId}>.`,
     });
     return;
   }
 
-  // 5. Confirmación efímera al usuario
   const confirmText = [
     `✅ **¡Institución publicada exitosamente!**`,
     `› **Categoría:** \`${tipo.toUpperCase()}\``,
     `› **Título:** \`${tituloForo}\``,
     `› **Rol:** ${rolId ? `<@&${rolId}>` : "`Sin rol`"}`,
+    jefeId ? `› **Jefe:** <@${jefeId}>` : "",
+    subjefeId ? `› **Sub Jefe:** <@${subjefeId}>` : "",
     `› **Canal/Foro Destino:** <#${targetChannelId}>`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const successContainer = buildSuccessContainer("🏢 Publicación Completada", confirmText, client);
   await interaction.editReply({

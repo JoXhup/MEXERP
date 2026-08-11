@@ -28,7 +28,7 @@ import {
   handleTryoutModalSubmit,
 } from "../handlers/tryoutHandler.js";
 import { handleNarcoModalSubmit } from "../handlers/narcoHandler.js";
-import { handleSubirSelectCategory, handleSubirModalSubmit } from "../handlers/subirHandler.js";
+import { handleSubirSelectCategory, handleSubirModal1Submit, handleSubirModal2Submit } from "../handlers/subirHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -180,9 +180,15 @@ export async function execute(interaction: Interaction, client: Client): Promise
         return;
       }
 
-      // Modal Subir Institución (Facción Legal / Ilegal / Empresa)
-      if (id.startsWith("subir:modal_submit:")) {
-        await handleSubirModalSubmit(interaction, client);
+      // Modal Subir Institución — Paso 1 (datos base)
+      if (id.startsWith("subir:modal1:")) {
+        await handleSubirModal1Submit(interaction, client);
+        return;
+      }
+
+      // Modal Subir Institución — Paso 2 (Jefe / Sub Jefe)
+      if (id.startsWith("subir:modal2:")) {
+        await handleSubirModal2Submit(interaction, client);
         return;
       }
       return;
