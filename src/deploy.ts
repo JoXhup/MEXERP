@@ -16,7 +16,6 @@ import { data as jornadaData } from "./commands/jornada.js";
 import { data as profileData } from "./commands/profile.js";
 import { data as verificarData } from "./commands/verificar.js";
 import ineCommand from "./commands/ine.js";
-import chatgptCommand from "./commands/chatgpt.js";
 import arrestarCommand from "./commands/arrestar.js";
 import estadoCommand from "./commands/estado.js";
 import depositarCommand from "./commands/depositar.js";
@@ -40,7 +39,6 @@ const commands = [
   contratarCommand,
   despedirCommand,
   ineCommand,
-  chatgptCommand,
   arrestarCommand,
   estadoCommand,
   depositarCommand,

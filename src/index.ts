@@ -16,7 +16,6 @@ import * as jornadaModule from "./commands/jornada.js";
 import * as profileModule from "./commands/profile.js";
 import * as verificarModule from "./commands/verificar.js";
 import ineCommand from "./commands/ine.js";
-import chatgptCommand from "./commands/chatgpt.js";
 import arrestarCommand from "./commands/arrestar.js";
 import estadoCommand from "./commands/estado.js";
 import depositarCommand from "./commands/depositar.js";
@@ -73,7 +72,6 @@ const commands: Command[] = [
   { data: profileModule.data, execute: profileModule.execute } as unknown as Command,
   { data: verificarModule.data, execute: verificarModule.execute } as unknown as Command,
   ineCommand,
-  chatgptCommand,
   arrestarCommand,
   estadoCommand,
   depositarCommand,
