@@ -90,34 +90,74 @@ export async function parsearArchivo(
   return { texto: buffer.toString("utf-8").trim(), esImagen: false };
 }
 
-export async function describirImagen(imageUrl: string, groqKey: string): Promise<string> {
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_VISION_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Describe detalladamente el contenido de esta imagen en español. Extrae todo el texto visible, números, listas, títulos y datos importantes.",
-            },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-    }),
-  }) as any;
+export async function describirImagen(
+  bufferOrUrl: Buffer | string,
+  groqKey: string,
+  fileNameOrUrl = "imagen.png"
+): Promise<string> {
+  let imageContent: { type: string; image_url: { url: string } };
 
-  if (!res.ok) throw new Error(`Groq Vision error: ${res.status}`);
-  const data = (await res.json()) as any;
-  return data?.choices?.[0]?.message?.content?.trim() ?? "No se pudo describir la imagen.";
+  if (Buffer.isBuffer(bufferOrUrl)) {
+    const ext = getExtension(fileNameOrUrl);
+    const mime = ext.includes("png")
+      ? "image/png"
+      : ext.includes("webp")
+      ? "image/webp"
+      : "image/jpeg";
+    const base64 = `data:${mime};base64,${bufferOrUrl.toString("base64")}`;
+    imageContent = { type: "image_url", image_url: { url: base64 } };
+  } else {
+    imageContent = { type: "image_url", image_url: { url: bufferOrUrl } };
+  }
+
+  const visionModels = [
+    "llama-3.2-11b-vision-preview",
+    "llama-3.2-90b-vision-preview",
+  ];
+
+  for (const modelName of visionModels) {
+    try {
+      const res = (await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Instrucción de OCR y extracción: Analiza esta imagen con precisión. Transcribe TODO el texto legible en español, números, tablas, listas, títulos, sanciones o datos del reglamento presentes en la imagen.",
+                },
+                imageContent,
+              ],
+            },
+          ],
+          max_tokens: 2000,
+        }),
+      })) as any;
+
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const text = data?.choices?.[0]?.message?.content?.trim();
+        if (text && text.length > 5) {
+          return text;
+        }
+      } else {
+        const errText = await res.text();
+        console.error(`[GROQ_VISION] Error con modelo ${modelName}: status ${res.status}`, errText);
+      }
+    } catch (err) {
+      console.error(`[GROQ_VISION] Excepción con modelo ${modelName}:`, err);
+    }
+  }
+
+  throw new Error("No se pudo extraer texto de la imagen.");
 }
 
 // ─── HELPER DE CONTAINER V2 ──────────────────────────────────────────────────
@@ -632,7 +672,7 @@ export async function handleTryoutModalSubmit(
 
           if (esImagen) {
             if (config.groqApiKey) {
-              const descripcion = await describirImagen(fileAtt.url, config.groqApiKey);
+              const descripcion = await describirImagen(fileBuffer, config.groqApiKey, fileAtt.filename);
               textoDoc = `[Contenido de imagen "${fileAtt.filename}"]:\n${descripcion}`;
               finalTipo = "Imagen";
             }
@@ -671,7 +711,7 @@ export async function handleTryoutModalSubmit(
 
             if (esImagen || contentType.includes("image")) {
               if (config.groqApiKey) {
-                const descripcion = await describirImagen(inputVal, config.groqApiKey);
+                const descripcion = await describirImagen(fileBuffer, config.groqApiKey, inputVal);
                 textoFinal = `[Contenido de imagen "${titulo || "Imagen"}"]:\n${descripcion}`;
                 tipoFuente = "Imagen";
               }
@@ -932,7 +972,7 @@ export async function handleTryoutUploadCommand(
         await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
         return;
       }
-      const descripcion = await describirImagen(attachment.url, config.groqApiKey);
+      const descripcion = await describirImagen(fileBuffer, config.groqApiKey, attachment.name);
       nuevoTexto = `[Contenido de imagen "${tituloDoc}"]:\n${descripcion}`;
     } else {
       if (!texto || texto.length < 5) {
