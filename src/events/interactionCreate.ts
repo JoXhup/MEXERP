@@ -28,7 +28,14 @@ import {
   handleTryoutModalSubmit,
 } from "../handlers/tryoutHandler.js";
 import { handleNarcoModalSubmit } from "../handlers/narcoHandler.js";
-import { handleSubirSelectCategory, handleSubirModal1Submit, handleSubirModal2Submit } from "../handlers/subirHandler.js";
+import {
+  handleSubirSelectCategory,
+  handleSubirModal1Submit,
+  handleSubirModal2Submit,
+  handleSubirJefeSelect,
+  handleSubirSubjefeSelect,
+  handleSubirPublishButton,
+} from "../handlers/subirHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -117,6 +124,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
         return;
       }
 
+      // Botón Publicar — Subir Institución (fallback)
+      if (id.startsWith("subir:publish:")) {
+        await handleSubirPublishButton(interaction, client);
+        return;
+      }
+
       // Tickets
       await handleButton(interaction, client);
       return;
@@ -180,13 +193,13 @@ export async function execute(interaction: Interaction, client: Client): Promise
         return;
       }
 
-      // Modal Subir Institución — Paso 1 (datos base)
+      // Modal Subir Institución — Paso 1 (datos base + abre Modal 2)
       if (id.startsWith("subir:modal1:")) {
         await handleSubirModal1Submit(interaction, client);
         return;
       }
 
-      // Modal Subir Institución — Paso 2 (Jefe / Sub Jefe)
+      // Modal Subir Institución — Paso 2 (Jefe / Sub Jefe UserSelects)
       if (id.startsWith("subir:modal2:")) {
         await handleSubirModal2Submit(interaction, client);
         return;
@@ -222,6 +235,23 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Select menú Subir Institución — categoría (Legal / Ilegal / Empresa)
       if (id === "subir:select_categoria") {
         await handleSubirSelectCategory(interaction, client);
+        return;
+      }
+    }
+
+    // ─── USER SELECT MENUS ───────────────────────────────────────────────
+    if (interaction.isUserSelectMenu()) {
+      const id = interaction.customId;
+
+      // Jefe Faccionario / Empresarial (fallback)
+      if (id.startsWith("subir:jefe:")) {
+        await handleSubirJefeSelect(interaction);
+        return;
+      }
+
+      // Sub Jefe Faccionario (fallback)
+      if (id.startsWith("subir:subjefe:")) {
+        await handleSubirSubjefeSelect(interaction);
         return;
       }
     }
