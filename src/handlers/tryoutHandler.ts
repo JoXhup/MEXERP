@@ -332,7 +332,7 @@ export async function procesarContenidoOArchivo(
 }
 
 // ─── HELPER DE EXTRAER ADJUNTOS DEL MODAL V2 ─────────────────────────────────
-function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ url: string; filename: string; content_type: string }> {
+export function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ url: string; filename: string; content_type: string }> {
   const list: Array<{ url: string; filename: string; content_type: string }> = [];
   const raw = interaction as any;
 
@@ -422,7 +422,7 @@ function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ u
 }
 
 // ─── HELPER DE EXTRAER CAMPOS DE TEXTO DEL MODAL V2 ──────────────────────────
-function findModalFieldValue(interaction: ModalSubmitInteraction, customId: string): string {
+export function findModalFieldValue(interaction: ModalSubmitInteraction, customId: string): string {
   try {
     const val = interaction.fields.getTextInputValue(customId);
     if (val) return val.trim();

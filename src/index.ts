@@ -33,6 +33,7 @@ import cmdCommand from "./commands/cmd.js";
 import bienvenidaCommand from "./commands/bienvenida.js";
 import pingCommand from "./commands/ping.js";
 import tryoutCommand from "./commands/tryout.js";
+import narcopostCommand from "./commands/narcopost.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -89,6 +90,7 @@ const commands: Command[] = [
   bienvenidaCommand,
   pingCommand,
   tryoutCommand,
+  narcopostCommand,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;

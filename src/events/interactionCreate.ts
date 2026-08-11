@@ -27,6 +27,7 @@ import {
   handleTryoutDeleteSelect,
   handleTryoutModalSubmit,
 } from "../handlers/tryoutHandler.js";
+import { handleNarcoModalSubmit } from "../handlers/narcoHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -169,6 +170,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Modales de Tryout IA
       if (id.startsWith("tryout:modal_")) {
         await handleTryoutModalSubmit(interaction);
+        return;
+      }
+
+      // Modal Narco Post
+      if (id === "narco:modal_submit") {
+        await handleNarcoModalSubmit(interaction, client);
         return;
       }
       return;
