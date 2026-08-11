@@ -32,6 +32,7 @@ import cmdCommand from "./commands/cmd.js";
 import bienvenidaCommand from "./commands/bienvenida.js";
 import pingCommand from "./commands/ping.js";
 import tryoutCommand from "./commands/tryout.js";
+import narcopostCommand from "./commands/narcopost.js";
 
 const commands = [
   panelCommand,
@@ -55,6 +56,7 @@ const commands = [
   bienvenidaCommand,
   pingCommand,
   tryoutCommand,
+  narcopostCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
