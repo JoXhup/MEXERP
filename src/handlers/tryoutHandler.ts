@@ -108,29 +108,105 @@ export async function describirImagen(
   groqKey: string,
   fileNameOrUrl = "imagen.png"
 ): Promise<string> {
-  let imageContent: { type: string; image_url: { url: string } };
+  // Modelos de visión disponibles en Groq (actualizados agosto 2026).
+  // llama-3.2-*-vision-preview están DEPRECATED — usar Llama 4 y Qwen3.
+  const visionModels = [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "llama-3.2-11b-vision-preview",   // fallback por compatibilidad
+    "llama-3.2-90b-vision-preview",   // fallback por compatibilidad
+  ];
 
-  if (Buffer.isBuffer(bufferOrUrl)) {
-    const ext = getExtension(fileNameOrUrl);
-    const mime = ext.includes("png")
-      ? "image/png"
-      : ext.includes("webp")
-      ? "image/webp"
-      : "image/jpeg";
-    const base64 = `data:${mime};base64,${bufferOrUrl.toString("base64")}`;
-    imageContent = { type: "image_url", image_url: { url: base64 } };
-  } else {
-    imageContent = { type: "image_url", image_url: { url: bufferOrUrl } };
+  const promptText =
+    "Eres un OCR de precisión. Analiza esta imagen y transcribe TODO el texto " +
+    "legible que veas: tablas, listas, números, títulos, nombres, sanciones, " +
+    "reglamentos, fechas o cualquier dato relevante. Si hay una tabla, mantenla " +
+    "estructurada con columnas y filas. Responde SOLO con el contenido extraído, " +
+    "sin introducción ni comentarios adicionales.";
+
+  // ── Estrategia 1: Pasar URL directamente (más eficiente, sin límite de tamaño) ──
+  // Las URLs de Discord CDN son públicas y los modelos Groq Vision pueden leerlas.
+  if (typeof bufferOrUrl === "string") {
+    for (const modelName of visionModels) {
+      try {
+        console.log(`[GROQ_VISION] Intentando con URL directa, modelo: ${modelName}`);
+        const res = await fetch(GROQ_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptText },
+                  { type: "image_url", image_url: { url: bufferOrUrl } },
+                ],
+              },
+            ],
+            max_tokens: 4096,
+          }),
+        }) as any;
+
+        if (res.ok) {
+          const data = await res.json() as any;
+          const text = data?.choices?.[0]?.message?.content?.trim();
+          if (text && text.length > 5) {
+            console.log(`[GROQ_VISION] ✅ OCR exitoso con ${modelName} (URL). Chars: ${text.length}`);
+            return text;
+          }
+        } else {
+          const errBody = await res.text();
+          console.error(`[GROQ_VISION] Error ${res.status} con modelo ${modelName} (URL):`, errBody.substring(0, 300));
+        }
+      } catch (err) {
+        console.error(`[GROQ_VISION] Excepción con modelo ${modelName} (URL):`, err);
+      }
+    }
   }
 
-  const visionModels = [
-    "llama-3.2-11b-vision-preview",
-    "llama-3.2-90b-vision-preview",
-  ];
+  // ── Estrategia 2: Buffer → Base64 Data URI ────────────────────────────────
+  // Se usa cuando se pasa un Buffer, o como fallback si la URL falló.
+  let base64Url: string;
+  if (Buffer.isBuffer(bufferOrUrl)) {
+    const ext = getExtension(fileNameOrUrl).replace(".", "");
+    const mimeMap: Record<string, string> = {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+      bmp: "image/bmp",
+    };
+    const mime = mimeMap[ext] ?? "image/jpeg";
+    base64Url = `data:${mime};base64,${bufferOrUrl.toString("base64")}`;
+  } else {
+    // Era URL pero falló arriba; intentar descargar y re-enviar como base64
+    try {
+      const imgRes = await fetch(bufferOrUrl) as any;
+      if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
+      const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+      const ext = getExtension(bufferOrUrl).replace(".", "") || "jpeg";
+      const mimeMap: Record<string, string> = {
+        png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+        gif: "image/gif", webp: "image/webp",
+      };
+      const mime = mimeMap[ext] ?? "image/jpeg";
+      base64Url = `data:${mime};base64,${imgBuf.toString("base64")}`;
+      console.log(`[GROQ_VISION] Descargada URL como base64 (${imgBuf.length} bytes)`);
+    } catch (dlErr) {
+      console.error(`[GROQ_VISION] No se pudo descargar la imagen:`, dlErr);
+      throw new Error("No se pudo procesar la imagen: falló descarga y URL directa.");
+    }
+  }
 
   for (const modelName of visionModels) {
     try {
-      const res = (await fetch(GROQ_API_URL, {
+      console.log(`[GROQ_VISION] Intentando con base64, modelo: ${modelName}`);
+      const res = await fetch(GROQ_API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -142,36 +218,34 @@ export async function describirImagen(
             {
               role: "user",
               content: [
-                {
-                  type: "text",
-                  text:
-                    "Instrucción de OCR y extracción: Analiza esta imagen con precisión. Transcribe TODO el texto legible en español, números, tablas, listas, títulos, sanciones o datos del reglamento presentes en la imagen.",
-                },
-                imageContent,
+                { type: "text", text: promptText },
+                { type: "image_url", image_url: { url: base64Url } },
               ],
             },
           ],
-          max_tokens: 2000,
+          max_tokens: 4096,
         }),
-      })) as any;
+      }) as any;
 
       if (res.ok) {
-        const data = (await res.json()) as any;
+        const data = await res.json() as any;
         const text = data?.choices?.[0]?.message?.content?.trim();
         if (text && text.length > 5) {
+          console.log(`[GROQ_VISION] ✅ OCR exitoso con ${modelName} (base64). Chars: ${text.length}`);
           return text;
         }
       } else {
-        const errText = await res.text();
-        console.error(`[GROQ_VISION] Error con modelo ${modelName}: status ${res.status}`, errText);
+        const errBody = await res.text();
+        console.error(`[GROQ_VISION] Error ${res.status} con modelo ${modelName} (base64):`, errBody.substring(0, 300));
       }
     } catch (err) {
-      console.error(`[GROQ_VISION] Excepción con modelo ${modelName}:`, err);
+      console.error(`[GROQ_VISION] Excepción con modelo ${modelName} (base64):`, err);
     }
   }
 
-  throw new Error("No se pudo extraer texto de la imagen.");
+  throw new Error("No se pudo extraer texto de la imagen con ningún modelo de Groq Vision.");
 }
+
 
 // ─── PROCESADOR UNIFICADO DE ARCHIVOS E IMÁGENES ──────────────────────────────
 export async function procesarContenidoOArchivo(
@@ -888,12 +962,46 @@ export async function handleTryoutModalSubmit(
     if (attachmentsList.length > 0) {
       for (const fileAtt of attachmentsList) {
         try {
-          const res: any = await fetch(fileAtt.url);
-          if (!res.ok) continue;
-          const contentType = res.headers.get("content-type") ?? "";
-          const fileBuffer = Buffer.from(await res.arrayBuffer());
+          const ext = getExtension(fileAtt.filename);
+          const ct  = fileAtt.content_type?.toLowerCase() ?? "";
+          const esImagen = TIPOS_IMAGEN.includes(ext) || ct.startsWith("image/");
 
-          const { texto, tipo } = await procesarContenidoOArchivo(fileBuffer, fileAtt.filename, contentType);
+          let texto = "";
+          let tipo: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
+
+          if (esImagen && config.groqApiKey) {
+            // Pasar URL directamente a Groq Vision — más eficiente y sin límite de tamaño
+            console.log(`[MODAL_SUBMIT] Imagen detectada, enviando URL directa a OCR: ${fileAtt.filename}`);
+            try {
+              const descripcion = await describirImagen(fileAtt.url, config.groqApiKey, fileAtt.filename);
+              if (descripcion && descripcion.length > 5) {
+                texto = `[OCR Imagen "${fileAtt.filename}"]:\n${descripcion}`;
+                tipo  = "Imagen";
+              }
+            } catch (ocrErr) {
+              console.error(`[MODAL_SUBMIT] OCR falló para ${fileAtt.filename}, intentando con buffer:`, ocrErr);
+              // Fallback: descargar y procesar con buffer
+              const res: any = await fetch(fileAtt.url);
+              if (res.ok) {
+                const buf = Buffer.from(await res.arrayBuffer());
+                const result = await procesarContenidoOArchivo(buf, fileAtt.filename, ct);
+                texto = result.texto;
+                tipo  = result.tipo;
+              }
+            }
+          } else {
+            // Para PDF, Word, Excel y texto — descargar buffer y procesar normalmente
+            const res: any = await fetch(fileAtt.url);
+            if (!res.ok) {
+              console.error(`[MODAL_SUBMIT] No se pudo descargar ${fileAtt.filename}: HTTP ${res.status}`);
+              continue;
+            }
+            const contentType = res.headers.get("content-type") ?? ct;
+            const fileBuffer  = Buffer.from(await res.arrayBuffer());
+            const result = await procesarContenidoOArchivo(fileBuffer, fileAtt.filename, contentType);
+            texto = result.texto;
+            tipo  = result.tipo;
+          }
 
           if (texto && texto.length >= 5) {
             const itemGuardado = await documentCache.addItem(guildId, {
@@ -902,12 +1010,16 @@ export async function handleTryoutModalSubmit(
               text: texto,
             });
             itemsProcesados.push(itemGuardado);
+            console.log(`[MODAL_SUBMIT] ✅ Procesado: "${fileAtt.filename}" (${tipo}) — ${texto.length} chars guardados.`);
+          } else {
+            console.warn(`[MODAL_SUBMIT] ⚠️ Texto vacío para ${fileAtt.filename}, no se guardó.`);
           }
         } catch (err) {
           console.error(`[MODAL_SUBMIT] Error procesando adjunto ${fileAtt.filename}:`, err);
         }
       }
     }
+
 
     // PROCESAR URL O TEXTO SI SE INGRESÓ EN EL CAMPO DE TEXTO
     if (inputVal && itemsProcesados.length === 0) {
