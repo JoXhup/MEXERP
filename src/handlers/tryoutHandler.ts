@@ -717,7 +717,7 @@ export async function handleTryoutMainMenu(
 
     const inputPregunta = new TextInputBuilder()
       .setCustomId("pregunta")
-      .setLabel("¿Consulta de prueba para la IA sobre esta regla? (Opcional)")
+      .setLabel("¿Consulta de prueba para la IA? (Opcional)")
       .setStyle(TextInputStyle.Short)
       .setPlaceholder("Ej. ¿Cómo aplica esta regla en atracos?")
       .setRequired(false)
