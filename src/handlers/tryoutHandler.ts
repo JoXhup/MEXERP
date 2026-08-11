@@ -21,7 +21,7 @@ import {
 } from "discord.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
-import { documentCache } from "../utils/documentCache.js";
+import { documentCache, buildAISystemPrompt } from "../utils/documentCache.js";
 import { getRawResolved } from "../utils/rawInteractionStore.js";
 import { createRequire } from "module";
 
@@ -709,15 +709,24 @@ export async function handleTryoutMainMenu(
 
     const inputContenido = new TextInputBuilder()
       .setCustomId("contenido")
-      .setLabel("Contenido del Texto")
+      .setLabel("Contenido del Texto o Regla Nueva")
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Pega o escribe aquí las reglas o información...")
+      .setPlaceholder("Pega o escribe aquí las reglas, normas o información...")
       .setRequired(true)
       .setMaxLength(3800);
 
+    const inputPregunta = new TextInputBuilder()
+      .setCustomId("pregunta")
+      .setLabel("¿Consulta de prueba para la IA sobre esta regla? (Opcional)")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("Ej. ¿Cómo aplica esta regla en atracos?")
+      .setRequired(false)
+      .setMaxLength(500);
+
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(inputTitulo),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido)
+      new ActionRowBuilder<TextInputBuilder>().addComponents(inputContenido),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(inputPregunta)
     );
     await interaction.showModal(modal);
     return;
@@ -1073,10 +1082,7 @@ export async function handleTryoutModalSubmit(
               messages: [
                 {
                   role: "system",
-                  content:
-                    `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
-                    `Proporciona una respuesta clara, profunda, pulida y bien estructurada basándote en las fuentes de conocimiento.\n\n` +
-                    `--- CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN ---`,
+                  content: buildAISystemPrompt(combined),
                 },
                 { role: "user", content: preguntaVal },
               ],
@@ -1134,17 +1140,10 @@ export async function handleTryoutModalSubmit(
 
     if (combined.count > 0) {
       modoDoc = true;
-      systemPrompt =
-        `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
-        `Tu objetivo es brindar respuestas profesionales, explicativas, bien estructuradas y formalmente redactadas en español.\n\n` +
-        `REGLAS:\n` +
-        `1. Analiza detenidamente el conocimiento de la base de datos (${combined.count} fuentes activas).\n` +
-        `2. Si la consulta está relacionada con la información cargada, proporciona una respuesta detallada, pulida y completa, organizando la información si es útil.\n` +
-        `3. Si la pregunta no se responde con el conocimiento oficial, explícalo con amabilidad y responde con el conocimiento general disponible.\n\n` +
-        `--- BASE DE DATOS DE CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
+      systemPrompt = buildAISystemPrompt(combined);
     } else {
       systemPrompt =
-        "Eres el Asistente Inteligente del servidor 'Sonora RP'. Responde de forma clara, educada y profesional en español.";
+        "Eres el Asistente Inteligente del servidor 'Sonora RP'. Responde de forma clara, educada, pulida y profesional en español.";
     }
 
     let respuesta = "";
@@ -1207,6 +1206,7 @@ export async function handleTryoutModalSubmit(
   if (id === "tryout:modal_add_text") {
     const titulo = findModalFieldValue(interaction, "titulo");
     const contenido = findModalFieldValue(interaction, "contenido");
+    const pregunta = findModalFieldValue(interaction, "pregunta");
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -1216,18 +1216,50 @@ export async function handleTryoutModalSubmit(
       text: contenido,
     });
 
+    // Si incluyó una pregunta de prueba, generar la respuesta estructurada de la IA
+    let respuestaIA = "";
+    if (pregunta && config.groqApiKey) {
+      const combined = documentCache.getCombined(guildId);
+      try {
+        const res = await fetch(GROQ_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.groqApiKey}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: buildAISystemPrompt(combined) },
+              { role: "user", content: pregunta },
+            ],
+            max_tokens: 1200,
+            temperature: 0.25,
+          }),
+        }) as any;
+
+        if (res.ok) {
+          const data = await res.json() as any;
+          respuestaIA = data?.choices?.[0]?.message?.content?.trim() ?? "";
+        }
+      } catch (err) {
+        console.error("[TRYOUT_IA] Error en respuesta IA tras agregar texto:", err);
+      }
+    }
+
     const container = buildTryoutContainer(
       interaction.guild,
       interaction.user,
       0x2ecc71,
-      "# Tryout IA · Texto Guardado en MongoDB",
+      "# Tryout IA · Texto / Regla Guardada en MongoDB",
       [
-        `✅ **El texto fue guardado en la base de datos y memorizado por la IA.**`,
+        `✅ **El texto/regla fue guardado permanentemente en la base de datos de conocimiento.**`,
         `› **Título:** \`${item.name}\``,
-        `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
+        `› **Caracteres memorizados:** \`${item.text.length.toLocaleString("es-MX")}\``,
         `› **ID asignado:** \`${item.id}\``,
         "",
-        "El conocimiento ahora es permanente y sobrevivirá a reinicios del bot.",
+        "💡 *La IA utilizará esta información para responder preguntas en el canal oficial o mediante consultas.*",
+        respuestaIA ? `\n---\n**Pregunta de Prueba:** > ${pregunta}\n\n**Respuesta Sintetizada por la IA:**\n${respuestaIA}` : "",
       ].join("\n"),
       buildMainMenuRow(guildId)
     );

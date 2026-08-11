@@ -1,6 +1,6 @@
 import { type Message, Events } from "discord.js";
 import { sendErlcApiErrorContainer } from "../handlers/erlcHandler.js";
-import { documentCache } from "../utils/documentCache.js";
+import { documentCache, buildAISystemPrompt } from "../utils/documentCache.js";
 import { config } from "../config.js";
 
 // ─── Canal de IA Auto-respuesta ───────────────────────────────────────────────
@@ -75,14 +75,9 @@ async function handleAIChannel(message: Message): Promise<void> {
   }
 
   const systemPrompt =
-    `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
-    `Tu meta es responder a los miembros de la comunidad con respuestas profesionales, detalladas, bien estructuradas y perfectamente redactadas en español.\n\n` +
-    `REGLAS RIGUROSAS:\n` +
-    `1. Analiza minuciosamente el conocimiento proporcionado a continuación.\n` +
-    `2. Si la respuesta está contenida o fundamentada en la información cargada, proporciona una respuesta completa, explicativa, amigable y con excelente formato en Discord (puedes usar negritas, viñetas o listas numeradas para que sea muy clara).\n` +
-    `3. Evita dar respuestas ultra cortas de una sola línea si la pregunta requiere explicación. Brinda todo el contexto relevante disponible.\n` +
-    `4. Si la pregunta NO se encuentra en la base de datos o no hay suficientes datos para responder de forma fidedigna, responde ÚNICAMENTE con la palabra: "NO_INFO". No inventes normas ni datos que no existan en los documentos.\n\n` +
-    `--- BASE DE DATOS DE CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
+    `${buildAISystemPrompt(combined)}\n\n` +
+    `REGLA ADICIONAL PARA CANAL DE TEXTO:\n` +
+    `Si la duda NO se puede responder con el conocimiento de la base de datos o no hay suficientes datos fidedignos, responde ÚNICAMENTE con la palabra: "NO_INFO".`;
 
   let respuesta = "";
   try {
