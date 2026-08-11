@@ -102,21 +102,12 @@ export function getTipoLabel(ext: string): "PDF" | "Word" | "Excel" | "Imagen" |
   return "Texto";
 }
 
-// ─── DESCRIPCIÓN Y OCR DE IMÁGENES CON GROQ VISION ─────────────────────────────
+// ─── DESCRIPCIÓN Y OCR DE IMÁGENES CON GROQ VISION & FALLBACK OCR.SPACE ─────────
 export async function describirImagen(
   bufferOrUrl: Buffer | string,
   groqKey: string,
   fileNameOrUrl = "imagen.png"
 ): Promise<string> {
-  // Modelos de visión disponibles en Groq (actualizados agosto 2026).
-  // llama-3.2-*-vision-preview están DEPRECATED — usar Llama 4 y Qwen3.
-  const visionModels = [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "llama-3.2-11b-vision-preview",   // fallback por compatibilidad
-    "llama-3.2-90b-vision-preview",   // fallback por compatibilidad
-  ];
-
   const promptText =
     "Eres un OCR de precisión. Analiza esta imagen y transcribe TODO el texto " +
     "legible que veas: tablas, listas, números, títulos, nombres, sanciones, " +
@@ -124,12 +115,52 @@ export async function describirImagen(
     "estructurada con columnas y filas. Responde SOLO con el contenido extraído, " +
     "sin introducción ni comentarios adicionales.";
 
-  // ── Estrategia 1: Pasar URL directamente (más eficiente, sin límite de tamaño) ──
-  // Las URLs de Discord CDN son públicas y los modelos Groq Vision pueden leerlas.
-  if (typeof bufferOrUrl === "string") {
+  // 1. Obtener dinámicamente los modelos activos de la cuenta de Groq
+  let visionModels: string[] = [];
+  if (groqKey) {
+    try {
+      const resModels = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { Authorization: `Bearer ${groqKey}` },
+      }) as any;
+      if (resModels.ok) {
+        const dataModels = await resModels.json() as any;
+        const allIds: string[] = (dataModels?.data ?? []).map((m: any) => m.id);
+        console.log(`[GROQ_MODELS] Modelos activos en API key (${allIds.length}):`, allIds.join(", "));
+        
+        // Priorizar modelos multimodales/visión
+        const filtered = allIds.filter(id =>
+          id.includes("vision") || id.includes("vl") || id.includes("scout") ||
+          id.includes("maverick") || id.includes("llama-4") || id.includes("qwen") ||
+          id.includes("llava")
+        );
+        visionModels = filtered.length > 0 ? filtered : allIds;
+      }
+    } catch (e) {
+      console.error("[GROQ_MODELS] No se pudieron listar modelos de Groq:", e);
+    }
+  }
+
+  // Fallback de nombres conocidos si la consulta de modelos falló
+  if (visionModels.length === 0) {
+    visionModels = [
+      "qwen/qwen3.6-27b",
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+      "meta-llama/llama-4-maverick-17b-128e-instruct",
+    ];
+  }
+
+  // ── Estrategia 1: Groq Vision (URL o Base64) ──────────────────────────────
+  if (groqKey) {
+    let payloadUrl = typeof bufferOrUrl === "string" ? bufferOrUrl : "";
+    if (!payloadUrl && Buffer.isBuffer(bufferOrUrl)) {
+      const ext = getExtension(fileNameOrUrl).replace(".", "") || "png";
+      const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+      payloadUrl = `data:${mime};base64,${bufferOrUrl.toString("base64")}`;
+    }
+
     for (const modelName of visionModels) {
       try {
-        console.log(`[GROQ_VISION] Intentando con URL directa, modelo: ${modelName}`);
+        console.log(`[GROQ_VISION] Probando modelo Vision: ${modelName}`);
         const res = await fetch(GROQ_API_URL, {
           method: "POST",
           headers: {
@@ -143,7 +174,7 @@ export async function describirImagen(
                 role: "user",
                 content: [
                   { type: "text", text: promptText },
-                  { type: "image_url", image_url: { url: bufferOrUrl } },
+                  { type: "image_url", image_url: { url: payloadUrl } },
                 ],
               },
             ],
@@ -155,95 +186,55 @@ export async function describirImagen(
           const data = await res.json() as any;
           const text = data?.choices?.[0]?.message?.content?.trim();
           if (text && text.length > 5) {
-            console.log(`[GROQ_VISION] ✅ OCR exitoso con ${modelName} (URL). Chars: ${text.length}`);
+            console.log(`[GROQ_VISION] ✅ OCR exitoso con ${modelName}. Chars: ${text.length}`);
             return text;
           }
         } else {
           const errBody = await res.text();
-          console.error(`[GROQ_VISION] Error ${res.status} con modelo ${modelName} (URL):`, errBody.substring(0, 300));
+          console.error(`[GROQ_VISION] status ${res.status} en modelo ${modelName}:`, errBody.substring(0, 200));
         }
       } catch (err) {
-        console.error(`[GROQ_VISION] Excepción con modelo ${modelName} (URL):`, err);
+        console.error(`[GROQ_VISION] Excepción con modelo ${modelName}:`, err);
       }
     }
   }
 
-  // ── Estrategia 2: Buffer → Base64 Data URI ────────────────────────────────
-  // Se usa cuando se pasa un Buffer, o como fallback si la URL falló.
-  let base64Url: string;
-  if (Buffer.isBuffer(bufferOrUrl)) {
-    const ext = getExtension(fileNameOrUrl).replace(".", "");
-    const mimeMap: Record<string, string> = {
-      png: "image/png",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      gif: "image/gif",
-      webp: "image/webp",
-      bmp: "image/bmp",
-    };
-    const mime = mimeMap[ext] ?? "image/jpeg";
-    base64Url = `data:${mime};base64,${bufferOrUrl.toString("base64")}`;
-  } else {
-    // Era URL pero falló arriba; intentar descargar y re-enviar como base64
-    try {
-      const imgRes = await fetch(bufferOrUrl) as any;
-      if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
-      const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-      const ext = getExtension(bufferOrUrl).replace(".", "") || "jpeg";
-      const mimeMap: Record<string, string> = {
-        png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-        gif: "image/gif", webp: "image/webp",
-      };
-      const mime = mimeMap[ext] ?? "image/jpeg";
-      base64Url = `data:${mime};base64,${imgBuf.toString("base64")}`;
-      console.log(`[GROQ_VISION] Descargada URL como base64 (${imgBuf.length} bytes)`);
-    } catch (dlErr) {
-      console.error(`[GROQ_VISION] No se pudo descargar la imagen:`, dlErr);
-      throw new Error("No se pudo procesar la imagen: falló descarga y URL directa.");
+  // ── Estrategia 2: Fallback Gratuito OCR.space API (Motor OCR especializado en español) ─
+  try {
+    console.log("[OCR_SPACE] Groq Vision no disponible/falló. Ejecutando OCR.space fallback...");
+    const formData = new FormData();
+    formData.append("apikey", "helloworld"); // Clave libre pública oficial de OCR.space
+    formData.append("language", "spa");      // Español
+    formData.append("isTable", "true");      // Preservar tablas
+    formData.append("scale", "true");
+
+    if (typeof bufferOrUrl === "string") {
+      formData.append("url", bufferOrUrl);
+    } else {
+      const base64 = `data:image/png;base64,${bufferOrUrl.toString("base64")}`;
+      formData.append("base64Image", base64);
     }
-  }
 
-  for (const modelName of visionModels) {
-    try {
-      console.log(`[GROQ_VISION] Intentando con base64, modelo: ${modelName}`);
-      const res = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: promptText },
-                { type: "image_url", image_url: { url: base64Url } },
-              ],
-            },
-          ],
-          max_tokens: 4096,
-        }),
-      }) as any;
+    const resOcr = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      body: formData,
+    }) as any;
 
-      if (res.ok) {
-        const data = await res.json() as any;
-        const text = data?.choices?.[0]?.message?.content?.trim();
-        if (text && text.length > 5) {
-          console.log(`[GROQ_VISION] ✅ OCR exitoso con ${modelName} (base64). Chars: ${text.length}`);
-          return text;
-        }
-      } else {
-        const errBody = await res.text();
-        console.error(`[GROQ_VISION] Error ${res.status} con modelo ${modelName} (base64):`, errBody.substring(0, 300));
+    if (resOcr.ok) {
+      const jsonOcr = await resOcr.json() as any;
+      const parsedText = jsonOcr?.ParsedResults?.[0]?.ParsedText?.trim();
+      if (parsedText && parsedText.length > 5) {
+        console.log(`[OCR_SPACE] ✅ Extraído exitosamente con OCR.space (${parsedText.length} chars).`);
+        return parsedText;
       }
-    } catch (err) {
-      console.error(`[GROQ_VISION] Excepción con modelo ${modelName} (base64):`, err);
+    } else {
+      console.error(`[OCR_SPACE] Error HTTP ${resOcr.status}`);
     }
+  } catch (ocrErr) {
+    console.error("[OCR_SPACE] Error en OCR.space:", ocrErr);
   }
 
-  throw new Error("No se pudo extraer texto de la imagen con ningún modelo de Groq Vision.");
+  throw new Error("No se pudo extraer texto de la imagen (Groq & OCR.space fallaron).");
 }
 
 
