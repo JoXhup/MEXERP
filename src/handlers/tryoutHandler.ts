@@ -266,30 +266,125 @@ export async function procesarContenidoOArchivo(
 }
 
 // ─── HELPER DE EXTRAER ADJUNTOS DEL MODAL V2 ─────────────────────────────────
-function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ url: string; filename: string }> {
-  const list: Array<{ url: string; filename: string }> = [];
+function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ url: string; filename: string; content_type: string }> {
+  const list: Array<{ url: string; filename: string; content_type: string }> = [];
+  const raw = interaction as any;
 
-  const rawData = (interaction as any).data;
-  const rawFields = (interaction as any).fields;
+  // Log full raw structure for debugging
+  console.log("[MODAL_ATTACHMENTS] Extracting attachments from modal submit...");
 
-  const resolvedMap =
-    rawData?.resolved?.attachments ??
-    rawFields?.resolved?.attachments ??
-    (interaction as any).resolved?.attachments;
+  // 1. Gather the resolved attachments map from ALL possible locations
+  //    Discord docs: resolved.attachments is at the top level of the interaction
+  const resolvedMap: Record<string, any> =
+    raw.resolved?.attachments ??          // discord.js may put it here
+    raw.data?.resolved?.attachments ??    // or nested in data
+    raw.fields?.resolved?.attachments ??  // or in fields
+    raw.message?.resolved?.attachments ?? // or in message
+    {};
 
-  if (resolvedMap) {
+  const resolvedKeys = Object.keys(resolvedMap);
+  console.log(`[MODAL_ATTACHMENTS] Found ${resolvedKeys.length} resolved attachment(s):`, resolvedKeys);
+
+  // 2. If we have resolved attachments, use them directly
+  if (resolvedKeys.length > 0) {
     for (const att of Object.values(resolvedMap) as any[]) {
-      if (att?.url && att?.filename) {
-        list.push({ url: att.url, filename: att.filename });
+      if (att?.url) {
+        list.push({
+          url: att.url,
+          filename: att.filename ?? att.name ?? "archivo",
+          content_type: att.content_type ?? "",
+        });
       }
     }
   }
 
-  if ((interaction as any).attachments) {
-    for (const att of (interaction as any).attachments.values()) {
-      if (att?.url && att?.name) {
-        list.push({ url: att.url, filename: att.name });
+  // 3. Also check the components array for type 19 (FILE_UPLOAD) with values (snowflake IDs)
+  //    Per Discord docs: components[].values = array of snowflake IDs
+  const components = raw.data?.components ?? raw.components ?? [];
+  for (const row of components) {
+    // Could be a direct component or nested in an action row
+    const comps = row.components ?? [row];
+    for (const comp of comps) {
+      // type 19 = FILE_UPLOAD, values = array of attachment snowflake IDs
+      if (comp.type === 19 && Array.isArray(comp.values)) {
+        for (const attachId of comp.values) {
+          // Look up in resolved map
+          const att = resolvedMap[attachId];
+          if (att?.url) {
+            // Avoid duplicates
+            if (!list.some(l => l.url === att.url)) {
+              list.push({
+                url: att.url,
+                filename: att.filename ?? att.name ?? "archivo",
+                content_type: att.content_type ?? "",
+              });
+            }
+          }
+        }
       }
+
+      // Also check nested component (type 18 LABEL wraps a component)
+      if (comp.component?.type === 19 && Array.isArray(comp.component.values)) {
+        for (const attachId of comp.component.values) {
+          const att = resolvedMap[attachId];
+          if (att?.url && !list.some(l => l.url === att.url)) {
+            list.push({
+              url: att.url,
+              filename: att.filename ?? att.name ?? "archivo",
+              content_type: att.content_type ?? "",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Fallback: discord.js Collection of attachments
+  if (list.length === 0 && raw.attachments) {
+    try {
+      for (const att of raw.attachments.values()) {
+        if (att?.url) {
+          list.push({
+            url: att.url,
+            filename: att.name ?? att.filename ?? "archivo",
+            content_type: att.contentType ?? att.content_type ?? "",
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // 5. Fallback: fields.fields Collection may contain file upload entries
+  if (list.length === 0) {
+    try {
+      const fieldsMap = raw.fields?.fields ?? raw.fields?.data ?? raw.data?.components;
+      if (fieldsMap) {
+        const iterate = (items: any[]) => {
+          for (const item of items) {
+            if (item.type === 19 && Array.isArray(item.values)) {
+              for (const id of item.values) {
+                const att = resolvedMap[id];
+                if (att?.url) {
+                  list.push({
+                    url: att.url,
+                    filename: att.filename ?? "archivo",
+                    content_type: att.content_type ?? "",
+                  });
+                }
+              }
+            }
+            if (item.components) iterate(item.components);
+          }
+        };
+        iterate(Array.isArray(fieldsMap) ? fieldsMap : [...fieldsMap.values()]);
+      }
+    } catch {}
+  }
+
+  console.log(`[MODAL_ATTACHMENTS] Total attachments extracted: ${list.length}`);
+  if (list.length > 0) {
+    for (const att of list) {
+      console.log(`  -> ${att.filename} (${att.content_type}) ${att.url.substring(0, 80)}...`);
     }
   }
 
@@ -792,6 +887,29 @@ export async function handleTryoutModalSubmit(
   // ── 1. MODAL V2: CARGAR URL O TEXTO (tryout:modal_upload_url) ───────────
   if (id === "tryout:modal_upload_url" || id === "tryout:modal_upload_file") {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    // ── DEBUG: Log raw interaction structure for FILE_UPLOAD diagnosis ──
+    const rawInteraction = interaction as any;
+    console.log("[MODAL_SUBMIT_DEBUG] customId:", id);
+    console.log("[MODAL_SUBMIT_DEBUG] Has resolved?", !!rawInteraction.resolved);
+    console.log("[MODAL_SUBMIT_DEBUG] Has data?", !!rawInteraction.data);
+    console.log("[MODAL_SUBMIT_DEBUG] Has data.resolved?", !!rawInteraction.data?.resolved);
+    console.log("[MODAL_SUBMIT_DEBUG] Has data.resolved.attachments?", !!rawInteraction.data?.resolved?.attachments);
+    console.log("[MODAL_SUBMIT_DEBUG] Has fields?", !!rawInteraction.fields);
+    console.log("[MODAL_SUBMIT_DEBUG] Has attachments?", !!rawInteraction.attachments);
+    try {
+      const dataKeys = Object.keys(rawInteraction.data ?? {});
+      console.log("[MODAL_SUBMIT_DEBUG] data keys:", dataKeys);
+      if (rawInteraction.data?.components) {
+        console.log("[MODAL_SUBMIT_DEBUG] data.components:", JSON.stringify(rawInteraction.data.components, null, 2).substring(0, 1500));
+      }
+      if (rawInteraction.data?.resolved) {
+        console.log("[MODAL_SUBMIT_DEBUG] data.resolved:", JSON.stringify(rawInteraction.data.resolved, null, 2).substring(0, 1500));
+      }
+      if (rawInteraction.resolved) {
+        console.log("[MODAL_SUBMIT_DEBUG] interaction.resolved:", JSON.stringify(rawInteraction.resolved, null, 2).substring(0, 1500));
+      }
+    } catch (e) { console.log("[MODAL_SUBMIT_DEBUG] Error logging:", e); }
 
     const attachmentsList = extractModalAttachments(interaction);
 
