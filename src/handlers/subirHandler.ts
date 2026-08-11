@@ -478,34 +478,35 @@ export async function handleSubirModal1Submit(
 
   const jefeLabelTitle =
     tipo === "empresa" ? "Jefe Empresarial" : "Jefe Faccionario";
+
+  // Modal-from-modal solo acepta type:1 (ActionRow) como wrapper — NO type:18
   const modal2Components: any[] = [
     {
-      type: 18,
-      label: jefeLabelTitle,
-      description: `Selecciona al ${jefeLabelTitle} de la institución`,
-      component: {
-        type: 5, // UserSelect
-        custom_id: "inst_jefe",
-        placeholder: `Selecciona el ${jefeLabelTitle}...`,
-        min_values: 1,
-        max_values: 1,
-      },
+      type: 1, // ActionRow
+      components: [
+        {
+          type: 5, // UserSelect
+          custom_id: "inst_jefe",
+          placeholder: `Selecciona el ${jefeLabelTitle}...`,
+          min_values: 1,
+          max_values: 1,
+        },
+      ],
     },
   ];
 
   if (tipo === "legal" || tipo === "ilegal") {
     modal2Components.push({
-      type: 18,
-      label: "Sub Jefe Faccionario",
-      description: "Selecciona al Sub Jefe (Opcional)",
-      component: {
-        type: 5, // UserSelect
-        custom_id: "inst_subjefe",
-        placeholder: "Selecciona el Sub Jefe Faccionario...",
-        min_values: 0,
-        max_values: 1,
-        required: false,
-      },
+      type: 1, // ActionRow
+      components: [
+        {
+          type: 5, // UserSelect
+          custom_id: "inst_subjefe",
+          placeholder: "Selecciona el Sub Jefe Faccionario...",
+          min_values: 0,
+          max_values: 1,
+        },
+      ],
     });
   }
 
