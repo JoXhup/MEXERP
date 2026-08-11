@@ -28,6 +28,7 @@ import {
   handleTryoutModalSubmit,
 } from "../handlers/tryoutHandler.js";
 import { handleNarcoModalSubmit } from "../handlers/narcoHandler.js";
+import { handleSubirSelectCategory, handleSubirModalSubmit } from "../handlers/subirHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -178,6 +179,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
         await handleNarcoModalSubmit(interaction, client);
         return;
       }
+
+      // Modal Subir Institución (Facción Legal / Ilegal / Empresa)
+      if (id.startsWith("subir:modal_submit:")) {
+        await handleSubirModalSubmit(interaction, client);
+        return;
+      }
       return;
     }
 
@@ -203,6 +210,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
 
       if (id === "tryout:delete_select") {
         await handleTryoutDeleteSelect(interaction);
+        return;
+      }
+
+      // Select menú Subir Institución — categoría (Legal / Ilegal / Empresa)
+      if (id === "subir:select_categoria") {
+        await handleSubirSelectCategory(interaction, client);
         return;
       }
     }
