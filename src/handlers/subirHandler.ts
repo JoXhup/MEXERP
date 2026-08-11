@@ -355,6 +355,8 @@ export async function handleSubirModal1Submit(
   const parts = interaction.customId.split(":");
   const tipo = (parts[2] ?? "legal") as "legal" | "ilegal" | "empresa";
 
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
   // Extraer imagen (Modal V2 rawInteractionStore)
   const attachmentsList = extractModalAttachments(interaction);
   const imageUrl = attachmentsList[0]?.url;
@@ -377,112 +379,54 @@ export async function handleSubirModal1Submit(
   console.log(`[SUBIR] Modal 1 guardado — tipo=${tipo}, rol=${rolId}, titulo="${tituloForo}"`);
 
   const c = TIPO_CONFIG[tipo];
+  const iconUrl = interaction.guild?.iconURL({ extension: "png", size: 256 }) ?? "";
 
-  const modal2Titles = {
-    legal: "Facción Legal — Paso 2/2 · Mandos",
-    ilegal: "Facción Ilegal — Paso 2/2 · Mandos",
-    empresa: "Empresa — Paso 2/2 · Mando",
-  };
-
-  // Modal 2: type:18 + type:5 (UserSelect) — estructura oficial de la doc
-  const modal2Components: any[] = [
-    {
-      type: 18,
-      label: c.jefeLabel,
-      description: `Selecciona al ${c.jefeLabel} de la institución`,
-      component: {
-        type: 5, // UserSelect
-        custom_id: "inst_jefe",
-        placeholder: `Selecciona el ${c.jefeLabel}...`,
-        min_values: 1,
-        max_values: 1,
-      },
-    },
-  ];
+  // Paso 2: Mensaje efímero con UserSelects de Jefe / SubJefe y botón Publicar
+  const stepContainer = new ContainerBuilder()
+    .setAccentColor(c.color)
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `## 👑 Paso 2/2 — Mandos de la Institución\n> Selecciona el **${c.jefeLabel}**${c.hasSubjefe ? ` y el **${c.subjefeLabel}**` : ""} abajo y luego haz clic en **Publicar**.`
+          )
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+    .addActionRowComponents(
+      new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
+        new UserSelectMenuBuilder()
+          .setCustomId(`subir:jefe:${tipo}`)
+          .setPlaceholder(`👑 Selecciona el ${c.jefeLabel}...`)
+          .setMinValues(1).setMaxValues(1)
+      )
+    );
 
   if (c.hasSubjefe) {
-    modal2Components.push({
-      type: 18,
-      label: c.subjefeLabel,
-      description: "Selecciona al Sub Jefe (Opcional)",
-      component: {
-        type: 5, // UserSelect
-        custom_id: "inst_subjefe",
-        placeholder: `Selecciona el ${c.subjefeLabel}...`,
-        min_values: 0,
-        max_values: 1,
-        required: false,
-      },
-    });
-  }
-
-  // Responder directamente con el Modal 2 (sin deferReply previo)
-  try {
-    await client.rest.post(
-      Routes.interactionCallback(interaction.id, interaction.token),
-      {
-        body: {
-          type: 9,
-          data: {
-            custom_id: `subir:modal2:${tipo}`,
-            title: modal2Titles[tipo],
-            components: modal2Components,
-          },
-        },
-      }
+    stepContainer.addActionRowComponents(
+      new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
+        new UserSelectMenuBuilder()
+          .setCustomId(`subir:subjefe:${tipo}`)
+          .setPlaceholder(`⭐ Selecciona el ${c.subjefeLabel} (Opcional)...`)
+          .setMinValues(0).setMaxValues(1)
+      )
     );
-  } catch (err) {
-    console.error("[SUBIR] Modal 2 falló, usando fallback con mensaje efímero:", err);
-    // Fallback: diferir y mostrar mensaje con UserSelects + botón Publicar
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const iconUrl = interaction.guild?.iconURL({ extension: "png", size: 256 }) ?? "";
-
-    const stepContainer = new ContainerBuilder()
-      .setAccentColor(c.color)
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(
-              `## 👑 Paso 2/2 — Mandos\n> Selecciona el **${c.jefeLabel}**${c.hasSubjefe ? ` y el **${c.subjefeLabel}**` : ""} y luego haz clic en **Publicar**.`
-            )
-          )
-          .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
-      )
-      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-      .addActionRowComponents(
-        new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
-          new UserSelectMenuBuilder()
-            .setCustomId(`subir:jefe:${tipo}`)
-            .setPlaceholder(`👑 Selecciona el ${c.jefeLabel}...`)
-            .setMinValues(1).setMaxValues(1)
-        )
-      );
-
-    if (c.hasSubjefe) {
-      stepContainer.addActionRowComponents(
-        new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
-          new UserSelectMenuBuilder()
-            .setCustomId(`subir:subjefe:${tipo}`)
-            .setPlaceholder(`⭐ Selecciona el ${c.subjefeLabel} (Opcional)...`)
-            .setMinValues(0).setMaxValues(1)
-        )
-      );
-    }
-
-    stepContainer
-      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-      .addActionRowComponents(
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`subir:publish:${tipo}`)
-            .setLabel("✅ Publicar Institución")
-            .setStyle(ButtonStyle.Success)
-        )
-      )
-      .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`));
-
-    await interaction.editReply({ components: [stepContainer], flags: MessageFlags.IsComponentsV2 });
   }
+
+  stepContainer
+    .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+    .addActionRowComponents(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`subir:publish:${tipo}`)
+          .setLabel("✅ Publicar Institución")
+          .setStyle(ButtonStyle.Success)
+      )
+    )
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`));
+
+  await interaction.editReply({ components: [stepContainer], flags: MessageFlags.IsComponentsV2 });
 }
 
 // ─── Modal 2 submit → publica la institución ─────────────────────────────────
