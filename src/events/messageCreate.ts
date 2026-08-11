@@ -1,4 +1,4 @@
-import { type Message, Events, MessageFlags } from "discord.js";
+import { type Message, Events } from "discord.js";
 import { sendErlcApiErrorContainer } from "../handlers/erlcHandler.js";
 import { documentCache } from "../utils/documentCache.js";
 import { config } from "../config.js";
@@ -51,15 +51,19 @@ async function handleAIChannel(message: Message): Promise<void> {
     await (message.channel as any).sendTyping().catch(() => {});
   }
 
+  // Asegurar que la cache de MongoDB esté cargada
+  await documentCache.ensureLoaded(guildId);
+
   const combined = documentCache.getCombined(guildId);
 
   // Si no hay conocimiento cargado
   if (combined.count === 0) {
     await message.reply({
       content: [
-        "⚠️ **No tengo información cargada en este momento.**",
+        "⚠️ **No se encuentra información ni reglamentos cargados en la base de datos.**",
         "",
-        `Para obtener asistencia, abre un ticket: ${TICKET_CHANNEL_URL}`,
+        `Para resolver tu inquietud o recibir asistencia del equipo de Staff, abre un ticket aquí:`,
+        `👉 ${TICKET_CHANNEL_URL}`,
       ].join("\n"),
     });
     return;
@@ -71,10 +75,14 @@ async function handleAIChannel(message: Message): Promise<void> {
   }
 
   const systemPrompt =
-    `Eres el asistente oficial de Sonora RP. Responde ÚNICAMENTE basándote en el conocimiento cargado.\n` +
-    `Si la respuesta NO se encuentra en el conocimiento, responde EXACTAMENTE con: "NO_INFO"\n` +
-    `Sé claro, conciso y en español.\n\n` +
-    `--- CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
+    `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
+    `Tu meta es responder a los miembros de la comunidad con respuestas profesionales, detalladas, bien estructuradas y perfectamente redactadas en español.\n\n` +
+    `REGLAS RIGUROSAS:\n` +
+    `1. Analiza minuciosamente el conocimiento proporcionado a continuación.\n` +
+    `2. Si la respuesta está contenida o fundamentada en la información cargada, proporciona una respuesta completa, explicativa, amigable y con excelente formato en Discord (puedes usar negritas, viñetas o listas numeradas para que sea muy clara).\n` +
+    `3. Evita dar respuestas ultra cortas de una sola línea si la pregunta requiere explicación. Brinda todo el contexto relevante disponible.\n` +
+    `4. Si la pregunta NO se encuentra en la base de datos o no hay suficientes datos para responder de forma fidedigna, responde ÚNICAMENTE con la palabra: "NO_INFO". No inventes normas ni datos que no existan en los documentos.\n\n` +
+    `--- BASE DE DATOS DE CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
 
   let respuesta = "";
   try {
@@ -90,8 +98,8 @@ async function handleAIChannel(message: Message): Promise<void> {
           { role: "system", content: systemPrompt },
           { role: "user", content: pregunta },
         ],
-        max_tokens: 800,
-        temperature: 0.2,
+        max_tokens: 1200,
+        temperature: 0.25,
       }),
     }) as any;
 
@@ -113,18 +121,20 @@ async function handleAIChannel(message: Message): Promise<void> {
   if (respuesta === "NO_INFO" || respuesta.toUpperCase().includes("NO_INFO")) {
     await message.reply({
       content: [
-        `❓ **No tengo información sobre eso.**`,
+        `❓ **No cuento con información específica sobre esa consulta en mi base de datos.**`,
         "",
-        `Lo siento, no cuento con datos sobre tu pregunta en este momento.`,
-        `Para obtener asistencia directa, abre un ticket aquí: ${TICKET_CHANNEL_URL}`,
+        `No tengo registrados reglamentos o datos concretos para responder a tu pregunta en este momento.`,
+        "",
+        `Para consultar directamente con el equipo administrativo o recibir ayuda, abre un ticket aquí:`,
+        `👉 ${TICKET_CHANNEL_URL}`,
       ].join("\n"),
     });
     return;
   }
 
-  // Truncar si es muy larga
+  // Truncar si supera el límite de Discord
   if (respuesta.length > 1900) {
-    respuesta = respuesta.substring(0, 1900) + "\n\n*(Respuesta truncada)*";
+    respuesta = respuesta.substring(0, 1900) + "\n\n*(Respuesta truncada por longitud)*";
   }
 
   await message.reply({

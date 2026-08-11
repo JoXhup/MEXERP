@@ -104,7 +104,7 @@ export async function describirImagen(imageUrl: string, groqKey: string): Promis
           content: [
             {
               type: "text",
-              text: "Describe detalladamente el contenido de esta imagen en español. Extrae todo el texto visible, números, listas y datos importantes.",
+              text: "Describe detalladamente el contenido de esta imagen en español. Extrae todo el texto visible, números, listas, títulos y datos importantes.",
             },
             { type: "image_url", image_url: { url: imageUrl } },
           ],
@@ -168,14 +168,14 @@ export function buildMainMenuRow(guildId: string): ActionRowBuilder<StringSelect
     .setPlaceholder("📌 Selecciona una opción del panel de IA...")
     .addOptions(
       new StringSelectMenuOptionBuilder()
-        .setLabel("Cargar Archivo / Imagen / Link (Modal V2)")
+        .setLabel("Cargar Imagen / PDF / Link (Modal V2)")
         .setValue("upload_url_modal")
-        .setDescription("Abre Modal V2 para ingresar URL de imagen/PDF O texto directo.")
+        .setDescription("Abre Modal V2 para subir enlace de imagen, PDF o texto.")
         .setEmoji("📁"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Agregar Texto Manual (Modal V2)")
         .setValue("add_text")
-        .setDescription("Abre Modal V2 para guardar notas, reglas o texto directo.")
+        .setDescription("Abre Modal V2 para guardar notas, reglas o contenido directo.")
         .setEmoji("📝"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Consultar IA (Modal V2)")
@@ -190,12 +190,12 @@ export function buildMainMenuRow(guildId: string): ActionRowBuilder<StringSelect
       new StringSelectMenuOptionBuilder()
         .setLabel("Ver Estado / Documentos Cargados")
         .setValue("view_info")
-        .setDescription(`Ver lista de ${totalCount} fuente(s) de conocimiento activa(s).`)
+        .setDescription(`Ver lista de ${totalCount} fuente(s) en la base de datos.`)
         .setEmoji("ℹ️"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Borrar TODO el Conocimiento")
         .setValue("clear_all")
-        .setDescription("Limpia la base de datos de conocimiento de este servidor.")
+        .setDescription("Limpia toda la base de datos de este servidor.")
         .setEmoji("🧹")
     );
 
@@ -207,14 +207,16 @@ export async function renderTryoutPanel(
   interaction: ChatInputCommandInteraction | StringSelectMenuInteraction
 ): Promise<void> {
   const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
   const items = documentCache.getItems(guildId);
 
   const body = [
-    "### 🤖 Panel Interactivo Tryout IA · Sonora RP (Modals V2)",
-    "Gestión de conocimiento y consultas en tiempo real para administradores.",
+    "### 🤖 Panel Interactivo Tryout IA · Sonora RP (Modals V2 & MongoDB)",
+    "Gestión de conocimiento persistente en base de datos y consultas inteligentes.",
     "",
-    `› **Fuentes activas:** \`${items.length} fuente(s)\``,
-    `› **Formatos aceptados:** PDF, Word, Excel, Imágenes (Groq Vision), URLs, TXT, MD, JSON.`,
+    `› **Fuentes activas en DB:** \`${items.length} fuente(s)\``,
+    `› **Soporta:** Imágenes (Groq Vision OCR), PDF, Word, Excel, Links, TXT, MD, JSON.`,
+    "› **Persistencia:** Guardado automáticamente en MongoDB (no se borra al reiniciar).",
     "",
     "Utiliza el **Menú de Selección** abajo para interactuar con los **Modals V2** de la IA.",
   ].join("\n");
@@ -249,36 +251,35 @@ export async function handleTryoutMainMenu(
 ): Promise<void> {
   const value = interaction.values[0];
   const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
 
   // 1. CARGAR ARCHIVO / IMAGEN / LINK (MODAL V2)
   if (value === "upload_url_modal" || value === "upload_file" || value === "upload_info") {
     const modal = new ModalBuilder()
       .setCustomId("tryout:modal_upload_url")
-      .setTitle("Cargar Archivo/Imagen (Modal V2)");
-
+      .setTitle("Cargar Archivo/Imagen/Link (Modal V2)");
 
     const inputTitulo = new TextInputBuilder()
       .setCustomId("titulo")
-      .setLabel("Título o Nombre de la Fuente")
+      .setLabel("Título o Nombre del Archivo/Imagen")
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Ej. Reglamento de Policía / Captura de Pantalla")
+      .setPlaceholder("Ej. Captura de Reglamento / PDF de Sanciones")
       .setRequired(true)
       .setMaxLength(100);
 
     const inputContenido = new TextInputBuilder()
       .setCustomId("contenido_url")
-      .setLabel("Texto O Enlace (URL) de Imagen / PDF / Doc")
+      .setLabel("URL de Imagen / PDF / Doc O Texto directo")
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Pega el texto O el enlace de la imagen/PDF (ej. https://cdn.discordapp.com/...)")
+      .setPlaceholder("Pega el enlace de la imagen (Discord CDN/Imgur), PDF o el texto directo...")
       .setRequired(true)
       .setMaxLength(3800);
-
 
     const inputPregunta = new TextInputBuilder()
       .setCustomId("pregunta")
       .setLabel("Pregunta opcional a la IA")
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Ej. Resumen o datos principales")
+      .setPlaceholder("Ej. Resume los puntos clave de este documento")
       .setRequired(false)
       .setMaxLength(500);
 
@@ -354,14 +355,14 @@ export async function handleTryoutMainMenu(
 
   // 6. BORRAR TODO
   if (value === "clear_all") {
-    documentCache.clear(guildId);
+    await documentCache.clear(guildId);
     await interaction.deferUpdate();
     const container = buildTryoutContainer(
       interaction.guild,
       interaction.user,
       0xef4444,
-      "# Tryout IA · Conocimiento Borrado",
-      "🧹 **Todo el conocimiento de este servidor ha sido eliminado exitosamente.**",
+      "# Tryout IA · Base de Datos Borrada",
+      "🧹 **Todo el conocimiento de este servidor ha sido eliminado de la base de datos MongoDB.**",
       buildMainMenuRow(guildId)
     );
     await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -374,6 +375,7 @@ export async function renderDeleteMultiSelect(
   interaction: StringSelectMenuInteraction | ChatInputCommandInteraction
 ): Promise<void> {
   const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
   const items = documentCache.getItems(guildId);
 
   if (items.length === 0) {
@@ -382,7 +384,7 @@ export async function renderDeleteMultiSelect(
       interaction.user,
       0x6b7280,
       "# Tryout IA · Eliminar Documentos",
-      "ℹ️ **No hay documentos cargados en este servidor.**\nUsa el menú principal para cargar archivos o textos.",
+      "ℹ️ **No hay documentos cargados en la base de datos de este servidor.**\nUsa el menú principal para cargar imágenes, archivos o textos.",
       buildMainMenuRow(guildId)
     );
     if (interaction.isRepliable()) {
@@ -419,7 +421,7 @@ export async function renderDeleteMultiSelect(
     interaction.user,
     0xf59e0b,
     "# Tryout IA · Eliminar Documentos (Multi-Selección)",
-    `Selecciona **uno o varios documentos** de la lista desplegable abajo para eliminarlos del bot:\n\n` +
+    `Selecciona **uno o varios documentos** de la lista desplegable abajo para eliminarlos de MongoDB:\n\n` +
     `*Puedes seleccionar hasta ${Math.min(items.length, 25)} documentos a la vez.*`,
     row
   );
@@ -451,7 +453,7 @@ export async function handleTryoutDeleteSelect(
   const guildId = interaction.guildId ?? "global";
   const selectedIds = interaction.values;
 
-  const countRemoved = documentCache.deleteItems(guildId, selectedIds);
+  const countRemoved = await documentCache.deleteItems(guildId, selectedIds);
   const remaining = documentCache.getItems(guildId).length;
 
   await interaction.deferUpdate();
@@ -462,8 +464,8 @@ export async function handleTryoutDeleteSelect(
     0xef4444,
     "# Tryout IA · Documentos Eliminados",
     [
-      `✅ **Se eliminaron \`${countRemoved}\` documento(s) correctamente.**`,
-      `› **Documentos restantes en el bot:** \`${remaining}\``,
+      `✅ **Se eliminaron \`${countRemoved}\` documento(s) de MongoDB correctamente.**`,
+      `› **Documentos restantes en la DB:** \`${remaining}\``,
       "",
       "Usa el menú de selección abajo para continuar gestionando.",
     ].join("\n"),
@@ -478,11 +480,12 @@ export async function renderInfoView(
   interaction: StringSelectMenuInteraction | ChatInputCommandInteraction
 ): Promise<void> {
   const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
   const items = documentCache.getItems(guildId);
 
   let body = "";
   if (items.length === 0) {
-    body = "❌ **No hay conocimiento ni documentos cargados actualmente en este servidor.**";
+    body = "❌ **No hay conocimiento ni documentos cargados en la base de datos de este servidor.**";
   } else {
     const list = items
       .map(
@@ -495,7 +498,7 @@ export async function renderInfoView(
     const totalChars = items.reduce((acc, curr) => acc + curr.text.length, 0);
 
     body = [
-      `### 📊 Conocimiento Activo (${items.length} fuentes)`,
+      `### 📊 Conocimiento Guardado en MongoDB (${items.length} fuentes)`,
       `**Total de caracteres memorizados:** \`${totalChars.toLocaleString("es-MX")}\``,
       "",
       list,
@@ -506,7 +509,7 @@ export async function renderInfoView(
     interaction.guild,
     interaction.user,
     items.length > 0 ? 0x2ecc71 : 0x6b7280,
-    "# Tryout IA · Conocimiento Almacenado",
+    "# Tryout IA · Base de Datos de Conocimiento",
     body,
     buildMainMenuRow(guildId)
   );
@@ -527,6 +530,7 @@ export async function handleTryoutModalSubmit(
 ): Promise<void> {
   const id = interaction.customId;
   const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
 
   // ── 1. MODAL V2: CARGAR URL O TEXTO (tryout:modal_upload_url) ───────────
   if (id === "tryout:modal_upload_url" || id === "tryout:modal_upload_file") {
@@ -537,7 +541,6 @@ export async function handleTryoutModalSubmit(
       : "";
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
 
     const esUrl = /^https?:\/\//i.test(inputVal);
     let textoFinal = "";
@@ -585,8 +588,8 @@ export async function handleTryoutModalSubmit(
       return;
     }
 
-    // Guardar en cache
-    const item = documentCache.addItem(guildId, {
+    // Guardar en MongoDB
+    const item = await documentCache.addItem(guildId, {
       name: titulo,
       type: tipoFuente,
       text: textoFinal,
@@ -610,13 +613,14 @@ export async function handleTryoutModalSubmit(
                 {
                   role: "system",
                   content:
-                    `Eres un asistente inteligente de Sonora RP. Responde basándote en el conocimiento cargado.\n\n` +
+                    `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
+                    `Proporciona una respuesta clara, profunda, pulida y bien estructurada basándote en las fuentes de conocimiento.\n\n` +
                     `--- CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN ---`,
                 },
                 { role: "user", content: preguntaVal },
               ],
-              max_tokens: 1000,
-              temperature: 0.3,
+              max_tokens: 1200,
+              temperature: 0.25,
             }),
           }) as any;
 
@@ -635,13 +639,13 @@ export async function handleTryoutModalSubmit(
       interaction.guild,
       interaction.user,
       0x2ecc71,
-      "# Tryout IA · Fuente Almacenada (Modal V2)",
+      "# Tryout IA · Fuente Guardada en MongoDB",
       [
-        `✅ **Nueva fuente memorizada exitosamente.**`,
+        `✅ **Nueva fuente memorizada y guardada en la base de datos.**`,
         `› **Título:** \`${item.name}\``,
         `› **Tipo:** \`${item.type}\``,
         `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
-        `› **Total de fuentes en el bot:** \`${items.length}\``,
+        `› **Total de fuentes en DB:** \`${items.length}\``,
         respuestaIA ? `\n---\n**Pregunta:** > ${preguntaVal}\n\n**Respuesta IA:**\n${respuestaIA}` : "",
       ].join("\n"),
       buildMainMenuRow(guildId)
@@ -668,13 +672,16 @@ export async function handleTryoutModalSubmit(
     if (combined.count > 0) {
       modoDoc = true;
       systemPrompt =
-        `Eres un asistente inteligente de Sonora RP. Hay (${combined.count}) documento(s)/fuente(s) de conocimiento activa(s).\n` +
-        `Si la pregunta está relacionada con el conocimiento cargado, responde ÚNICAMENTE basándote en su contenido.\n` +
-        `Si la pregunta no tiene relación, responde de forma general en español.\n\n` +
-        `--- CONOCIMIENTO CARGADO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
+        `Eres el Asistente Inteligente Oficial de Sonora RP.\n` +
+        `Tu objetivo es brindar respuestas profesionales, explicativas, bien estructuradas y formalmente redactadas en español.\n\n` +
+        `REGLAS:\n` +
+        `1. Analiza detenidamente el conocimiento de la base de datos (${combined.count} fuentes activas).\n` +
+        `2. Si la consulta está relacionada con la información cargada, proporciona una respuesta detallada, pulida y completa, organizando la información si es útil.\n` +
+        `3. Si la pregunta no se responde con el conocimiento oficial, explícalo con amabilidad y responde con el conocimiento general disponible.\n\n` +
+        `--- BASE DE DATOS DE CONOCIMIENTO (${combined.sources}) ---\n${combined.text}\n--- FIN DEL CONOCIMIENTO ---`;
     } else {
       systemPrompt =
-        "Eres un asistente útil del servidor de Discord 'Sonora RP'. Responde de forma clara y concisa en español.";
+        "Eres el Asistente Inteligente del servidor 'Sonora RP'. Responde de forma clara, educada y profesional en español.";
     }
 
     let respuesta = "";
@@ -691,7 +698,7 @@ export async function handleTryoutModalSubmit(
             { role: "system", content: systemPrompt },
             { role: "user", content: pregunta },
           ],
-          max_tokens: 1000,
+          max_tokens: 1200,
           temperature: modoDoc ? 0.3 : 0.7,
         }),
       }) as any;
@@ -717,7 +724,7 @@ export async function handleTryoutModalSubmit(
     }
 
     const docInfo = modoDoc
-      ? `**Conocimiento activo (${combined.count}):** \`${combined.sources}\`\n`
+      ? `**Base de datos activa (${combined.count}):** \`${combined.sources}\`\n`
       : "";
 
     const container = buildTryoutContainer(
@@ -740,7 +747,7 @@ export async function handleTryoutModalSubmit(
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const item = documentCache.addItem(guildId, {
+    const item = await documentCache.addItem(guildId, {
       name: titulo,
       type: "Texto",
       text: contenido,
@@ -750,14 +757,14 @@ export async function handleTryoutModalSubmit(
       interaction.guild,
       interaction.user,
       0x2ecc71,
-      "# Tryout IA · Texto Agregado Exitosamente",
+      "# Tryout IA · Texto Guardado en MongoDB",
       [
-        `✅ **El texto fue memorizado por la IA.**`,
+        `✅ **El texto fue guardado en la base de datos y memorizado por la IA.**`,
         `› **Título:** \`${item.name}\``,
         `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
         `› **ID asignado:** \`${item.id}\``,
         "",
-        "Ahora puedes hacer preguntas sobre este texto desde el menú o con `/chatgpt`.",
+        "El conocimiento ahora es permanente y sobrevivirá a reinicios del bot.",
       ].join("\n"),
       buildMainMenuRow(guildId)
     );
