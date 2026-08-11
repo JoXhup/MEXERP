@@ -282,29 +282,43 @@ export async function handleNarcoModalSubmit(
   const descripcion = findModalFieldValue(interaction, "narco_descripcion") || "Sin descripción.";
 
   let optionValue = findModalFieldValue(interaction, "narco_encriptado");
+
   if (!optionValue) {
-    const rawData = (interaction as any).data?.components ?? (interaction as any).components ?? [];
-    // Buscar valor en select menu
-    for (const row of rawData) {
-      const comps = row.components ?? [row];
-      for (const c of comps) {
-        if (c.custom_id === "narco_encriptado" && Array.isArray(c.values)) {
-          optionValue = c.values[0];
+    const rawComponents = (interaction as any).data?.components ?? (interaction as any).components ?? [];
+
+    function searchSelectValues(list: any[]): string | null {
+      for (const comp of list) {
+        if ((comp.custom_id === "narco_encriptado" || comp.customId === "narco_encriptado") && Array.isArray(comp.values) && comp.values[0]) {
+          return comp.values[0];
+        }
+        if (comp.value && (comp.custom_id === "narco_encriptado" || comp.customId === "narco_encriptado")) {
+          return comp.value;
+        }
+        if (comp.component) {
+          const res = searchSelectValues([comp.component]);
+          if (res) return res;
+        }
+        if (comp.components && Array.isArray(comp.components)) {
+          const res = searchSelectValues(comp.components);
+          if (res) return res;
         }
       }
+      return null;
     }
+
+    optionValue = searchSelectValues(rawComponents) ?? "";
   }
 
   if (!optionValue) {
     const textVal = findModalFieldValue(interaction, "narco_encriptado_text");
-    if (textVal && textVal.trim().startsWith("1")) {
+    if (textVal && (textVal.includes("1") || textVal.toLowerCase().includes("si") || textVal.toLowerCase().includes("sí"))) {
       optionValue = "encriptado_2500";
-    } else {
-      optionValue = "ubicacion_abierta";
     }
   }
 
-  const esEncriptado = optionValue === "encriptado_2500";
+  console.log(`[NARCO_SUBMIT] Usuario: ${interaction.user.tag} (${interaction.user.id}), optionValue parseado: "${optionValue}"`);
+
+  const esEncriptado = optionValue.includes("encriptado");
 
   // 3. Si solicitó encriptado ($2,500), verificar que tenga $2,500 en efectivo fuera del banco
   if (esEncriptado) {
