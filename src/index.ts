@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { config } from "./config.js";
 import type { Command } from "./types/index.js";
 import { startFineService } from "./utils/fineService.js";
+import { registerRawListener } from "./utils/rawInteractionStore.js";
 
 // SNRP Bot v1.1.0 - Staff management, shifts & aperturas panel
 
@@ -138,6 +139,9 @@ console.log("[DB] Conectado a MongoDB exitosamente.");
 // ─── LOGIN & KEEPALIVE ────────────────────────────────────────────────────────
 console.log("[BOT] Iniciando sesion...");
 await client.login(config.token);
+
+// Registrar listener RAW para capturar resolved.attachments de modals V2
+registerRawListener(client);
 
 setInterval(() => {
   if (!client.isReady()) {

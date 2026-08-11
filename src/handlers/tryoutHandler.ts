@@ -22,6 +22,7 @@ import {
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
 import { documentCache } from "../utils/documentCache.js";
+import { getRawResolved } from "../utils/rawInteractionStore.js";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -270,22 +271,39 @@ function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ u
   const list: Array<{ url: string; filename: string; content_type: string }> = [];
   const raw = interaction as any;
 
-  // Log full raw structure for debugging
-  console.log("[MODAL_ATTACHMENTS] Extracting attachments from modal submit...");
+  // ── FUENTE 1 (PRINCIPAL): raw WebSocket packet store ─────────────────────
+  // discord.js v14 NO expone resolved.attachments en ModalSubmitInteraction.
+  // Lo capturamos directamente del evento 'raw' en rawInteractionStore.ts.
+  const rawResolved = getRawResolved(interaction.id);
+  const rawResolvedMap: Record<string, any> = rawResolved?.attachments ?? {};
+  const rawKeys = Object.keys(rawResolvedMap);
+  console.log(`[MODAL_ATTACHMENTS] Raw store: ${rawKeys.length} attachment(s) para interaction ${interaction.id}`);
 
-  // 1. Gather the resolved attachments map from ALL possible locations
-  //    Discord docs: resolved.attachments is at the top level of the interaction
+  if (rawKeys.length > 0) {
+    for (const att of Object.values(rawResolvedMap) as any[]) {
+      if (att?.url) {
+        list.push({
+          url: att.url,
+          filename: att.filename ?? att.name ?? "archivo",
+          content_type: att.content_type ?? "",
+        });
+      }
+    }
+    console.log(`[MODAL_ATTACHMENTS] ✅ Encontrados ${list.length} archivo(s) desde raw store.`);
+    return list;
+  }
+
+  // ── FUENTE 2 (FALLBACK): discord.js interaction object ────────────────────
+  // Por si en futuras versiones discord.js sí lo parsea.
   const resolvedMap: Record<string, any> =
-    raw.resolved?.attachments ??          // discord.js may put it here
-    raw.data?.resolved?.attachments ??    // or nested in data
-    raw.fields?.resolved?.attachments ??  // or in fields
-    raw.message?.resolved?.attachments ?? // or in message
+    raw.resolved?.attachments ??
+    raw.data?.resolved?.attachments ??
+    raw.fields?.resolved?.attachments ??
     {};
 
   const resolvedKeys = Object.keys(resolvedMap);
-  console.log(`[MODAL_ATTACHMENTS] Found ${resolvedKeys.length} resolved attachment(s):`, resolvedKeys);
+  console.log(`[MODAL_ATTACHMENTS] discord.js resolved: ${resolvedKeys.length} attachment(s)`);
 
-  // 2. If we have resolved attachments, use them directly
   if (resolvedKeys.length > 0) {
     for (const att of Object.values(resolvedMap) as any[]) {
       if (att?.url) {
@@ -298,48 +316,28 @@ function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ u
     }
   }
 
-  // 3. Also check the components array for type 19 (FILE_UPLOAD) with values (snowflake IDs)
-  //    Per Discord docs: components[].values = array of snowflake IDs
-  const components = raw.data?.components ?? raw.components ?? [];
-  for (const row of components) {
-    // Could be a direct component or nested in an action row
-    const comps = row.components ?? [row];
-    for (const comp of comps) {
-      // type 19 = FILE_UPLOAD, values = array of attachment snowflake IDs
-      if (comp.type === 19 && Array.isArray(comp.values)) {
-        for (const attachId of comp.values) {
-          // Look up in resolved map
-          const att = resolvedMap[attachId];
-          if (att?.url) {
-            // Avoid duplicates
-            if (!list.some(l => l.url === att.url)) {
-              list.push({
-                url: att.url,
-                filename: att.filename ?? att.name ?? "archivo",
-                content_type: att.content_type ?? "",
-              });
+  // ── FUENTE 3 (FALLBACK): components[] con type 19 y values[] ─────────────
+  // Si tenemos un resolvedMap (de cualquier fuente), buscamos por snowflake ID.
+  if (list.length === 0) {
+    const components = raw.data?.components ?? raw.components ?? [];
+    const walkComponents = (comps: any[]) => {
+      for (const comp of comps) {
+        if (comp.type === 19 && Array.isArray(comp.values)) {
+          for (const id of comp.values) {
+            const att = resolvedMap[id] ?? rawResolvedMap[id];
+            if (att?.url && !list.some(l => l.url === att.url)) {
+              list.push({ url: att.url, filename: att.filename ?? "archivo", content_type: att.content_type ?? "" });
             }
           }
         }
+        if (comp.component) walkComponents([comp.component]);
+        if (comp.components) walkComponents(comp.components);
       }
-
-      // Also check nested component (type 18 LABEL wraps a component)
-      if (comp.component?.type === 19 && Array.isArray(comp.component.values)) {
-        for (const attachId of comp.component.values) {
-          const att = resolvedMap[attachId];
-          if (att?.url && !list.some(l => l.url === att.url)) {
-            list.push({
-              url: att.url,
-              filename: att.filename ?? att.name ?? "archivo",
-              content_type: att.content_type ?? "",
-            });
-          }
-        }
-      }
-    }
+    };
+    walkComponents(components);
   }
 
-  // 4. Fallback: discord.js Collection of attachments
+  // ── FUENTE 4 (ÚLTIMO FALLBACK): discord.js Collection de attachments ──────
   if (list.length === 0 && raw.attachments) {
     try {
       for (const att of raw.attachments.values()) {
@@ -354,40 +352,7 @@ function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ u
     } catch {}
   }
 
-  // 5. Fallback: fields.fields Collection may contain file upload entries
-  if (list.length === 0) {
-    try {
-      const fieldsMap = raw.fields?.fields ?? raw.fields?.data ?? raw.data?.components;
-      if (fieldsMap) {
-        const iterate = (items: any[]) => {
-          for (const item of items) {
-            if (item.type === 19 && Array.isArray(item.values)) {
-              for (const id of item.values) {
-                const att = resolvedMap[id];
-                if (att?.url) {
-                  list.push({
-                    url: att.url,
-                    filename: att.filename ?? "archivo",
-                    content_type: att.content_type ?? "",
-                  });
-                }
-              }
-            }
-            if (item.components) iterate(item.components);
-          }
-        };
-        iterate(Array.isArray(fieldsMap) ? fieldsMap : [...fieldsMap.values()]);
-      }
-    } catch {}
-  }
-
-  console.log(`[MODAL_ATTACHMENTS] Total attachments extracted: ${list.length}`);
-  if (list.length > 0) {
-    for (const att of list) {
-      console.log(`  -> ${att.filename} (${att.content_type}) ${att.url.substring(0, 80)}...`);
-    }
-  }
-
+  console.log(`[MODAL_ATTACHMENTS] Total final: ${list.length} archivo(s).`);
   return list;
 }
 
