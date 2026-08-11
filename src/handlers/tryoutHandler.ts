@@ -36,9 +36,8 @@ async function extractPDFText(buf: Buffer): Promise<string> {
   return text ?? "";
 }
 
-const GROQ_API_URL       = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL         = "llama-3.3-70b-versatile";
-const GROQ_VISION_MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
 
 const TIPOS_TEXTO  = [".txt", ".md", ".csv", ".json", ".yaml", ".yml", ".xml", ".log"];
 const TIPOS_PDF    = [".pdf"];
@@ -53,6 +52,17 @@ export function getExtension(name: string): string {
   return lastDot !== -1 ? cleanName.substring(lastDot) : "";
 }
 
+export function getFilenameFromUrl(url: string): string {
+  try {
+    const cleanUrl = url.split("?")[0];
+    const parts = cleanUrl.split("/");
+    const last = parts[parts.length - 1];
+    return last ? decodeURIComponent(last) : "archivo";
+  } catch {
+    return "archivo";
+  }
+}
+
 export function getTipoLabel(ext: string): "PDF" | "Word" | "Excel" | "Imagen" | "Texto" {
   if (TIPOS_PDF.includes(ext))    return "PDF";
   if (TIPOS_WORD.includes(ext))   return "Word";
@@ -61,35 +71,7 @@ export function getTipoLabel(ext: string): "PDF" | "Word" | "Excel" | "Imagen" |
   return "Texto";
 }
 
-export async function parsearArchivo(
-  buffer: Buffer,
-  ext: string,
-  url: string
-): Promise<{ texto: string; esImagen: boolean }> {
-  if (TIPOS_PDF.includes(ext)) {
-    const texto = await extractPDFText(buffer);
-    return { texto: texto.trim(), esImagen: false };
-  }
-  if (TIPOS_WORD.includes(ext)) {
-    const result = await mammoth.extractRawText({ buffer });
-    return { texto: result.value.trim(), esImagen: false };
-  }
-  if (TIPOS_EXCEL.includes(ext)) {
-    const wb = XLSX.read(buffer, { type: "buffer" });
-    const lineas: string[] = [];
-    for (const sheetName of wb.SheetNames) {
-      const ws = wb.Sheets[sheetName];
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      lineas.push(`=== Hoja: ${sheetName} ===\n${csv}`);
-    }
-    return { texto: lineas.join("\n\n").trim(), esImagen: false };
-  }
-  if (TIPOS_IMAGEN.includes(ext)) {
-    return { texto: url, esImagen: true };
-  }
-  return { texto: buffer.toString("utf-8").trim(), esImagen: false };
-}
-
+// ─── DESCRIPCIÓN Y OCR DE IMÁGENES CON GROQ VISION ─────────────────────────────
 export async function describirImagen(
   bufferOrUrl: Buffer | string,
   groqKey: string,
@@ -158,6 +140,150 @@ export async function describirImagen(
   }
 
   throw new Error("No se pudo extraer texto de la imagen.");
+}
+
+// ─── PROCESADOR UNIFICADO DE ARCHIVOS E IMÁGENES ──────────────────────────────
+export async function procesarContenidoOArchivo(
+  buffer: Buffer,
+  nombreOUrl: string,
+  contentTypeHeader = ""
+): Promise<{ texto: string; tipo: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" }> {
+  const ext = getExtension(nombreOUrl);
+  const isImage =
+    TIPOS_IMAGEN.includes(ext) ||
+    contentTypeHeader.toLowerCase().includes("image/");
+  const isPdf =
+    TIPOS_PDF.includes(ext) ||
+    contentTypeHeader.toLowerCase().includes("pdf");
+  const isWord = TIPOS_WORD.includes(ext);
+  const isExcel = TIPOS_EXCEL.includes(ext);
+
+  // 1. IMAGEN -> Groq Vision OCR
+  if (isImage) {
+    if (config.groqApiKey) {
+      try {
+        const descripcion = await describirImagen(buffer, config.groqApiKey, nombreOUrl);
+        if (descripcion && descripcion.length > 5) {
+          return { texto: `[OCR Imagen "${nombreOUrl}"]:\n${descripcion}`, tipo: "Imagen" };
+        }
+      } catch (err) {
+        console.error(`[PROCESAR_ARCHIVO] Error Groq Vision OCR para ${nombreOUrl}:`, err);
+      }
+    }
+    return {
+      texto: `[Imagen cargada "${nombreOUrl}"] (Procesada como referencia de imagen)`,
+      tipo: "Imagen",
+    };
+  }
+
+  // 2. PDF -> unpdf
+  if (isPdf) {
+    try {
+      const texto = await extractPDFText(buffer);
+      if (texto && texto.trim().length > 5) {
+        return { texto: texto.trim(), tipo: "PDF" };
+      }
+    } catch (err) {
+      console.error(`[PROCESAR_ARCHIVO] Error parseando PDF ${nombreOUrl}:`, err);
+    }
+  }
+
+  // 3. WORD -> mammoth
+  if (isWord) {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      if (result.value && result.value.trim().length > 5) {
+        return { texto: result.value.trim(), tipo: "Word" };
+      }
+    } catch (err) {
+      console.error(`[PROCESAR_ARCHIVO] Error parseando Word ${nombreOUrl}:`, err);
+    }
+  }
+
+  // 4. EXCEL -> xlsx
+  if (isExcel) {
+    try {
+      const wb = XLSX.read(buffer, { type: "buffer" });
+      const lineas: string[] = [];
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        lineas.push(`=== Hoja: ${sheetName} ===\n${csv}`);
+      }
+      if (lineas.length > 0) {
+        return { texto: lineas.join("\n\n").trim(), tipo: "Excel" };
+      }
+    } catch (err) {
+      console.error(`[PROCESAR_ARCHIVO] Error parseando Excel ${nombreOUrl}:`, err);
+    }
+  }
+
+  // 5. TEXTO PLANO / UTF-8
+  const textoUtf8 = buffer.toString("utf-8").trim();
+  return { texto: textoUtf8, tipo: "Texto" };
+}
+
+// ─── HELPER DE EXTRAER ADJUNTOS DEL MODAL V2 ─────────────────────────────────
+function extractModalAttachments(interaction: ModalSubmitInteraction): Array<{ url: string; filename: string }> {
+  const list: Array<{ url: string; filename: string }> = [];
+
+  const rawData = (interaction as any).data;
+  const rawFields = (interaction as any).fields;
+
+  const resolvedMap =
+    rawData?.resolved?.attachments ??
+    rawFields?.resolved?.attachments ??
+    (interaction as any).resolved?.attachments;
+
+  if (resolvedMap) {
+    for (const att of Object.values(resolvedMap) as any[]) {
+      if (att?.url && att?.filename) {
+        list.push({ url: att.url, filename: att.filename });
+      }
+    }
+  }
+
+  if ((interaction as any).attachments) {
+    for (const att of (interaction as any).attachments.values()) {
+      if (att?.url && att?.name) {
+        list.push({ url: att.url, filename: att.name });
+      }
+    }
+  }
+
+  return list;
+}
+
+// ─── HELPER DE EXTRAER CAMPOS DE TEXTO DEL MODAL V2 ──────────────────────────
+function findModalFieldValue(interaction: ModalSubmitInteraction, customId: string): string {
+  try {
+    const val = interaction.fields.getTextInputValue(customId);
+    if (val) return val.trim();
+  } catch {}
+
+  const rawComponents =
+    (interaction as any).data?.components ??
+    (interaction as any).components ??
+    [];
+
+  function search(compList: any[]): string | null {
+    for (const comp of compList) {
+      if (comp.custom_id === customId && comp.value) {
+        return comp.value;
+      }
+      if (comp.component) {
+        const res = search([comp.component]);
+        if (res !== null) return res;
+      }
+      if (comp.components && Array.isArray(comp.components)) {
+        const res = search(comp.components);
+        if (res !== null) return res;
+      }
+    }
+    return null;
+  }
+
+  return search(rawComponents)?.trim() ?? "";
 }
 
 // ─── HELPER DE CONTAINER V2 ──────────────────────────────────────────────────
@@ -351,7 +477,7 @@ export async function handleTryoutMainMenu(
       );
     } catch (err) {
       console.error("[TRYOUT_MODAL_V2] Error enviando Modal V2 de File Upload:", err);
-      // Fallback a modal estándar si la versión de API no soporta type 19
+      // Fallback a modal estándar
       const modal = new ModalBuilder()
         .setCustomId("tryout:modal_upload_url")
         .setTitle("Cargar Archivo/Imagen/Link");
@@ -625,113 +751,71 @@ export async function handleTryoutModalSubmit(
   if (id === "tryout:modal_upload_url" || id === "tryout:modal_upload_file") {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    // 1. Extraer archivos adjuntos subidos directamente en el Modal V2 (FILE_UPLOAD type 19)
-    const rawData = (interaction as any).data;
-    const resolvedAttachments = rawData?.resolved?.attachments;
-    const attachmentsList: Array<{ url: string; filename: string }> = [];
+    const attachmentsList = extractModalAttachments(interaction);
 
-    if (resolvedAttachments) {
-      for (const att of Object.values(resolvedAttachments) as any[]) {
-        if (att?.url && att?.filename) {
-          attachmentsList.push({ url: att.url, filename: att.filename });
-        }
-      }
-    }
-
-    let titulo = "";
-    try {
-      titulo = interaction.fields.getTextInputValue("titulo")?.trim() ?? "";
-    } catch {}
-
-    let inputVal = "";
-    try {
-      inputVal = interaction.fields.getTextInputValue("contenido_url")?.trim() ?? "";
-    } catch {}
-
-    let preguntaVal = "";
-    try {
-      preguntaVal = interaction.fields.getTextInputValue("pregunta")?.trim() ?? "";
-    } catch {}
+    const tituloVal   = findModalFieldValue(interaction, "titulo");
+    const inputVal    = findModalFieldValue(interaction, "contenido_url");
+    const preguntaVal = findModalFieldValue(interaction, "pregunta");
 
     const itemsProcesados: Array<{ name: string; type: any; text: string }> = [];
 
     // PROCESAR ARCHIVOS SUBIDOS DIRECTAMENTE EN EL MODAL V2 (type 19)
     if (attachmentsList.length > 0) {
       for (const fileAtt of attachmentsList) {
-        const ext = getExtension(fileAtt.filename);
-        const tipoFuente = getTipoLabel(ext);
-
         try {
           const res: any = await fetch(fileAtt.url);
           if (!res.ok) continue;
+          const contentType = res.headers.get("content-type") ?? "";
           const fileBuffer = Buffer.from(await res.arrayBuffer());
-          const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, fileAtt.url);
 
-          let textoDoc = "";
-          let finalTipo = tipoFuente;
+          const { texto, tipo } = await procesarContenidoOArchivo(fileBuffer, fileAtt.filename, contentType);
 
-          if (esImagen) {
-            if (config.groqApiKey) {
-              const descripcion = await describirImagen(fileBuffer, config.groqApiKey, fileAtt.filename);
-              textoDoc = `[Contenido de imagen "${fileAtt.filename}"]:\n${descripcion}`;
-              finalTipo = "Imagen";
-            }
-          } else {
-            textoDoc = texto;
-          }
-
-          if (textoDoc && textoDoc.length >= 5) {
+          if (texto && texto.length >= 5) {
             const itemGuardado = await documentCache.addItem(guildId, {
-              name: titulo ? `${titulo} (${fileAtt.filename})` : fileAtt.filename,
-              type: finalTipo,
-              text: textoDoc,
+              name: tituloVal ? `${tituloVal} (${fileAtt.filename})` : fileAtt.filename,
+              type: tipo,
+              text: texto,
             });
             itemsProcesados.push(itemGuardado);
           }
         } catch (err) {
-          console.error(`[TRYOUT_IA] Error procesando adjunto ${fileAtt.filename}:`, err);
+          console.error(`[MODAL_SUBMIT] Error procesando adjunto ${fileAtt.filename}:`, err);
         }
       }
-    } else if (inputVal) {
-      // PROCESAR URL O TEXTO DEL CAMPO DE TEXTO
+    }
+
+    // PROCESAR URL O TEXTO SI SE INGRESÓ EN EL CAMPO DE TEXTO
+    if (inputVal && itemsProcesados.length === 0) {
       const esUrl = /^https?:\/\//i.test(inputVal);
-      let textoFinal = "";
-      let tipoFuente: "PDF" | "Word" | "Excel" | "Imagen" | "Texto" = "Texto";
 
       if (esUrl) {
         try {
           const res: any = await fetch(inputVal);
           if (res.ok) {
-            const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
-            const ext = getExtension(inputVal) || (contentType.includes("pdf") ? ".pdf" : contentType.includes("image") ? ".png" : ".txt");
-            tipoFuente = getTipoLabel(ext);
-
+            const contentType = res.headers.get("content-type") ?? "";
             const fileBuffer = Buffer.from(await res.arrayBuffer());
-            const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, inputVal);
+            const filename = getFilenameFromUrl(inputVal);
 
-            if (esImagen || contentType.includes("image")) {
-              if (config.groqApiKey) {
-                const descripcion = await describirImagen(fileBuffer, config.groqApiKey, inputVal);
-                textoFinal = `[Contenido de imagen "${titulo || "Imagen"}"]:\n${descripcion}`;
-                tipoFuente = "Imagen";
-              }
-            } else {
-              textoFinal = texto;
+            const { texto, tipo } = await procesarContenidoOArchivo(fileBuffer, filename, contentType);
+
+            if (texto && texto.length >= 5) {
+              const itemGuardado = await documentCache.addItem(guildId, {
+                name: tituloVal || filename,
+                type: tipo,
+                text: texto,
+              });
+              itemsProcesados.push(itemGuardado);
             }
           }
         } catch (err) {
-          console.error(`[TRYOUT_IA] Error descargando desde URL ${inputVal}:`, err);
+          console.error(`[MODAL_SUBMIT] Error descargando URL ${inputVal}:`, err);
         }
       } else {
-        textoFinal = inputVal;
-        tipoFuente = "Texto";
-      }
-
-      if (textoFinal && textoFinal.length >= 5) {
+        // Texto plano directo
         const itemGuardado = await documentCache.addItem(guildId, {
-          name: titulo || "Documento / Texto",
-          type: tipoFuente,
-          text: textoFinal,
+          name: tituloVal || "Nota / Reglamento",
+          type: "Texto",
+          text: inputVal,
         });
         itemsProcesados.push(itemGuardado);
       }
@@ -739,7 +823,7 @@ export async function handleTryoutModalSubmit(
 
     if (itemsProcesados.length === 0) {
       await interaction.editReply({
-        content: "⚠️ No se pudo procesar ningún archivo o texto. Por favor sube un archivo en el modal o ingresa una URL/texto.",
+        content: "⚠️ No se pudo extraer texto o información del archivo/enlace proporcionado. Verifica el enlace o sube un archivo legible.",
       });
       return;
     }
@@ -794,7 +878,7 @@ export async function handleTryoutModalSubmit(
         `✅ **Nueva fuente memorizada y guardada en la base de datos.**`,
         `› **Título:** \`${primerItem.name}\``,
         `› **Tipo:** \`${primerItem.type}\``,
-        `› **Caracteres:** \`${primerItem.text.length.toLocaleString("es-MX")}\``,
+        `› **Caracteres memorizados:** \`${primerItem.text.length.toLocaleString("es-MX")}\``,
         `› **Total de fuentes procesadas en esta entrega:** \`${itemsProcesados.length}\``,
         `› **Total de fuentes en DB:** \`${items.length}\``,
         respuestaIA ? `\n---\n**Pregunta:** > ${preguntaVal}\n\n**Respuesta IA:**\n${respuestaIA}` : "",
@@ -808,7 +892,7 @@ export async function handleTryoutModalSubmit(
 
   // ── 2. MODAL V2: PREGUNTA (tryout:modal_ask) ─────────────────────────────
   if (id === "tryout:modal_ask") {
-    const pregunta = interaction.fields.getTextInputValue("pregunta");
+    const pregunta = findModalFieldValue(interaction, "pregunta");
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     if (!config.groqApiKey) {
@@ -893,13 +977,13 @@ export async function handleTryoutModalSubmit(
 
   // ── 3. MODAL V2: AGREGAR TEXTO (tryout:modal_add_text) ───────────────────
   if (id === "tryout:modal_add_text") {
-    const titulo = interaction.fields.getTextInputValue("titulo").trim();
-    const contenido = interaction.fields.getTextInputValue("contenido").trim();
+    const titulo = findModalFieldValue(interaction, "titulo");
+    const contenido = findModalFieldValue(interaction, "contenido");
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const item = await documentCache.addItem(guildId, {
-      name: titulo,
+      name: titulo || "Nota Manual",
       type: "Texto",
       text: contenido,
     });
@@ -937,23 +1021,12 @@ export async function handleTryoutUploadCommand(
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const ext = getExtension(attachment.name);
-  const tipoFuente = getTipoLabel(ext);
-
-  if (!TODOS_TIPOS.includes(ext)) {
-    await interaction.editReply({
-      content: [
-        `❌ Tipo de archivo no soportado: \`${ext}\``,
-        `Formatos aceptados: PDF, Word, Excel, TXT, MD, CSV, JSON, YAML, XML, PNG, JPG, GIF, WEBP.`,
-      ].join("\n"),
-    });
-    return;
-  }
-
   let fileBuffer: Buffer;
+  let contentType = "";
   try {
     const res: any = await fetch(attachment.url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    contentType = res.headers.get("content-type") ?? "";
     fileBuffer = Buffer.from(await res.arrayBuffer());
   } catch (err) {
     console.error("[TRYOUT_SUBIR] Error descargando archivo:", err);
@@ -961,59 +1034,43 @@ export async function handleTryoutUploadCommand(
     return;
   }
 
-  let nuevoTexto = "";
   const tituloDoc = tituloOpt?.trim() || attachment.name;
 
   try {
-    const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, attachment.url);
+    const { texto, tipo } = await procesarContenidoOArchivo(fileBuffer, attachment.name, contentType);
 
-    if (esImagen) {
-      if (!config.groqApiKey) {
-        await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
-        return;
-      }
-      const descripcion = await describirImagen(fileBuffer, config.groqApiKey, attachment.name);
-      nuevoTexto = `[Contenido de imagen "${tituloDoc}"]:\n${descripcion}`;
-    } else {
-      if (!texto || texto.length < 5) {
-        await interaction.editReply({ content: "⚠️ El archivo no contiene texto legible." });
-        return;
-      }
-      nuevoTexto = texto;
+    if (!texto || texto.length < 5) {
+      await interaction.editReply({ content: "⚠️ No se pudo extraer información o texto legible del archivo." });
+      return;
     }
-  } catch (err) {
-    console.error("[TRYOUT_SUBIR] Error parseando archivo:", err);
-    await interaction.editReply({
-      content: `❌ No se pudo procesar el archivo \`${attachment.name}\`.`,
+
+    const item = await documentCache.addItem(guildId, {
+      name: tituloDoc,
+      type: tipo,
+      text: texto,
     });
-    return;
+
+    const items = documentCache.getItems(guildId);
+    const container = buildTryoutContainer(
+      interaction.guild,
+      interaction.user,
+      0x2ecc71,
+      "# Tryout IA · Archivo / Imagen Procesado Exitosamente",
+      [
+        `✅ **Contenido extraído y guardado en MongoDB.**`,
+        `› **Título:** \`${item.name}\``,
+        `› **Tipo:** \`${item.type}\``,
+        `› **Caracteres memorizados:** \`${item.text.length.toLocaleString("es-MX")}\``,
+        `› **Total de fuentes en DB:** \`${items.length}\``,
+        "",
+        "El bot ahora conoce esta información y responderá preguntas sobre ella.",
+      ].join("\n"),
+      buildMainMenuRow(guildId)
+    );
+
+    await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  } catch (err) {
+    console.error("[TRYOUT_SUBIR] Error procesando archivo:", err);
+    await interaction.editReply({ content: `❌ No se pudo procesar el archivo \`${attachment.name}\`.` });
   }
-
-  // Guardar en MongoDB
-  const item = await documentCache.addItem(guildId, {
-    name: tituloDoc,
-    type: tipoFuente,
-    text: nuevoTexto,
-  });
-
-  const items = documentCache.getItems(guildId);
-  const container = buildTryoutContainer(
-    interaction.guild,
-    interaction.user,
-    0x2ecc71,
-    "# Tryout IA · Archivo Guardado en MongoDB",
-    [
-      `✅ **Archivo subido y memorizado exitosamente.**`,
-      `› **Título:** \`${item.name}\``,
-      `› **Tipo:** \`${item.type}\``,
-      `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
-      `› **Total de fuentes en DB:** \`${items.length}\``,
-      "",
-      "El archivo ha sido guardado permanentemente en la base de datos MongoDB.",
-    ].join("\n"),
-    buildMainMenuRow(guildId)
-  );
-
-  await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
-
