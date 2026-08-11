@@ -28,12 +28,42 @@ const require = createRequire(import.meta.url);
 const mammoth  = require("mammoth")   as { extractRawText(input: { buffer: Buffer }): Promise<{ value: string }> };
 const XLSX     = require("xlsx")      as typeof import("xlsx");
 
-// Extraer texto de PDF con unpdf (compatible con Bun Canary)
+// Extraer texto de PDF con unpdf y pdf-parse como fallback
 async function extractPDFText(buf: Buffer): Promise<string> {
-  const { extractText } = await import("unpdf");
-  const uint8 = new Uint8Array(buf);
-  const { text } = await extractText(uint8, { mergePages: true });
-  return text ?? "";
+  // 1. Intentar con unpdf
+  try {
+    const { extractText } = await import("unpdf");
+    const uint8 = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    const result = await extractText(uint8, { mergePages: true });
+
+    let raw = "";
+    if (typeof result?.text === "string") {
+      raw = result.text;
+    } else if (Array.isArray(result?.text)) {
+      raw = (result.text as any[]).join("\n\n");
+    } else if (Array.isArray(result)) {
+      raw = (result as any[]).join("\n\n");
+    }
+
+    if (raw && raw.trim().length > 5) {
+      return raw.trim();
+    }
+  } catch (err) {
+    console.error("[PDF_EXTRACT] Error con unpdf:", err);
+  }
+
+  // 2. Fallback con pdf-parse
+  try {
+    const pdfParse = require("pdf-parse");
+    const parsed = await pdfParse(buf);
+    if (parsed?.text && parsed.text.trim().length > 5) {
+      return parsed.text.trim();
+    }
+  } catch (err) {
+    // pdf-parse fallback silencioso
+  }
+
+  return "";
 }
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -176,7 +206,7 @@ export async function procesarContenidoOArchivo(
     };
   }
 
-  // 2. PDF -> unpdf
+  // 2. PDF -> unpdf / pdf-parse / Groq Vision OCR
   if (isPdf) {
     try {
       const texto = await extractPDFText(buffer);
@@ -185,6 +215,18 @@ export async function procesarContenidoOArchivo(
       }
     } catch (err) {
       console.error(`[PROCESAR_ARCHIVO] Error parseando PDF ${nombreOUrl}:`, err);
+    }
+
+    // Si el PDF no tenía capa de texto (documento PDF escaneado), intentar OCR con Groq Vision
+    if (config.groqApiKey) {
+      try {
+        const descripcion = await describirImagen(buffer, config.groqApiKey, nombreOUrl);
+        if (descripcion && descripcion.length > 5) {
+          return { texto: `[OCR PDF Escaneado "${nombreOUrl}"]:\n${descripcion}`, tipo: "PDF" };
+        }
+      } catch (ocrErr) {
+        console.error(`[PROCESAR_ARCHIVO] Error OCR para PDF escaneado ${nombreOUrl}:`, ocrErr);
+      }
     }
   }
 
