@@ -5,11 +5,11 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { Command } from "../types/index.js";
-import { documentCache } from "../utils/documentCache.js";
 import {
   renderTryoutPanel,
   renderDeleteMultiSelect,
   renderInfoView,
+  handleTryoutUploadCommand,
 } from "../handlers/tryoutHandler.js";
 
 const data = new SlashCommandBuilder()
@@ -20,6 +20,25 @@ const data = new SlashCommandBuilder()
     sub
       .setName("panel")
       .setDescription("Abre el Panel Interactivo V2 con menú de opciones (solo admins).")
+  )
+
+  .addSubcommand((sub) =>
+    sub
+      .setName("subir")
+      .setDescription("Sube un archivo, PDF, Word, Excel o Imagen desde tu dispositivo para la IA.")
+      .addAttachmentOption((opt) =>
+        opt
+          .setName("archivo")
+          .setDescription("Selecciona la imagen, PDF, Word, Excel o TXT a subir")
+          .setRequired(true)
+      )
+      .addStringOption((opt) =>
+        opt
+          .setName("titulo")
+          .setDescription("Título o nombre de la fuente (opcional)")
+          .setRequired(false)
+          .setMaxLength(100)
+      )
   )
 
   .addSubcommand((sub) =>
@@ -48,19 +67,21 @@ const command: Command = {
 
     const sub = interaction.options.getSubcommand(false) ?? "panel";
 
-    // ─── Subcomando: /tryout panel ───────────────────────────────────────────
     if (sub === "panel") {
       await renderTryoutPanel(interaction);
       return;
     }
 
-    // ─── Subcomando: /tryout limpiar ─────────────────────────────────────────
+    if (sub === "subir") {
+      await handleTryoutUploadCommand(interaction);
+      return;
+    }
+
     if (sub === "limpiar") {
       await renderDeleteMultiSelect(interaction);
       return;
     }
 
-    // ─── Subcomando: /tryout info ─────────────────────────────────────────────
     if (sub === "info") {
       await renderInfoView(interaction);
       return;

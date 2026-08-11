@@ -773,3 +773,96 @@ export async function handleTryoutModalSubmit(
     return;
   }
 }
+
+// ─── HANDLER PARA SUBIDA DIRECTA DE ARCHIVOS CON /tryout subir ────────────────
+export async function handleTryoutUploadCommand(
+  interaction: ChatInputCommandInteraction
+): Promise<void> {
+  const guildId = interaction.guildId ?? "global";
+  await documentCache.ensureLoaded(guildId);
+
+  const attachment = interaction.options.getAttachment("archivo", true);
+  const tituloOpt  = interaction.options.getString("titulo");
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  const ext = getExtension(attachment.name);
+  const tipoFuente = getTipoLabel(ext);
+
+  if (!TODOS_TIPOS.includes(ext)) {
+    await interaction.editReply({
+      content: [
+        `❌ Tipo de archivo no soportado: \`${ext}\``,
+        `Formatos aceptados: PDF, Word, Excel, TXT, MD, CSV, JSON, YAML, XML, PNG, JPG, GIF, WEBP.`,
+      ].join("\n"),
+    });
+    return;
+  }
+
+  let fileBuffer: Buffer;
+  try {
+    const res: any = await fetch(attachment.url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    fileBuffer = Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    console.error("[TRYOUT_SUBIR] Error descargando archivo:", err);
+    await interaction.editReply({ content: "❌ No se pudo descargar el archivo." });
+    return;
+  }
+
+  let nuevoTexto = "";
+  const tituloDoc = tituloOpt?.trim() || attachment.name;
+
+  try {
+    const { texto, esImagen } = await parsearArchivo(fileBuffer, ext, attachment.url);
+
+    if (esImagen) {
+      if (!config.groqApiKey) {
+        await interaction.editReply({ content: "❌ No hay API Key de Groq configurada (`GROQ_API_KEY`)." });
+        return;
+      }
+      const descripcion = await describirImagen(attachment.url, config.groqApiKey);
+      nuevoTexto = `[Contenido de imagen "${tituloDoc}"]:\n${descripcion}`;
+    } else {
+      if (!texto || texto.length < 5) {
+        await interaction.editReply({ content: "⚠️ El archivo no contiene texto legible." });
+        return;
+      }
+      nuevoTexto = texto;
+    }
+  } catch (err) {
+    console.error("[TRYOUT_SUBIR] Error parseando archivo:", err);
+    await interaction.editReply({
+      content: `❌ No se pudo procesar el archivo \`${attachment.name}\`.`,
+    });
+    return;
+  }
+
+  // Guardar en MongoDB
+  const item = await documentCache.addItem(guildId, {
+    name: tituloDoc,
+    type: tipoFuente,
+    text: nuevoTexto,
+  });
+
+  const items = documentCache.getItems(guildId);
+  const container = buildTryoutContainer(
+    interaction.guild,
+    interaction.user,
+    0x2ecc71,
+    "# Tryout IA · Archivo Guardado en MongoDB",
+    [
+      `✅ **Archivo subido y memorizado exitosamente.**`,
+      `› **Título:** \`${item.name}\``,
+      `› **Tipo:** \`${item.type}\``,
+      `› **Caracteres:** \`${item.text.length.toLocaleString("es-MX")}\``,
+      `› **Total de fuentes en DB:** \`${items.length}\``,
+      "",
+      "El archivo ha sido guardado permanentemente en la base de datos MongoDB.",
+    ].join("\n"),
+    buildMainMenuRow(guildId)
+  );
+
+  await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
