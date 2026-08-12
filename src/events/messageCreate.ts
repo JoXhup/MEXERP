@@ -77,8 +77,10 @@ async function handleAIChannel(message: Message): Promise<void> {
 
   const systemPrompt =
     `${buildAISystemPrompt(combined)}\n\n` +
-    `REGLA ADICIONAL PARA CANAL DE TEXTO:\n` +
-    `Si la duda NO se puede responder con el conocimiento de la base de datos o no hay suficientes datos fidedignos, responde ÚNICAMENTE con la palabra: "NO_INFO".`;
+    `REGLA ADICIONAL PARA EL CANAL DE DUDAS:\n` +
+    `Busca exhaustivamente en todos los documentos cargados (Códigos Penales, Reglamentos, Manuales, Títulos, Capítulos, Artículos y Secciones).\n` +
+    `Relaciona los términos de la pregunta aunque tengan pequeñas variaciones informales.\n` +
+    `ÚNICAMENTE si la duda es completamente ajena y no existe ninguna información o antecedente en los documentos cargados, responde la palabra clave: "NO_INFO".`;
 
   let respuesta = "";
   try {

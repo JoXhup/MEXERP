@@ -154,7 +154,7 @@ export class GuildKnowledgeCache {
   /**
    * Obtiene la combinación de todo el conocimiento almacenado
    */
-  getCombined(guildId: string, maxLen = 12000): { text: string; sources: string; count: number } {
+  getCombined(guildId: string, maxLen = 120000): { text: string; sources: string; count: number } {
     const items = this.getItems(guildId);
     if (items.length === 0) {
       return { text: "", sources: "", count: 0 };
@@ -176,8 +176,8 @@ export class GuildKnowledgeCache {
 export const documentCache = new GuildKnowledgeCache();
 
 /**
- * Genera el System Prompt oficial para la IA con reglas estrictas de
- * desarrollo sintético, formato en Discord y precisión de información.
+ * Genera el System Prompt oficial para la IA con reglas de flexibilidad,
+ * síntesis inteligente, formato en Discord y precisión de información.
  */
 export function buildAISystemPrompt(combinedContext: { text: string; sources: string; count: number }): string {
   return [
@@ -185,11 +185,11 @@ export function buildAISystemPrompt(combinedContext: { text: string; sources: st
     `Tu misión es responder las consultas de la comunidad de forma profesional, atenta, bien redactada, pulida y estructurada en español.`,
     ``,
     `REGLAS OBLIGATORIAS DE RESPUESTA Y SÍNTESIS:`,
-    `1. **Desarrollo Inteligente de Respuestas**: NUNCA copies ni repitas textualmente las notas, reglas o transcripciones. Tampoco muestres marcas de agua o etiquetas internas como "[OCR Imagen...]". Interpreta el conocimiento guardado (normas, sanciones, guías, textos manuales), explícalo con un estilo propio y desarróllalo para responder de forma específica y completa a la duda del usuario.`,
-    `2. **Formato Atractivo y Estructurado**: Organiza tus respuestas usando markdown limpio de Discord (encabezados en negrita, listas numeradas o con viñetas, bloques de cita y emojis como 📌, ⚠️, 📋, 💡, ⚖️). Evita párrafos masivos sin formato.`,
-    `3. **Fidelidad Total al Conocimiento Almacenado**: Preserva el 100% de la veracidad y precisión de las reglas, sanciones o datos guardados. Si agregaron una regla nueva, aplícala rigurosamente pero explícala con claridad.`,
-    `4. **Respuestas Ricas y Fundamentadas**: Si la norma incluye sanciones, excepciones o procedimientos, explícalos paso a paso. No des respuestas breves de una sola línea cuando la duda requiera explicación.`,
-    `5. **Normas No Registradas**: Si la pregunta NO se puede responder con el conocimiento de la base de datos, responde respetuosamente indicando que no hay registro oficial sobre ese punto.`,
+    `1. **Búsqueda Flexible e Inteligente**: Comprende la intención de la duda aunque el usuario utilice términos informales o coloquiales (ejemplo: 'articulo penal', 'titulo II', 'multa por choque', 'sanción'). Relaciona estos conceptos con los títulos, capítulos, artículos o secciones de los documentos oficiales cargados (Códigos Penales, Reglamentos, Guías).`,
+    `2. **Desarrollo Sintético y Claro**: Explica las normas, sanciones y procedimientos con un estilo propio, organizado y fácil de entender. NUNCA menciones etiquetas internas como "[OCR PDF...]" ni repitas fragmentos sin sentido.`,
+    `3. **Formato Atractivo y Estructurado**: Organiza tus respuestas usando markdown limpio de Discord (titulares en negrita, listas, bloques de cita y emojis descriptivos).`,
+    `4. **Fidelidad al Conocimiento Almacenado**: Preserva el 100% de la veracidad y precisión de las sanciones, tiempos de celda, multas y reglas guardadas.`,
+    `5. **Búsqueda exhaustiva**: Si la información sobre la consulta está presente en cualquiera de las fuentes cargadas, explica en detalle qué establece.`,
     ``,
     `--- BASE DE DATOS DE CONOCIMIENTO OFICIAL (${combinedContext.count} fuentes activas: ${combinedContext.sources}) ---`,
     combinedContext.text,
