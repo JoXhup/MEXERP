@@ -152,9 +152,9 @@ export class GuildKnowledgeCache {
   }
 
   /**
-   * Obtiene la combinación de todo el conocimiento almacenado
+   * Obtiene la combinación de todo el conocimiento almacenado sin truncar
    */
-  getCombined(guildId: string, maxLen = 120000): { text: string; sources: string; count: number } {
+  getCombined(guildId: string, maxLen = 1000000): { text: string; sources: string; count: number } {
     const items = this.getItems(guildId);
     if (items.length === 0) {
       return { text: "", sources: "", count: 0 };

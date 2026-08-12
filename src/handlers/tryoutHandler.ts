@@ -30,42 +30,45 @@ const require = createRequire(import.meta.url);
 const mammoth  = require("mammoth")   as { extractRawText(input: { buffer: Buffer }): Promise<{ value: string }> };
 const XLSX     = require("xlsx")      as typeof import("xlsx");
 
-// Extraer texto de PDF con unpdf y pdf-parse como fallback
 async function extractPDFText(buf: Buffer): Promise<string> {
-  // 1. Intentar con unpdf
+  let unpdfText = "";
+  let pdfParseText = "";
+
+  // 1. Extraer con unpdf
   try {
     const { extractText } = await import("unpdf");
     const uint8 = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     const result = await extractText(uint8, { mergePages: true });
 
-    let raw = "";
     if (typeof result?.text === "string") {
-      raw = result.text;
+      unpdfText = result.text;
     } else if (Array.isArray(result?.text)) {
-      raw = (result.text as any[]).join("\n\n");
+      unpdfText = (result.text as any[]).join("\n\n");
     } else if (Array.isArray(result)) {
-      raw = (result as any[]).join("\n\n");
-    }
-
-    if (raw && raw.trim().length > 5) {
-      return raw.trim();
+      unpdfText = (result as any[]).join("\n\n");
     }
   } catch (err) {
     console.error("[PDF_EXTRACT] Error con unpdf:", err);
   }
 
-  // 2. Fallback con pdf-parse
+  // 2. Extraer con pdf-parse
   try {
     const pdfParse = require("pdf-parse");
     const parsed = await pdfParse(buf);
-    if (parsed?.text && parsed.text.trim().length > 5) {
-      return parsed.text.trim();
+    if (parsed?.text) {
+      pdfParseText = parsed.text;
     }
   } catch (err) {
     // pdf-parse fallback silencioso
   }
 
-  return "";
+  const cleanUnpdf = unpdfText.trim();
+  const cleanPdfParse = pdfParseText.trim();
+
+  // Seleccionar el resultado con mayor cantidad de caracteres (el más completo)
+  const bestText = cleanPdfParse.length >= cleanUnpdf.length ? cleanPdfParse : cleanUnpdf;
+  console.log(`[PDF_EXTRACT] unpdf: ${cleanUnpdf.length} chars | pdf-parse: ${cleanPdfParse.length} chars. Seleccionado: ${bestText.length} chars.`);
+  return bestText;
 }
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";

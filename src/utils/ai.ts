@@ -30,7 +30,7 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
   }
 
   const temperature = options.temperature ?? 0.3;
-  const max_tokens = options.max_tokens ?? 1200;
+  const max_tokens = options.max_tokens ?? 3500;
   let lastError: any = null;
 
   // Probar cada modelo en orden de fallback
