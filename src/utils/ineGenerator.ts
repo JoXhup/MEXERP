@@ -294,19 +294,44 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Cargar y dibujar avatar de usuario si existe (más a la derecha y más arriba)
+  // Zona de foto en la plantilla INE
+  const photoX = 60;
+  const photoY = 185;
+  const photoW = 270;
+  const photoH = 460;
+
+  // Cargar y dibujar avatar escalado con proporciones correctas dentro del área de foto
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
       if (avatarRes.ok) {
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
-        ctx.drawImage(avatarImg, 110, 230, 360, 560);
+
+        // Calcular escala manteniendo relación de aspecto, con padding interior
+        const padding = 14;
+        const maxW = photoW - padding * 2;
+        const maxH = photoH - padding * 2;
+        const scale = Math.min(maxW / avatarImg.width, maxH / avatarImg.height);
+        const drawW = avatarImg.width * scale;
+        const drawH = avatarImg.height * scale;
+        // Centrar el avatar dentro del área de foto
+        const drawX = photoX + padding + (maxW - drawW) / 2;
+        const drawY = photoY + padding + (maxH - drawH) / 2;
+
+        ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
     }
   }
+
+  // Marco gris semi-transparente alrededor del área de la foto
+  ctx.save();
+  ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(photoX, photoY, photoW, photoH);
+  ctx.restore();
 
   // Estilo de texto
   ctx.fillStyle = "#111111";
