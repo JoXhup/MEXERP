@@ -22,6 +22,7 @@ import {
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
 import { documentCache, buildAISystemPrompt } from "../utils/documentCache.js";
+import { queryGroq } from "../utils/ai.js";
 import { getRawResolved } from "../utils/rawInteractionStore.js";
 import { createRequire } from "module";
 
@@ -1065,36 +1066,19 @@ export async function handleTryoutModalSubmit(
       return;
     }
 
-    // Si había pregunta opcional, consultar a Groq AI
     let respuestaIA = "";
     if (preguntaVal) {
       const combined = documentCache.getCombined(guildId);
       if (config.groqApiKey && combined.count > 0) {
         try {
-          const res = await fetch(GROQ_API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${config.groqApiKey}`,
-            },
-            body: JSON.stringify({
-              model: GROQ_MODEL,
-              messages: [
-                {
-                  role: "system",
-                  content: buildAISystemPrompt(combined),
-                },
-                { role: "user", content: preguntaVal },
-              ],
-              max_tokens: 1200,
-              temperature: 0.25,
-            }),
-          }) as any;
-
-          if (res.ok) {
-            const data = await res.json() as any;
-            respuestaIA = data?.choices?.[0]?.message?.content?.trim() ?? "";
-          }
+          respuestaIA = await queryGroq({
+            messages: [
+              { role: "system", content: buildAISystemPrompt(combined) },
+              { role: "user", content: preguntaVal },
+            ],
+            temperature: 0.25,
+            max_tokens: 1200,
+          });
         } catch (e) {
           console.error("[TRYOUT_IA] Error consultando IA tras guardar modal:", e);
         }
@@ -1148,36 +1132,17 @@ export async function handleTryoutModalSubmit(
 
     let respuesta = "";
     try {
-      const res = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.groqApiKey}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: pregunta },
-          ],
-          max_tokens: 1200,
-          temperature: modoDoc ? 0.3 : 0.7,
-        }),
-      }) as any;
-
-      if (!res.ok) {
-        const errData = (await res.json()) as any;
-        await interaction.editReply({
-          content: `❌ Error de Groq: \`${errData?.error?.message ?? res.status}\``,
-        });
-        return;
-      }
-
-      const data = (await res.json()) as any;
-      respuesta = data?.choices?.[0]?.message?.content?.trim() ?? "Sin respuesta.";
-    } catch (err) {
+      respuesta = await queryGroq({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: pregunta },
+        ],
+        temperature: modoDoc ? 0.3 : 0.7,
+        max_tokens: 1200,
+      });
+    } catch (err: any) {
       console.error("[TRYOUT_IA] Error en fetch Groq:", err);
-      await interaction.editReply({ content: "❌ Error al conectar con Groq AI." });
+      await interaction.editReply({ content: `❌ Error de Groq AI: \`${err.message ?? "Desconocido"}\`` });
       return;
     }
 
@@ -1221,27 +1186,14 @@ export async function handleTryoutModalSubmit(
     if (pregunta && config.groqApiKey) {
       const combined = documentCache.getCombined(guildId);
       try {
-        const res = await fetch(GROQ_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.groqApiKey}`,
-          },
-          body: JSON.stringify({
-            model: GROQ_MODEL,
-            messages: [
-              { role: "system", content: buildAISystemPrompt(combined) },
-              { role: "user", content: pregunta },
-            ],
-            max_tokens: 1200,
-            temperature: 0.25,
-          }),
-        }) as any;
-
-        if (res.ok) {
-          const data = await res.json() as any;
-          respuestaIA = data?.choices?.[0]?.message?.content?.trim() ?? "";
-        }
+        respuestaIA = await queryGroq({
+          messages: [
+            { role: "system", content: buildAISystemPrompt(combined) },
+            { role: "user", content: pregunta },
+          ],
+          temperature: 0.25,
+          max_tokens: 1200,
+        });
       } catch (err) {
         console.error("[TRYOUT_IA] Error en respuesta IA tras agregar texto:", err);
       }

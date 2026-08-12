@@ -14,6 +14,7 @@ import type { Command } from "../types/index.js";
 import { config } from "../config.js";
 import { getFooterTimestamp } from "../utils/components.js";
 import { documentCache } from "../utils/documentCache.js";
+import { queryGroq } from "../utils/ai.js";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -73,37 +74,17 @@ const command: Command = {
 
     let respuesta = "";
     try {
-      const res = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.groqApiKey}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user",   content: pregunta },
-          ],
-          max_tokens: 1000,
-          temperature: modoDoc ? 0.3 : 0.7,
-        }),
-      }) as any;
-
-      if (!res.ok) {
-        const errData = await res.json() as any;
-        console.error("[GROQ] Error de API:", errData);
-        await interaction.editReply({
-          content: `❌ Error de Groq: \`${errData?.error?.message ?? res.status}\``,
-        });
-        return;
-      }
-
-      const data = await res.json() as any;
-      respuesta = data?.choices?.[0]?.message?.content?.trim() ?? "Sin respuesta.";
-    } catch (err) {
-      console.error("[GROQ] Error en fetch:", err);
-      await interaction.editReply({ content: "❌ Error al conectar con Groq AI." });
+      respuesta = await queryGroq({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: pregunta },
+        ],
+        temperature: modoDoc ? 0.3 : 0.7,
+        max_tokens: 1000,
+      });
+    } catch (err: any) {
+      console.error("[GROQ] Error en consulta:", err);
+      await interaction.editReply({ content: `❌ Error de Groq AI: \`${err.message ?? "Desconocido"}\`` });
       return;
     }
 

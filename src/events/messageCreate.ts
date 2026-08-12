@@ -1,6 +1,7 @@
 import { type Message, Events } from "discord.js";
 import { sendErlcApiErrorContainer } from "../handlers/erlcHandler.js";
 import { documentCache, buildAISystemPrompt } from "../utils/documentCache.js";
+import { queryGroq } from "../utils/ai.js";
 import { config } from "../config.js";
 
 // ─── Canal de IA Auto-respuesta ───────────────────────────────────────────────
@@ -81,32 +82,16 @@ async function handleAIChannel(message: Message): Promise<void> {
 
   let respuesta = "";
   try {
-    const res = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: pregunta },
-        ],
-        max_tokens: 1200,
-        temperature: 0.25,
-      }),
-    }) as any;
-
-    if (!res.ok) {
-      console.error("[AI_CHANNEL] Error Groq:", res.status);
-      return;
-    }
-
-    const data = (await res.json()) as any;
-    respuesta = data?.choices?.[0]?.message?.content?.trim() ?? "";
-  } catch (err) {
-    console.error("[AI_CHANNEL] Error fetch Groq:", err);
+    respuesta = await queryGroq({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: pregunta },
+      ],
+      temperature: 0.25,
+      max_tokens: 1200,
+    });
+  } catch (err: any) {
+    console.error("[AI_CHANNEL] Error en consulta Groq:", err.message);
     return;
   }
 
