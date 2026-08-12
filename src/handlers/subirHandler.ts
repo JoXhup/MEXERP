@@ -35,14 +35,30 @@ import {
   findModalFieldValue,
 } from "./tryoutHandler.js";
 
-// ─── Roles autorizados ─────────────────────────────────────────────────────────
+// ─── Roles autorizados para ejecutar /subir ────────────────────────────────────
 export const SUBIR_ROLES = ["1532578233973739732", "1531426497942781972"];
 
 // ─── Canales de destino ────────────────────────────────────────────────────────
 export const DEST_CHANNELS = {
-  legal: "1528875517430857829",
-  ilegal: "1528875559461978283",
-  empresa: "1528868964749283450",
+  legal: "1528875517430857829",   // Foro Facción Legal
+  ilegal: "1528875559461978283",  // Foro Facción Ilegal
+  empresa: "1528868964749283450", // Canal de Texto Empresas
+};
+
+// ─── Roles que se otorgan automáticamente a Jefe y SubJefe al publicar ─────────
+export const INSTITUTION_ROLES_TO_ASSIGN = {
+  legal: {
+    jefe: ["1531406827668115547", "1532579240329871401"],
+    subjefe: ["1531406827668115547", "1532579553401376848"],
+  },
+  ilegal: {
+    jefe: ["1531406663507247184", "1532579388405714995"],
+    subjefe: ["1531406663507247184", "1532579803625029782"],
+  },
+  empresa: {
+    jefe: ["1529584817891709130", "1536977958344982529"],
+    subjefe: [],
+  },
 };
 
 // ─── Config por tipo ──────────────────────────────────────────────────────────
@@ -51,14 +67,14 @@ const TIPO_CONFIG = {
     color: 0x2563eb,
     nombre: "Facción Legal",
     jefeLabel: "Jefe Faccionario",
-    subjefeLabel: "Sub Jefe Faccionario",
+    subjefeLabel: "Sub Responsable Faccionario",
     hasSubjefe: true,
   },
   ilegal: {
     color: 0x991b1b,
     nombre: "Facción Ilegal",
-    jefeLabel: "Jefe Faccionario",
-    subjefeLabel: "Sub Jefe Faccionario",
+    jefeLabel: "Jefe Ilegal",
+    subjefeLabel: "Sub Responsable Ilegal",
     hasSubjefe: true,
   },
   empresa: {
@@ -139,6 +155,57 @@ function searchCompValues(list: any[], targetId: string): string | null {
   return null;
 }
 
+// ─── Asignación automática de roles ───────────────────────────────────────────
+async function assignInstitutionRoles(
+  guild: Guild | null,
+  tipo: "legal" | "ilegal" | "empresa",
+  rolId: string,
+  jefeId?: string,
+  subjefeId?: string
+): Promise<void> {
+  if (!guild) return;
+  const cfg = INSTITUTION_ROLES_TO_ASSIGN[tipo];
+  if (!cfg) return;
+
+  // Asignar roles a Jefe
+  if (jefeId) {
+    try {
+      const jefeMember = await guild.members.fetch(jefeId).catch(() => null);
+      if (jefeMember) {
+        const rolesToAdd = [...cfg.jefe];
+        if (rolId && !rolesToAdd.includes(rolId)) rolesToAdd.push(rolId);
+        for (const rId of rolesToAdd) {
+          await jefeMember.roles.add(rId).catch((err) =>
+            console.error(`[SUBIR_ROLES] Error añadiendo rol ${rId} a jefe ${jefeId}:`, err)
+          );
+        }
+        console.log(`[SUBIR_ROLES] Roles otorgados exitosamente a Jefe (${jefeId}):`, rolesToAdd);
+      }
+    } catch (err) {
+      console.error(`[SUBIR_ROLES] Error al procesar Jefe (${jefeId}):`, err);
+    }
+  }
+
+  // Asignar roles a SubJefe
+  if (subjefeId && cfg.subjefe.length > 0) {
+    try {
+      const subjefeMember = await guild.members.fetch(subjefeId).catch(() => null);
+      if (subjefeMember) {
+        const rolesToAdd = [...cfg.subjefe];
+        if (rolId && !rolesToAdd.includes(rolId)) rolesToAdd.push(rolId);
+        for (const rId of rolesToAdd) {
+          await subjefeMember.roles.add(rId).catch((err) =>
+            console.error(`[SUBIR_ROLES] Error añadiendo rol ${rId} a subjefe ${subjefeId}:`, err)
+          );
+        }
+        console.log(`[SUBIR_ROLES] Roles otorgados exitosamente a SubJefe (${subjefeId}):`, rolesToAdd);
+      }
+    } catch (err) {
+      console.error(`[SUBIR_ROLES] Error al procesar SubJefe (${subjefeId}):`, err);
+    }
+  }
+}
+
 // ─── Builder del Container V2 de Institución ──────────────────────────────────
 export function buildInstitucionContainer(
   guild: Guild | null,
@@ -154,41 +221,71 @@ export function buildInstitucionContainer(
 ): ContainerBuilder {
   const iconUrl = guild?.iconURL({ extension: "png", size: 256 }) ?? "";
   const c = TIPO_CONFIG[tipo];
-  const roleDisplay = rolId ? `<@&${rolId}>` : "Rol Institucional";
 
-  // Rol en texto normal (sin # grande ni emoji) + título en negrita
-  const headerContent = `${roleDisplay}\n**${tituloForo}**`;
+  // Header superior: ÚNICAMENTE la mención/PING del rol de la facción/empresa
+  const headerContent = rolId ? `<@&${rolId}>` : "Rol Institucional";
+
+  // Obtener nombre plano del rol (sin mención)
+  let roleNamePlain = "Institución";
+  if (guild && rolId) {
+    const roleObj = guild.roles.cache.get(rolId);
+    if (roleObj) {
+      roleNamePlain = roleObj.name;
+    } else {
+      roleNamePlain = tituloForo;
+    }
+  } else {
+    roleNamePlain = tituloForo;
+  }
+
+  const isEmpresa = tipo === "empresa";
+  const infoHeader = isEmpresa ? "**Información Empresarial:**" : "**Información Faccionaria:**";
+  const labelEntidad = isEmpresa ? "* Empresa:" : "* Facción:";
+  const labelJefe = isEmpresa ? "* Jefe Empresarial:" : "* Jefe Faccionario:";
+  const labelSubjefe = "* Sub Responsable Faccionario:";
 
   const infoLines = [
-    `📌 **Categoría:** \`${c.nombre}\``,
-    `👤 **Publicado por:** ${author} (\`${author.tag}\`)`,
-    jefeId ? `👑 **${c.jefeLabel}:** <@${jefeId}>` : "",
-    subjefeId && c.subjefeLabel ? `⭐ **${c.subjefeLabel}:** <@${subjefeId}>` : "",
-    linkServer
-      ? `🔗 **Link Server:** ${linkServer.startsWith("http") ? linkServer : `https://${linkServer}`}`
-      : "",
+    infoHeader,
+    `${labelEntidad}\n${roleNamePlain}`,
+    `\n${labelJefe}\n${jefeId ? `<@${jefeId}>` : "Sin asignar"}`,
+    !isEmpresa ? `\n${labelSubjefe}\n${subjefeId ? `<@${subjefeId}>` : "Sin asignar"}` : "",
   ]
     .filter(Boolean)
     .join("\n");
 
-  const descLines = [`📝 **Descripción e Información:**`, `>>> ${descripcion}`].join("\n");
+  const descBlock = `**Información:**\n${descripcion}`;
+
+  const formattedLink = linkServer.startsWith("http") ? linkServer : `https://${linkServer}`;
+  const linkBlock = `**Link del Servidor**\n:link: [Click para unirse](${formattedLink})`;
 
   const container = new ContainerBuilder()
     .setAccentColor(c.color)
+    // 1. Header con PING del rol + Avatar Servidor
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(headerContent))
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
     )
+    // 2. Línea separadora
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
+    // 3. Información Faccionaria / Empresarial
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(infoLines))
+    // 4. Línea separadora
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(descLines));
+    // 5. Información (Descripción)
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(descBlock))
+    // 6. Línea separadora
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    // 7. Link del Servidor
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(linkBlock));
 
+  // 8. Imagen (si existe)
   if (imageUrl) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
@@ -202,6 +299,7 @@ export function buildInstitucionContainer(
     });
   }
 
+  // 9. Footer
   container
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
@@ -239,13 +337,13 @@ export async function handleSubirCommand(
     .addOptions(
       new StringSelectMenuOptionBuilder()
         .setLabel("Facción Legal").setValue("legal")
-        .setDescription("Publica una facción legal en el foro oficial").setEmoji("🏛️"),
+        .setDescription("Publica una facción legal en el foro oficial"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Facción Ilegal").setValue("ilegal")
-        .setDescription("Publica una facción ilegal en el foro de actividades ilegales").setEmoji("💀"),
+        .setDescription("Publica una facción ilegal en el foro de actividades ilegales"),
       new StringSelectMenuOptionBuilder()
         .setLabel("Empresa").setValue("empresa")
-        .setDescription("Publica una empresa en el canal de empresas").setEmoji("💼")
+        .setDescription("Publica una empresa en el canal de empresas")
     );
 
   const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
@@ -258,7 +356,7 @@ export async function handleSubirCommand(
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent("# 🏢 Registro de Institución\n**Selecciona la categoría a publicar:**")
+          new TextDisplayBuilder().setContent("Registro de Institución\n**Selecciona la categoría a publicar:**")
         )
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
     )
@@ -280,7 +378,7 @@ export async function handleSubirSelectCategory(
   const tipo = interaction.values[0] as "legal" | "ilegal" | "empresa";
 
   if (!checkSubirPermissions(interaction.member)) {
-    await interaction.reply({ content: "❌ No tienes permisos.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: "No tienes permisos para esta acción.", flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -345,9 +443,7 @@ export async function handleSubirSelectCategory(
   }
 }
 
-// ─── Modal 1 submit → guarda datos y abre Modal 2 (UserSelects) ───────────────
-// IMPORTANTE: NO llamar deferReply/reply antes de abrir Modal 2,
-// ya que eso consume el token de interacción.
+// ─── Modal 1 submit → guarda datos y abre Paso 2 ──────────────────────────────
 export async function handleSubirModal1Submit(
   interaction: ModalSubmitInteraction,
   client: Client
@@ -381,14 +477,14 @@ export async function handleSubirModal1Submit(
   const c = TIPO_CONFIG[tipo];
   const iconUrl = interaction.guild?.iconURL({ extension: "png", size: 256 }) ?? "";
 
-  // Paso 2: Mensaje efímero con UserSelects de Jefe / SubJefe y botón Publicar
+  // Paso 2: Mensaje efímero con UserSelects de Jefe / SubJefe (solo si aplica) y botón Publicar
   const stepContainer = new ContainerBuilder()
     .setAccentColor(c.color)
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `## 👑 Paso 2/2 — Mandos de la Institución\n> Selecciona el **${c.jefeLabel}**${c.hasSubjefe ? ` y el **${c.subjefeLabel}**` : ""} abajo y luego haz clic en **Publicar**.`
+            `Paso 2/2 — Mandos de la Institución\nSelecciona el **${c.jefeLabel}**${c.hasSubjefe ? ` y el **${c.subjefeLabel}**` : ""} abajo y luego haz clic en **Publicar**.`
           )
         )
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
@@ -398,7 +494,7 @@ export async function handleSubirModal1Submit(
       new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
         new UserSelectMenuBuilder()
           .setCustomId(`subir:jefe:${tipo}`)
-          .setPlaceholder(`👑 Selecciona el ${c.jefeLabel}...`)
+          .setPlaceholder(`Selecciona el ${c.jefeLabel}...`)
           .setMinValues(1).setMaxValues(1)
       )
     );
@@ -408,7 +504,7 @@ export async function handleSubirModal1Submit(
       new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
         new UserSelectMenuBuilder()
           .setCustomId(`subir:subjefe:${tipo}`)
-          .setPlaceholder(`⭐ Selecciona el ${c.subjefeLabel} (Opcional)...`)
+          .setPlaceholder(`Selecciona el ${c.subjefeLabel} (Opcional)...`)
           .setMinValues(0).setMaxValues(1)
       )
     );
@@ -420,7 +516,7 @@ export async function handleSubirModal1Submit(
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`subir:publish:${tipo}`)
-          .setLabel("✅ Publicar Institución")
+          .setLabel("Publicar Institución")
           .setStyle(ButtonStyle.Success)
       )
     )
@@ -429,7 +525,7 @@ export async function handleSubirModal1Submit(
   await interaction.editReply({ components: [stepContainer], flags: MessageFlags.IsComponentsV2 });
 }
 
-// ─── Modal 2 submit → publica la institución ─────────────────────────────────
+// ─── Modal 2 submit fallback ──────────────────────────────────────────────────
 export async function handleSubirModal2Submit(
   interaction: ModalSubmitInteraction,
   client: Client
@@ -442,7 +538,7 @@ export async function handleSubirModal2Submit(
   const pending = popPendingData(interaction.user.id);
   if (!pending) {
     await interaction.editReply({
-      content: "❌ Los datos del formulario anterior expiraron. Vuelve a usar `/subir institucion`.",
+      content: "Los datos del formulario anterior expiraron. Vuelve a usar `/subir institucion`.",
     });
     return;
   }
@@ -451,12 +547,10 @@ export async function handleSubirModal2Submit(
   const jefeId = searchCompValues(rawComponents, "inst_jefe") ?? undefined;
   const subjefeId = searchCompValues(rawComponents, "inst_subjefe") ?? undefined;
 
-  console.log(`[SUBIR] Modal 2 recibido — tipo=${tipo}, jefe=${jefeId}, subjefe=${subjefeId}`);
-
   await publishInstitucion(interaction, client, pending, jefeId, subjefeId);
 }
 
-// ─── UserSelect: Jefe seleccionado (fallback) ────────────────────────────────
+// ─── UserSelect: Jefe seleccionado ───────────────────────────────────────────
 export async function handleSubirJefeSelect(
   interaction: UserSelectMenuInteraction
 ): Promise<void> {
@@ -467,7 +561,7 @@ export async function handleSubirJefeSelect(
   const updated = updatePendingData(interaction.user.id, { jefeId });
   if (!updated) {
     await interaction.reply({
-      content: "❌ Los datos expiraron. Vuelve a usar `/subir institucion`.",
+      content: "Los datos expiraron. Vuelve a usar `/subir institucion`.",
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -475,12 +569,12 @@ export async function handleSubirJefeSelect(
 
   const c = TIPO_CONFIG[tipo];
   await interaction.reply({
-    content: `✅ **${c.jefeLabel}** guardado: <@${jefeId}>`,
+    content: `**${c.jefeLabel}** guardado: <@${jefeId}>`,
     flags: MessageFlags.Ephemeral,
   });
 }
 
-// ─── UserSelect: Sub Jefe seleccionado (fallback) ────────────────────────────
+// ─── UserSelect: Sub Jefe seleccionado ───────────────────────────────────────
 export async function handleSubirSubjefeSelect(
   interaction: UserSelectMenuInteraction
 ): Promise<void> {
@@ -491,7 +585,7 @@ export async function handleSubirSubjefeSelect(
   const updated = updatePendingData(interaction.user.id, { subjefeId });
   if (!updated) {
     await interaction.reply({
-      content: "❌ Los datos expiraron. Vuelve a usar `/subir institucion`.",
+      content: "Los datos expiraron. Vuelve a usar `/subir institucion`.",
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -499,12 +593,12 @@ export async function handleSubirSubjefeSelect(
 
   const c = TIPO_CONFIG[tipo];
   await interaction.reply({
-    content: `✅ **${c.subjefeLabel}** guardado: <@${subjefeId}>`,
+    content: `**${c.subjefeLabel}** guardado: <@${subjefeId}>`,
     flags: MessageFlags.Ephemeral,
   });
 }
 
-// ─── Botón: Publicar (fallback) ───────────────────────────────────────────────
+// ─── Botón: Publicar ──────────────────────────────────────────────────────────
 export async function handleSubirPublishButton(
   interaction: ButtonInteraction,
   client: Client
@@ -517,16 +611,16 @@ export async function handleSubirPublishButton(
   const pending = popPendingData(interaction.user.id);
   if (!pending) {
     await interaction.editReply({
-      content: "❌ Los datos expiraron o no se encontraron. Vuelve a usar `/subir institucion`.",
+      content: "Los datos expiraron o no se encontraron. Vuelve a usar `/subir institucion`.",
     });
     return;
   }
 
   const c = TIPO_CONFIG[tipo];
   if (!pending.jefeId) {
-    savePendingData(interaction.user.id, pending); // Restaurar para no perder datos
+    savePendingData(interaction.user.id, pending); // Restaurar para no perder progreso
     await interaction.editReply({
-      content: `❌ Debes seleccionar al **${c.jefeLabel}** antes de publicar.`,
+      content: `Debes seleccionar al **${c.jefeLabel}** antes de publicar.`,
     });
     return;
   }
@@ -544,6 +638,16 @@ async function publishInstitucion(
 ): Promise<void> {
   const c = TIPO_CONFIG[pending.tipo];
 
+  // 1. Asignar roles automáticamente en el servidor
+  await assignInstitutionRoles(
+    interaction.guild,
+    pending.tipo,
+    pending.rolId,
+    jefeId,
+    subjefeId
+  );
+
+  // 2. Construir el contenedor V2 actualizado
   const container = buildInstitucionContainer(
     interaction.guild,
     interaction.user,
@@ -562,7 +666,7 @@ async function publishInstitucion(
 
   if (!targetChannel) {
     await interaction.editReply({
-      content: `❌ No se pudo encontrar el canal de destino (\`${targetChannelId}\`).`,
+      content: `No se pudo encontrar el canal de destino (\`${targetChannelId}\`).`,
     });
     return;
   }
@@ -574,7 +678,7 @@ async function publishInstitucion(
         name: pending.tituloForo.substring(0, 100),
         message: { components: [container], flags: MessageFlags.IsComponentsV2 as any },
       });
-      console.log(`[SUBIR_INST] Hilo en foro (${pending.tipo}): ${thread.name} (${thread.id})`);
+      console.log(`[SUBIR_INST] Hilo creado en foro (${pending.tipo}): ${thread.name} (${thread.id})`);
     } else if ((targetChannel as any).isTextBased?.()) {
       const textChannel = targetChannel as import("discord.js").TextChannel;
       await textChannel.send({
@@ -585,22 +689,23 @@ async function publishInstitucion(
     }
   } catch (pubErr) {
     console.error("[SUBIR_INST] Error publicando:", pubErr);
-    await interaction.editReply({ content: `❌ Error al publicar en <#${targetChannelId}>.` });
+    await interaction.editReply({ content: `Error al publicar en <#${targetChannelId}>.` });
     return;
   }
 
   const confirmText = [
-    `✅ **¡Institución publicada exitosamente!**`,
-    `› **Categoría:** \`${c.nombre}\``,
-    `› **Título:** \`${pending.tituloForo}\``,
-    `› **Rol:** ${pending.rolId ? `<@&${pending.rolId}>` : "`Sin rol`"}`,
-    jefeId ? `› **${c.jefeLabel}:** <@${jefeId}>` : "",
-    subjefeId ? `› **${c.subjefeLabel}:** <@${subjefeId}>` : "",
-    `› **Canal/Foro Destino:** <#${targetChannelId}>`,
+    `**¡Institución publicada exitosamente!**`,
+    `› Categoría: \`${c.nombre}\``,
+    `› Título: \`${pending.tituloForo}\``,
+    `› Rol: ${pending.rolId ? `<@&${pending.rolId}>` : "`Sin rol`"}`,
+    jefeId ? `› ${c.jefeLabel}: <@${jefeId}>` : "",
+    subjefeId && c.hasSubjefe ? `› ${c.subjefeLabel}: <@${subjefeId}>` : "",
+    `› Canal/Foro Destino: <#${targetChannelId}>`,
+    `\n*Se han asignado los roles correspondientes al Jefe y Sub Responsable en el servidor.*`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const successContainer = buildSuccessContainer("🏢 Publicación Completada", confirmText, client);
+  const successContainer = buildSuccessContainer("Publicación Completada", confirmText, client);
   await interaction.editReply({ components: [successContainer], flags: MessageFlags.IsComponentsV2 });
 }
