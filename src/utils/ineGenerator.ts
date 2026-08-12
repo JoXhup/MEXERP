@@ -295,10 +295,10 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
   // Zona de foto en la plantilla INE
-  const photoX = 60;
-  const photoY = 185;
-  const photoW = 270;
-  const photoH = 460;
+  const photoX = 55;
+  const photoY = 180;
+  const photoW = 330;
+  const photoH = 490;
 
   // Cargar y dibujar avatar escalado con proporciones correctas dentro del área de foto
   if (options.avatarUrl) {
@@ -308,8 +308,8 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
 
-        // Calcular escala manteniendo relación de aspecto, con padding interior
-        const padding = 14;
+        // Calcular escala manteniendo relación de aspecto, con padding mínimo
+        const padding = 6;
         const maxW = photoW - padding * 2;
         const maxH = photoH - padding * 2;
         const scale = Math.min(maxW / avatarImg.width, maxH / avatarImg.height);
