@@ -294,29 +294,17 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Marco estilo foto/polaroid blanco alrededor del avatar
-  // Tamaño del marco (más pequeño que el área máxima)
+  // Zona de foto en la plantilla INE
   const photoX = 70;
   const photoY = 190;
   const photoW = 460;
   const photoH = 740;
-  const frameW = 380;
-  const frameH = 420;
+  const frameW = 400;
+  const frameH = 650;
   const frameX = photoX + (photoW - frameW) / 2;
   const frameY = photoY + (photoH - frameH) / 2;
-  const framePad = 14; // Grosor del borde blanco
 
-  // Sombra suave del marco
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.25)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetX = 3;
-  ctx.shadowOffsetY = 3;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(frameX, frameY, frameW, frameH);
-  ctx.restore();
-
-  // Cargar y dibujar avatar dentro del marco blanco
+  // Cargar y dibujar avatar (sin fondo blanco, solo avatar grande)
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
@@ -324,13 +312,12 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
 
-        const innerW = frameW - framePad * 2;
-        const innerH = frameH - framePad * 2;
-        const scale = Math.min(innerW / avatarImg.width, innerH / avatarImg.height);
+        // Sin padding — avatar ocupa todo el frame manteniendo proporción
+        const scale = Math.min(frameW / avatarImg.width, frameH / avatarImg.height);
         const drawW = avatarImg.width * scale;
         const drawH = avatarImg.height * scale;
-        const drawX = frameX + framePad + (innerW - drawW) / 2;
-        const drawY = frameY + framePad + (innerH - drawH) / 2;
+        const drawX = frameX + (frameW - drawW) / 2;
+        const drawY = frameY + (frameH - drawH) / 2;
 
         ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
       }
@@ -339,10 +326,10 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
     }
   }
 
-  // Borde exterior sutil del marco (gris muy claro)
+  // Solo contorno gris semi-transparente, sin fondo
   ctx.save();
-  ctx.strokeStyle = "rgba(180, 180, 180, 0.6)";
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
+  ctx.lineWidth = 3;
   ctx.strokeRect(frameX, frameY, frameW, frameH);
   ctx.restore();
 
