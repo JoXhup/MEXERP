@@ -294,19 +294,20 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // === POSICIÓN BASE (centro de la zona de foto) ===
-  const centerX = 290;  // Centro horizontal del área de foto
-  const centerY = 560;  // Centro vertical del área de foto
+  // === POSICIÓN BASE ===
+  const centerX = 290;
 
   // === CONTORNO — tamaño FIJO, independiente del avatar ===
   const borderW = 320;
-  const borderH = 420;
+  const borderH = 360;        // Más bajo en altura (reducido)
+  const borderCenterY = 530;  // Centro vertical del contorno
   const borderX = centerX - borderW / 2;
-  const borderY = centerY - borderH / 2;
+  const borderY = borderCenterY - borderH / 2;
 
-  // === AVATAR — escala INDEPENDIENTE, más grande que el contorno ===
+  // === AVATAR — posición y escala INDEPENDIENTE ===
   const avatarAreaW = 460;
   const avatarAreaH = 720;
+  const avatarCenterY = 420;  // Avatar más arriba para ver las piernas
 
   if (options.avatarUrl) {
     try {
@@ -315,13 +316,11 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
 
-        // Escala independiente — solo del avatar, no vinculada al contorno
         const scale = Math.min(avatarAreaW / avatarImg.width, avatarAreaH / avatarImg.height);
         const drawW = avatarImg.width * scale;
         const drawH = avatarImg.height * scale;
-        // Centrar avatar en el mismo centro que el contorno
         const drawX = centerX - drawW / 2;
-        const drawY = centerY - drawH / 2;
+        const drawY = avatarCenterY - drawH / 2;  // Usa avatarCenterY independiente
 
         ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
       }
@@ -330,7 +329,7 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
     }
   }
 
-  // Contorno gris fijo — NO cambia aunque el avatar sea más grande
+  // Contorno gris fijo — independiente del avatar
   ctx.save();
   ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
   ctx.lineWidth = 3;
