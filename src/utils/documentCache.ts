@@ -152,21 +152,70 @@ export class GuildKnowledgeCache {
   }
 
   /**
-   * Obtiene la combinación de todo el conocimiento almacenado sin truncar
+   * Obtiene la combinación del conocimiento almacenado.
+   * Si se provee una consulta de búsqueda, filtra y prioriza los párrafos y secciones más relevantes.
+   * Límite predeterminado: 18,000 caracteres (~4,000 tokens) para garantizar compatibilidad con límites TPM de Groq.
    */
-  getCombined(guildId: string, maxLen = 1000000): { text: string; sources: string; count: number } {
+  getCombined(
+    guildId: string,
+    searchQuery?: string,
+    maxLen = 18000
+  ): { text: string; sources: string; count: number } {
     const items = this.getItems(guildId);
     if (items.length === 0) {
       return { text: "", sources: "", count: 0 };
     }
 
     const sources = items.map((it) => `${it.type}: ${it.name}`).join(", ");
-    let combined = items
-      .map((it, idx) => `--- FUENTE #${idx + 1}: ${it.name} (${it.type}) ---\n${it.text}`)
-      .join("\n\n");
+    let combined = "";
+
+    if (searchQuery && searchQuery.trim().length > 2) {
+      // Extraer palabras clave de la pregunta del usuario
+      const keywords = searchQuery
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .split(/\s+/)
+        .filter((w) => w.length > 2);
+
+      const relevantSections: string[] = [];
+
+      for (const item of items) {
+        // Dividir el documento en secciones o párrafos
+        const paragraphs = item.text.split(/(?=\n(?:\#{1,3}\s|TÍTULO|CAPÍTULO|ARTÍCULO|\d+\.))/i);
+
+        const scored = paragraphs.map((p) => {
+          const normP = p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          let score = 0;
+          for (const kw of keywords) {
+            if (normP.includes(kw)) score += 2;
+          }
+          return { p, score };
+        });
+
+        // Ordenar párrafos por puntuación de relevancia
+        scored.sort((a, b) => b.score - a.score);
+
+        const topParagraphs = scored.filter((s) => s.score > 0).map((s) => s.p);
+
+        if (topParagraphs.length > 0) {
+          relevantSections.push(
+            `--- FUENTE: ${item.name} (${item.type}) [Secciones Relevantes] ---\n${topParagraphs.join("\n\n")}`
+          );
+        } else {
+          relevantSections.push(`--- FUENTE: ${item.name} (${item.type}) ---\n${item.text}`);
+        }
+      }
+
+      combined = relevantSections.join("\n\n");
+    } else {
+      combined = items
+        .map((it, idx) => `--- FUENTE #${idx + 1}: ${it.name} (${it.type}) ---\n${it.text}`)
+        .join("\n\n");
+    }
 
     if (combined.length > maxLen) {
-      combined = combined.substring(0, maxLen) + "\n\n[... contexto truncado por límite de tokens ...]";
+      combined = combined.substring(0, maxLen) + "\n\n[... contexto priorizado por límite de tokens ...]";
     }
 
     return { text: combined, sources, count: items.length };

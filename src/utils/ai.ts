@@ -1,11 +1,11 @@
 import { config } from "../config.js";
 
-// Lista de modelos de Groq por orden de preferencia y fallback
+// Lista de modelos activos y soportados en la API de Groq
 export const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
-  "mixtral-8x7b-32768",
-  "gemma2-9b-it",
+  "llama-3.2-11b-vision-instruct",
+  "deepseek-r1-distill-llama-70b",
 ];
 
 export interface GroqChatMessage {
@@ -21,7 +21,8 @@ export interface QueryGroqOptions {
 }
 
 /**
- * Consulta a la API de Groq con sistema de Fallback de Modelos y Reintento automático en caso de 429 (Rate Limit).
+ * Consulta a la API de Groq con sistema de Fallback de Modelos activos,
+ * auto-ajuste de tamaño por cuota TPM (413) y reintento en 429 (Rate Limit).
  */
 export async function queryGroq(options: QueryGroqOptions): Promise<string> {
   const apiKey = options.apiKey || config.groqApiKey;
@@ -30,10 +31,12 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
   }
 
   const temperature = options.temperature ?? 0.3;
-  const max_tokens = options.max_tokens ?? 3500;
+  const max_tokens = options.max_tokens ?? 1200;
   let lastError: any = null;
 
-  // Probar cada modelo en orden de fallback
+  // Clone de mensajes para poder ajustar tamaño en caso de 413
+  let messages = options.messages.map((m) => ({ ...m }));
+
   for (const model of GROQ_MODELS) {
     try {
       console.log(`[GROQ_AI] Intentando consulta con modelo: ${model}`);
@@ -45,7 +48,7 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
         },
         body: JSON.stringify({
           model,
-          messages: options.messages,
+          messages,
           temperature,
           max_tokens,
         }),
@@ -61,9 +64,19 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
       }
 
       if (res.status === 429) {
-        console.warn(`[GROQ_AI] ⚠️ Rate Limit (429) alcanzado para ${model}. Probando siguiente modelo...`);
+        console.warn(`[GROQ_AI] ⚠️ Rate Limit (429) en ${model}. Probando siguiente modelo...`);
         lastError = new Error(`429 Rate Limit en ${model}`);
-        continue; // Probar el siguiente modelo inmediatamente
+        continue;
+      }
+
+      if (res.status === 413) {
+        console.warn(`[GROQ_AI] ⚠️ 413 Request Too Large en ${model} (Límite TPM). Ajustando contexto...`);
+        // Recortar el mensaje system a un tamaño seguro de 12,000 chars
+        if (messages[0] && messages[0].content.length > 12000) {
+          messages[0].content = messages[0].content.substring(0, 12000) + "\n\n[... contexto ajustado por límite TPM ...]";
+        }
+        lastError = new Error(`413 Request Too Large en ${model}`);
+        continue;
       }
 
       const errData = (await res.json().catch(() => ({}))) as any;
@@ -76,11 +89,16 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
     }
   }
 
-  // Si todos los modelos dieron 429 o fallaron, esperar 1.5s y reintentar con llama-3.1-8b-instant
-  console.warn("[GROQ_AI] Todos los modelos principales fallaron/429. Aplicando reintento con espera de 1.5s...");
+  // Reintento final de emergencia con llama-3.1-8b-instant y contexto acotado
+  console.warn("[GROQ_AI] Todos los modelos fallaron. Aplicando reintento de emergencia (1.5s)...");
   await new Promise((r) => setTimeout(r, 1500));
 
   try {
+    // Asegurar contexto acotado para no exceder 6,000 TPM
+    if (messages[0] && messages[0].content.length > 10000) {
+      messages[0].content = messages[0].content.substring(0, 10000) + "\n\n[... contexto recortado ...] ";
+    }
+
     const res = (await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -89,9 +107,9 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
       },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
-        messages: options.messages,
+        messages,
         temperature,
-        max_tokens,
+        max_tokens: 1000,
       }),
     })) as any;
 
@@ -101,7 +119,7 @@ export async function queryGroq(options: QueryGroqOptions): Promise<string> {
       if (text) return text;
     }
   } catch (reintErr: any) {
-    console.error("[GROQ_AI] Falló el reintento secundario:", reintErr);
+    console.error("[GROQ_AI] Falló el reintento final:", reintErr);
   }
 
   throw lastError || new Error("No se pudo obtener respuesta de Groq AI.");

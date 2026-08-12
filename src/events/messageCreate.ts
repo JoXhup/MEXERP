@@ -55,7 +55,7 @@ async function handleAIChannel(message: Message): Promise<void> {
   // Asegurar que la cache de MongoDB esté cargada
   await documentCache.ensureLoaded(guildId);
 
-  const combined = documentCache.getCombined(guildId);
+  const combined = documentCache.getCombined(guildId, pregunta);
 
   // Si no hay conocimiento cargado
   if (combined.count === 0) {
