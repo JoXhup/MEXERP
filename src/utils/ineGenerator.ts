@@ -297,17 +297,17 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // === POSICIÓN BASE ===
   const centerX = 290;
 
-  // === CONTORNO — tamaño FIJO, independiente del avatar ===
+  // === CONTORNO — tamaño FIJO ===
   const borderW = 320;
-  const borderH = 360;        // Más bajo en altura (reducido)
-  const borderCenterY = 530;  // Centro vertical del contorno
+  const borderH = 360;
+  const borderCenterY = 530;
   const borderX = centerX - borderW / 2;
   const borderY = borderCenterY - borderH / 2;
 
-  // === AVATAR — posición y escala INDEPENDIENTE ===
-  const avatarAreaW = 460;
-  const avatarAreaH = 720;
-  const avatarCenterY = 420;  // Avatar más arriba para ver las piernas
+  // === AVATAR — encaja dentro del cuadrado ===
+  const avatarAreaW = 290;   // Ligeramente menor que borderW
+  const avatarAreaH = 330;   // Ligeramente menor que borderH
+  const avatarCenterY = borderCenterY; // Mismo centro que el cuadrado
 
   if (options.avatarUrl) {
     try {
