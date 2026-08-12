@@ -296,11 +296,11 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
 
   // Zona de foto en la plantilla INE (canvas real: 1606×979)
   const photoX = 142;
-  const photoY = 340;
-  const photoW = 290;
-  const photoH = 440;
+  const photoY = 280;
+  const photoW = 320;
+  const photoH = 520;
 
-  // Cargar y dibujar avatar escalado con proporciones correctas dentro del área de foto
+  // Cargar y dibujar avatar escalado al máximo dentro del área de foto
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
@@ -308,30 +308,27 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
 
-        // Calcular escala manteniendo relación de aspecto, con padding mínimo
-        const padding = 6;
-        const maxW = photoW - padding * 2;
-        const maxH = photoH - padding * 2;
-        const scale = Math.min(maxW / avatarImg.width, maxH / avatarImg.height);
+        // Sin padding: el avatar ocupa todo el espacio posible manteniendo proporción
+        const scale = Math.min(photoW / avatarImg.width, photoH / avatarImg.height);
         const drawW = avatarImg.width * scale;
         const drawH = avatarImg.height * scale;
-        // Centrar el avatar dentro del área de foto
-        const drawX = photoX + padding + (maxW - drawW) / 2;
-        const drawY = photoY + padding + (maxH - drawH) / 2;
+        // Centrar horizontalmente y verticalmente
+        const drawX = photoX + (photoW - drawW) / 2;
+        const drawY = photoY + (photoH - drawH) / 2;
 
         ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
+
+        // Marco gris semi-transparente exactamente alrededor del avatar dibujado
+        ctx.save();
+        ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(drawX, drawY, drawW, drawH);
+        ctx.restore();
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
     }
   }
-
-  // Marco gris semi-transparente alrededor del área de la foto
-  ctx.save();
-  ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(photoX, photoY, photoW, photoH);
-  ctx.restore();
 
   // Estilo de texto
   ctx.fillStyle = "#111111";
