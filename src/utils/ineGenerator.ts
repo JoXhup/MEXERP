@@ -295,10 +295,10 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
   // Zona de foto en la plantilla INE (canvas real: 1606×979)
-  const photoX = 142;
-  const photoY = 280;
-  const photoW = 320;
-  const photoH = 520;
+  const photoX = 110;
+  const photoY = 220;
+  const photoW = 440;
+  const photoH = 680;
 
   // Cargar y dibujar avatar escalado al máximo dentro del área de foto
   if (options.avatarUrl) {
