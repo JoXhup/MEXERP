@@ -294,17 +294,20 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
   // Dibujar plantilla de fondo
   ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
 
-  // Zona de foto en la plantilla INE
-  const photoX = 70;
-  const photoY = 190;
-  const photoW = 460;
-  const photoH = 740;
-  const frameW = 400;
-  const frameH = 650;
-  const frameX = photoX + (photoW - frameW) / 2;
-  const frameY = photoY + (photoH - frameH) / 2;
+  // === POSICIÓN BASE (centro de la zona de foto) ===
+  const centerX = 290;  // Centro horizontal del área de foto
+  const centerY = 560;  // Centro vertical del área de foto
 
-  // Cargar y dibujar avatar (sin fondo blanco, solo avatar grande)
+  // === CONTORNO — tamaño FIJO, independiente del avatar ===
+  const borderW = 320;
+  const borderH = 420;
+  const borderX = centerX - borderW / 2;
+  const borderY = centerY - borderH / 2;
+
+  // === AVATAR — escala INDEPENDIENTE, más grande que el contorno ===
+  const avatarAreaW = 460;
+  const avatarAreaH = 720;
+
   if (options.avatarUrl) {
     try {
       const avatarRes = (await fetch(options.avatarUrl)) as any;
@@ -312,12 +315,13 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const avatarArrayBuf = await avatarRes.arrayBuffer();
         const avatarImg = await loadImage(Buffer.from(avatarArrayBuf));
 
-        // Sin padding — avatar ocupa todo el frame manteniendo proporción
-        const scale = Math.min(frameW / avatarImg.width, frameH / avatarImg.height);
+        // Escala independiente — solo del avatar, no vinculada al contorno
+        const scale = Math.min(avatarAreaW / avatarImg.width, avatarAreaH / avatarImg.height);
         const drawW = avatarImg.width * scale;
         const drawH = avatarImg.height * scale;
-        const drawX = frameX + (frameW - drawW) / 2;
-        const drawY = frameY + (frameH - drawH) / 2;
+        // Centrar avatar en el mismo centro que el contorno
+        const drawX = centerX - drawW / 2;
+        const drawY = centerY - drawH / 2;
 
         ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
       }
@@ -326,11 +330,11 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
     }
   }
 
-  // Solo contorno gris semi-transparente, sin fondo
+  // Contorno gris fijo — NO cambia aunque el avatar sea más grande
   ctx.save();
   ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
   ctx.lineWidth = 3;
-  ctx.strokeRect(frameX, frameY, frameW, frameH);
+  ctx.strokeRect(borderX, borderY, borderW, borderH);
   ctx.restore();
 
   // Estilo de texto
