@@ -317,18 +317,18 @@ export async function renderIneImage(options: IneRenderOptions): Promise<Buffer>
         const drawY = photoY + (photoH - drawH) / 2;
 
         ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
-
-        // Marco gris semi-transparente exactamente alrededor del avatar dibujado
-        ctx.save();
-        ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(drawX, drawY, drawW, drawH);
-        ctx.restore();
       }
     } catch (err) {
       console.error("[INE] Error cargando avatar de usuario:", err);
     }
   }
+
+  // Marco gris semi-transparente fijo alrededor del área de foto
+  ctx.save();
+  ctx.strokeStyle = "rgba(128, 128, 128, 0.45)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(photoX, photoY, photoW, photoH);
+  ctx.restore();
 
   // Estilo de texto
   ctx.fillStyle = "#111111";
