@@ -24,6 +24,7 @@ import {
 import { StaffStats } from "../models/StaffStats.js";
 import { VerifiedUser } from "../models/VerifiedUser.js";
 import { Lockup } from "../models/Lockup.js";
+import { AdminWarn } from "../models/AdminWarn.js";
 import {
   buildStaffProfileContainer,
   getFooterTimestamp,
@@ -121,6 +122,8 @@ export async function handleStatsSelectMenu(
   const verifiedUser = await VerifiedUser.findOne({ discordId: targetUserId });
   const lockups = await Lockup.find({ discordId: targetUserId }).sort({ createdAt: -1 });
   const activeLockup = lockups.find((l) => l.active);
+  const adminWarns = await AdminWarn.find({ discordId: targetUserId }).sort({ createdAt: -1 });
+  const activeWarns = adminWarns.filter(w => w.active);
 
   const processedCount = userStats?.totalClosed ?? userStats?.totalClaimed ?? 0;
   const totalShiftTimeMs = userStats?.totalShiftTimeMs ?? 0;
@@ -228,11 +231,13 @@ export async function handleStatsSelectMenu(
     return;
   }
 
-  // ─── OPCIÓN: Sanciones Administrativas ─────────────────────────────────────
+  // ─── OPCIÓN: Sanciones Administrativas ─────────────────────────────
   if (selected === "sanciones_administrativas") {
+    const totalSanciones = lockups.length + adminWarns.length;
+    const hasAnySancion = totalSanciones > 0;
     let sancionesContent: string;
 
-    if (lockups.length === 0) {
+    if (!hasAnySancion) {
       sancionesContent = [
         `**Sin Faltas Administrativas**`,
         ``,
@@ -240,32 +245,45 @@ export async function handleStatsSelectMenu(
       ].join("\n");
     } else {
       const lines: string[] = [
-        `**Historial de Sanciones Administrativas:**`,
-        ``,
-        `› 📋 **Total de Sanciones:** ${lockups.length}`,
-        `› 🔴 **Estado Actual:** ${activeLockup ? `Sancionado activo (\`${activeLockup.lockupId}\`)` : "Sin Lockup activo"}`,
+        `**Resumen de Sanciones:**`,
+        `› 📋 **Total general:** ${totalSanciones}`,
+        `› 🔒 **Lockups:** ${lockups.length} (${activeLockup ? "🔴 1 activo" : "🟢 ninguno activo"})`,
+        `› ⚠️ **Advertencias (ADW):** ${adminWarns.length} (${activeWarns.length} activas)`,
         ``,
       ];
 
-      const recent = lockups.slice(0, 5);
-      for (const lkp of recent) {
-        const createdUnix = Math.floor(lkp.createdAt.getTime() / 1000);
-        const endUnix = Math.floor(lkp.endTime.getTime() / 1000);
-        const status = lkp.active ? "🔴 **ACTIVO**" : "🟢 **FINALIZADO**";
-
-        lines.push(
-          [
+      // ─ Lockups recientes ─────────────────────────────────────────────────
+      if (lockups.length > 0) {
+        lines.push(`**🔒 Lockups:**`);
+        for (const lkp of lockups.slice(0, 3)) {
+          const createdUnix = Math.floor(lkp.createdAt.getTime() / 1000);
+          const endUnix = Math.floor(lkp.endTime.getTime() / 1000);
+          const status = lkp.active ? "🔴 **ACTIVO**" : "🟢 **FINALIZADO**";
+          lines.push([
             `• \`${lkp.lockupId}\` — ${status}`,
             `  › Duración: ${formatDuration(lkp.durationMs)}`,
             `  › Fecha: <t:${createdUnix}:d> — Vence: <t:${endUnix}:F>`,
-            `  › Moderador: <@${lkp.moderatorId}>`,
-            `  › Motivo: ${lkp.motivo}`,
-          ].join("\n")
-        );
+            `  › Mod: <@${lkp.moderatorId}> — Motivo: ${lkp.motivo}`,
+          ].join("\n"));
+        }
+        if (lockups.length > 3) lines.push(`*...y ${lockups.length - 3} lockup(s) más.*`);
+        lines.push("");
       }
 
-      if (lockups.length > 5) {
-        lines.push(`\n*...y ${lockups.length - 5} sanciones más en el historial.*`);
+      // ─ Advertencias ADW recientes ─────────────────────────────────────
+      if (adminWarns.length > 0) {
+        lines.push(`**⚠️ Advertencias Administrativas:**`);
+        for (const w of adminWarns.slice(0, 3)) {
+          const createdUnix = Math.floor(w.createdAt.getTime() / 1000);
+          const status = w.active ? "🔴 **ACTIVA**" : "🟢 **RETIRADA**";
+          lines.push([
+            `• \`${w.warnId}\` — ${status}`,
+            `  › Fecha: <t:${createdUnix}:F>`,
+            `  › Mod: <@${w.moderatorId}>`,
+            `  › Falta: ${w.falta.slice(0, 80)}${w.falta.length > 80 ? "…" : ""}`,
+          ].join("\n"));
+        }
+        if (adminWarns.length > 3) lines.push(`*...y ${adminWarns.length - 3} advertencia(s) más.*`);
       }
 
       sancionesContent = lines.join("\n");
@@ -277,7 +295,7 @@ export async function handleStatsSelectMenu(
     ].join("\n");
 
     const container = new ContainerBuilder()
-      .setAccentColor(lockups.length > 0 ? 0xef4444 : 0x10b981)
+      .setAccentColor(hasAnySancion ? 0xef4444 : 0x10b981)
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(

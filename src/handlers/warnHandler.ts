@@ -35,6 +35,7 @@ import {
 } from "discord.js";
 import { AdminWarn } from "../models/AdminWarn.js";
 import { StaffStats } from "../models/StaffStats.js";
+import { Lockup } from "../models/Lockup.js";
 import { getNextWarnId } from "../models/Counter.js";
 import { getFooterTimestamp } from "../utils/components.js";
 
@@ -132,6 +133,39 @@ export async function handleWarnModalSubmit(
 
   if (pruebasUrls.length === 0) {
     await interaction.editReply({ content: "⚠️ Debes subir al menos una imagen como evidencia." });
+    return;
+  }
+
+  // ── Validar que el usuario sea staff contratado o tenga rol admin ─────────
+  const STAFF_PERM_ROLE = "1531825255889506506";
+  const targetMember = interaction.guild?.members.cache.get(staffUser.id)
+    ?? await interaction.guild?.members.fetch(staffUser.id).catch(() => undefined);
+
+  const isContratado = !!(await StaffStats.findOne({
+    guildId: interaction.guildId!,
+    userId: staffUser.id,
+    hiredAt: { $exists: true, $ne: null },
+  }));
+
+  const isAdmin =
+    targetMember?.permissions.has(8n) ||
+    targetMember?.roles.cache.has(STAFF_PERM_ROLE);
+
+  if (!isContratado && !isAdmin) {
+    const cancelContainer = new ContainerBuilder()
+      .setAccentColor(0xf59e0b)
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent("## ⚠️ Usuario No es Staff"))
+      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent([
+        `<@${staffUser.id}> no está registrado como miembro del staff contratado.`,
+        ``,
+        `Solo puedes emitir advertencias administrativas a miembros activos del staff.`,
+        `Verifica que el usuario haya sido contratado con \`/contratar\`.`,
+      ].join("\n")))
+      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Staff · ${getFooterTimestamp()}`));
+
+    await interaction.editReply({ components: [cancelContainer], flags: MessageFlags.IsComponentsV2 });
     return;
   }
 
