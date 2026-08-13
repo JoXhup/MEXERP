@@ -94,7 +94,7 @@ const commands: Command[] = [
   tryoutCommand,
   narcopostCommand,
   subirCommand,
-  lockupCommand,
+  lockupCommand as unknown as Command,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
