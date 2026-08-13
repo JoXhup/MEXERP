@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { StaffStats } from "../models/StaffStats.js";
 import { VerifiedUser } from "../models/VerifiedUser.js";
+import { AdminWarn } from "../models/AdminWarn.js";
 import { buildStaffProfileContainer, buildErrorContainer } from "../utils/components.js";
 import type { Command } from "../types/index.js";
 import { handleStatsReiniciarCommand } from "../handlers/warnHandler.js";
@@ -113,6 +114,11 @@ const command: Command = {
       const hiredAt = userStats?.hiredAt ?? null;
       const totalShiftTimeMs = userStats?.totalShiftTimeMs ?? 0;
 
+      const activeWarnsCount = await AdminWarn.countDocuments({
+        discordId: targetUser.id,
+        active: true,
+      });
+
       const container = buildStaffProfileContainer(
         targetMember,
         processedCount,
@@ -120,6 +126,7 @@ const command: Command = {
         hiredAt,
         client,
         totalShiftTimeMs,
+        activeWarnsCount,
       );
 
       await interaction.editReply({

@@ -309,6 +309,9 @@ export async function handleSancionRetirarModalSubmit(
   // Obtener el warn seleccionado (StringSelect en modal V2)
   let selectedWarnId: string | null = null;
   try {
+    const selectedValues = interaction.fields.getStringSelectValues("warn_id");
+    selectedWarnId = selectedValues?.[0] ?? null;
+  } catch {
     const rawComponents = (interaction as any).data?.components ?? (interaction as any).components ?? [];
     for (const row of rawComponents) {
       const inner = row?.components?.[0] ?? row;
@@ -317,7 +320,7 @@ export async function handleSancionRetirarModalSubmit(
         break;
       }
     }
-  } catch { /* ok */ }
+  }
 
   if (!selectedWarnId) {
     await interaction.editReply({ content: "⚠️ No se pudo obtener la sanción seleccionada." });

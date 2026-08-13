@@ -613,6 +613,7 @@ export function buildStaffProfileContainer(
   hiredAt: Date | null,
   client: Client,
   totalShiftTimeMs?: number,
+  activeWarnsCount?: number,
 ): ContainerBuilder {
   const userAvatar = targetMember.user.displayAvatarURL({ size: 256 });
 
@@ -658,9 +659,13 @@ export function buildStaffProfileContainer(
     `* <:discotoolsxyzicon8:1532141321198764093> Horas Realizadas:\n${horasDisplay}`,
   ].join("\n");
 
+  const advertenciasDisplay = (activeWarnsCount && activeWarnsCount > 0)
+    ? `🔴 **${activeWarnsCount}** advertencia(s) administrativa(s) activa(s)`
+    : "*Sin registro de advertencias administrativas*";
+
   const sancionesText = [
     "**Sanciones:**",
-    `* <:discotoolsxyzicon7:1532137816832606449> Advertencias:\n*Sin registro de advertencias administrativas*`,
+    `* <:discotoolsxyzicon7:1532137816832606449> Advertencias:\n${advertenciasDisplay}`,
   ].join("\n");
 
   const selectMenu = new StringSelectMenuBuilder()
