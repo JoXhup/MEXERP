@@ -36,6 +36,10 @@ import {
   handleSubirSubjefeSelect,
   handleSubirPublishButton,
 } from "../handlers/subirHandler.js";
+import {
+  handleLockupModalSubmit,
+  handleLockupRetirarButton,
+} from "../handlers/lockupHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -130,6 +134,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
         return;
       }
 
+      // Botones de Lockup
+      if (id.startsWith("lockup:retirar:")) {
+        await handleLockupRetirarButton(interaction, client);
+        return;
+      }
+
       // Tickets
       await handleButton(interaction, client);
       return;
@@ -138,6 +148,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── MODALES ────────────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
+
+      // Modal de Lockup Enviar
+      if (id === "lockup:modal_enviar") {
+        await handleLockupModalSubmit(interaction, client);
+        return;
+      }
 
       // Modal de expedición de multa
       if (id === "multar:modal") {

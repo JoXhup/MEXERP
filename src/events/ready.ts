@@ -3,6 +3,7 @@ import { ActivityType, MessageFlags } from "discord.js";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
 import { buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
+import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
 import { documentCache } from "../utils/documentCache.js";
 
 export const name = "clientReady";
@@ -87,8 +88,9 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Gestión de Aperturas:", aperturasErr);
   }
 
-  // 3. Restaurar arrestos activos y base de datos de conocimiento
+  // 3. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
   await restoreActiveArrests(client);
+  initLockupExpirationChecker(client);
   await documentCache.loadAllFromDb();
 
   // 4. Auto-registrar comandos slash en la API de Discord
@@ -121,13 +123,14 @@ export async function execute(client: Client): Promise<void> {
     const { default: tryoutCommand } = await import("../commands/tryout.js");
     const { default: narcopostCommand } = await import("../commands/narcopost.js");
     const { default: subirCommand } = await import("../commands/subir.js");
+    const { default: lockupCommand } = await import("../commands/lockup.js");
 
     const commandsPayload = [
       panelCommand, statsCommand, contratarCommand, despedirCommand, ineCommand,
       arrestarCommand, estadoCommand, depositarCommand, retirarCommand, transferirCommand,
       transferenciasCommand, cobrarCommand, lavarCommand, historialCommand, economiaCommand,
       multarCommand, multasCommand, cmdCommand, bienvenidaCommand, pingCommand,
-      tryoutCommand, narcopostCommand, subirCommand
+      tryoutCommand, narcopostCommand, subirCommand, lockupCommand
     ].map(c => c.data);
     commandsPayload.push(jornadaData.toJSON() as any);
     commandsPayload.push(profileData.toJSON() as any);

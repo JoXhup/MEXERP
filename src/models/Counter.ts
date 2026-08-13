@@ -28,3 +28,18 @@ export async function getNextFineId(): Promise<string> {
   const formattedNum = (counter?.seq ?? 1).toString().padStart(6, "0");
   return `MLT-${formattedNum}`;
 }
+
+/**
+ * Genera de forma atómica y segura el siguiente ID de Lockup (ej: LKP-000001)
+ */
+export async function getNextLockupId(): Promise<string> {
+  const counter = await Counter.findOneAndUpdate(
+    { _id: "lockup_id" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const formattedNum = (counter?.seq ?? 1).toString().padStart(6, "0");
+  return `LKP-${formattedNum}`;
+}
+

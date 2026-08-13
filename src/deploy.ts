@@ -34,6 +34,7 @@ import pingCommand from "./commands/ping.js";
 import tryoutCommand from "./commands/tryout.js";
 import narcopostCommand from "./commands/narcopost.js";
 import subirCommand from "./commands/subir.js";
+import lockupCommand from "./commands/lockup.js";
 
 const commands = [
   panelCommand,
@@ -59,6 +60,7 @@ const commands = [
   tryoutCommand,
   narcopostCommand,
   subirCommand,
+  lockupCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);
