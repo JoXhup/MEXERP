@@ -1,4 +1,4 @@
-﻿import {
+import {
   ContainerBuilder,
   SectionBuilder,
   TextDisplayBuilder,
@@ -663,6 +663,27 @@ export function buildStaffProfileContainer(
     `* <:discotoolsxyzicon7:1532137816832606449> Advertencias:\n*Sin registro de advertencias administrativas*`,
   ].join("\n");
 
+  const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId(`stats:menu:${targetMember.id}`)
+    .setPlaceholder("📋 Navegar a...")
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Perfil Revisar")
+        .setDescription("Muestra el perfil completo del miembro del staff")
+        .setValue("perfil_revisar")
+        .setEmoji("👤"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Estadísticas Generales")
+        .setDescription("Muestra las estadísticas y calificación del miembro")
+        .setValue("estadisticas_generales")
+        .setEmoji("📊"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Sanciones Administrativas")
+        .setDescription("Muestra el historial de sanciones del miembro")
+        .setValue("sanciones_administrativas")
+        .setEmoji("⚠️"),
+    );
+
   return new ContainerBuilder()
     .setAccentColor(getRandomColor())
     .addSectionComponents(
@@ -694,6 +715,9 @@ export function buildStaffProfileContainer(
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addActionRowComponents(
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(`-# Sonora RP Staff · ${getFooterTimestamp()}`)

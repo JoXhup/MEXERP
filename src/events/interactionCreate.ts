@@ -40,6 +40,7 @@ import {
   handleLockupModalSubmit,
   handleLockupRetirarButton,
 } from "../handlers/lockupHandler.js";
+import { handleStatsSelectMenu } from "../handlers/statsHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -251,6 +252,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Select menú Subir Institución — categoría (Legal / Ilegal / Empresa)
       if (id === "subir:select_categoria") {
         await handleSubirSelectCategory(interaction, client);
+        return;
+      }
+
+      // Select menú Stats — navegación de perfil
+      if (id.startsWith("stats:menu:")) {
+        await handleStatsSelectMenu(interaction, client);
         return;
       }
     }
