@@ -41,6 +41,11 @@ import {
   handleLockupRetirarButton,
 } from "../handlers/lockupHandler.js";
 import { handleStatsSelectMenu } from "../handlers/statsHandler.js";
+import {
+  handleWarnModalSubmit,
+  handleSancionRetirarModalSubmit,
+  handleSancionRetirarButton,
+} from "../handlers/warnHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -141,6 +146,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
         return;
       }
 
+      // Botones de Sanción Administrativa — Retirar
+      if (id.startsWith("sancion:retirar:confirm:") || id === "sancion:retirar:cancel") {
+        await handleSancionRetirarButton(interaction, client);
+        return;
+      }
+
       // Tickets
       await handleButton(interaction, client);
       return;
@@ -221,6 +232,19 @@ export async function execute(interaction: Interaction, client: Client): Promise
         await handleSubirModal2Submit(interaction, client);
         return;
       }
+
+      // Modal Advertencia Administrativa (/warn administrativo)
+      if (id === "warn:modal_admin") {
+        await handleWarnModalSubmit(interaction, client);
+        return;
+      }
+
+      // Modal Sanción Retirar (/sancion administrativa retirar)
+      if (id === "sancion:retirar:modal") {
+        await handleSancionRetirarModalSubmit(interaction, client);
+        return;
+      }
+
       return;
     }
 

@@ -43,3 +43,16 @@ export async function getNextLockupId(): Promise<string> {
   return `LKP-${formattedNum}`;
 }
 
+/**
+ * Genera de forma atómica y segura el siguiente ID de Advertencia (ej: ADW-000001)
+ */
+export async function getNextWarnId(): Promise<string> {
+  const counter = await Counter.findOneAndUpdate(
+    { _id: "warn_id" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const formattedNum = (counter?.seq ?? 1).toString().padStart(6, "0");
+  return `ADW-${formattedNum}`;
+}

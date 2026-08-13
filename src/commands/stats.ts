@@ -8,6 +8,7 @@ import { StaffStats } from "../models/StaffStats.js";
 import { VerifiedUser } from "../models/VerifiedUser.js";
 import { buildStaffProfileContainer, buildErrorContainer } from "../utils/components.js";
 import type { Command } from "../types/index.js";
+import { handleStatsReiniciarCommand } from "../handlers/warnHandler.js";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -24,15 +25,30 @@ const command: Command = {
             .setRequired(false)
         )
     )
+    .addSubcommand(sub =>
+      sub
+        .setName("reiniciar")
+        .setDescription("Reinicia TODOS los perfiles estadísticos del staff (solo Administración)")
+    )
     .toJSON(),
+
 
   adminOnly: false,
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const client = interaction.client;
+    const sub = interaction.options.getSubcommand(false);
 
+    // ─── /stats reiniciar ───────────────────────────────────────────────────────
+    if (sub === "reiniciar") {
+      await handleStatsReiniciarCommand(interaction, client);
+      return;
+    }
+
+    // ─── /stats revisar ─────────────────────────────────────────────────────────
     // Responder públicamente (visible para todos, sin flags: 64)
     await interaction.deferReply();
+
 
     try {
       const targetUser = interaction.options.getUser("user") ?? interaction.user;
