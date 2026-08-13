@@ -124,13 +124,16 @@ export async function execute(client: Client): Promise<void> {
     const { default: narcopostCommand } = await import("../commands/narcopost.js");
     const { default: subirCommand } = await import("../commands/subir.js");
     const { default: lockupCommand } = await import("../commands/lockup.js");
+    const { default: warnCommand } = await import("../commands/warn.js");
+    const { default: sancionCommand } = await import("../commands/sancion.js");
 
     const commandsPayload = [
       panelCommand, statsCommand, contratarCommand, despedirCommand, ineCommand,
       arrestarCommand, estadoCommand, depositarCommand, retirarCommand, transferirCommand,
       transferenciasCommand, cobrarCommand, lavarCommand, historialCommand, economiaCommand,
       multarCommand, multasCommand, cmdCommand, bienvenidaCommand, pingCommand,
-      tryoutCommand, narcopostCommand, subirCommand, lockupCommand
+      tryoutCommand, narcopostCommand, subirCommand, lockupCommand,
+      warnCommand, sancionCommand
     ].map(c => c.data);
     commandsPayload.push(jornadaData.toJSON() as any);
     commandsPayload.push(profileData.toJSON() as any);
