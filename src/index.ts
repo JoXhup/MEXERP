@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import type { Command } from "./types/index.js";
 import { startFineService } from "./utils/fineService.js";
 import { registerRawListener } from "./utils/rawInteractionStore.js";
+import { startOAuthServer } from "./services/robloxOAuthServer.js";
 
 // SNRP Bot v1.1.0 - Staff management, shifts & aperturas panel
 
@@ -110,6 +111,7 @@ for (const cmd of commands) {
 client.once("clientReady", () => {
   readyEvent.execute(client);
   startFineService(client);
+  startOAuthServer(client);
 });
 
 client.on(interactionEvent.name, async (...args) => {

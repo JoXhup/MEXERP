@@ -1,4 +1,4 @@
-﻿/**
+/**
  * verificationHandler.ts
  * Maneja todo el flujo de verificacion Roblox:
  *   1. Boton "Iniciar"        → abre modal v2
@@ -21,10 +21,18 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  ThumbnailBuilder,
+  SeparatorSpacingSize,
 } from "discord.js";
 import { config } from "../config.js";
 import { sendLog } from "../utils/logger.js";
 import { VerifiedUser } from "../models/VerifiedUser.js";
+import { generateRobloxOAuthUrl } from "../services/robloxOAuthServer.js";
+import { getFooterTimestamp } from "../utils/components.js";
 
 // ─── ROBLOX API ───────────────────────────────────────────────────────────────
 interface RobloxUser {
@@ -198,25 +206,76 @@ export async function handleVerificationStart(
   const yaEnDB = await VerifiedUser.findOne({ discordId: interaction.user.id });
 
   if (yaVerificadoRol || yaEnDB) {
+    const robloxName = yaEnDB?.robloxName ? `@${yaEnDB.robloxName}` : "tu cuenta";
+    const alreadyContainer = new ContainerBuilder()
+      .setAccentColor(0xef4444)
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent("## ⚠️ Ya te encuentras verificado"))
+      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        `Tu cuenta de Discord ya está vinculada a **${robloxName}** en Roblox.\nNo es necesario verificarte nuevamente.`
+      ))
+      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`));
+
     await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(0xef4444)
-          .setTitle("Ya estas verificado")
-          .setDescription(
-            yaEnDB
-              ? `Tu cuenta de Discord ya esta vinculada a **@${yaEnDB.robloxName}** en Roblox.\nNo puedes verificarte dos veces.`
-              : "Ya tienes el rol de verificado asignado. No es necesario verificarte de nuevo."
-          )
-          .setFooter({ text: "Sonora RP System — Verificacion" })
-          .setTimestamp(),
-      ],
-      flags: MessageFlags.Ephemeral,
+      components: [alreadyContainer],
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     });
     return;
   }
 
-  await interaction.showModal(buildVerificationModal());
+  // Generar URL de autenticación oficial de Roblox OAuth 2.0
+  const oauthUrl = generateRobloxOAuthUrl(interaction.user.id, interaction.guildId || config.guildId);
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0x38bdf8) // Azul Roblox OAuth
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `# 🔐 Verificación Oficial Roblox OAuth 2.0\nInicia sesión de forma 100% segura con tu cuenta de Roblox.`
+          )
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL("https://images.rbxcdn.com/264531478229e71e72e1c3e38706d8a3.png")
+        )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        [
+          `Para completar tu proceso de **Whitelist y Verificación** en **Sonora RP**, autentícate directamente en Roblox:`,
+          ``,
+          `1. Haz clic en el botón **"Iniciar sesión con Roblox"** de abajo.`,
+          `2. Autoriza la aplicación en la página oficial de Roblox (\`roblox.com\`).`,
+          `3. Al finalizar, tus roles de verificado y tu apodo se actualizarán **automáticamente**.`,
+          ``,
+          `🔒 *Tus credenciales nunca pasan por nuestros servidores. La autenticación es procesada directamente por Roblox.*`,
+        ].join("\n")
+      )
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addActionRowComponents(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel("Iniciar sesión con Roblox")
+          .setStyle(ButtonStyle.Link)
+          .setURL(oauthUrl)
+          .setEmoji("🔗")
+      )
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`)
+    );
+
+  await interaction.reply({
+    components: [container],
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
