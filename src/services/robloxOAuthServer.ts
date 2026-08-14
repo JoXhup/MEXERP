@@ -327,29 +327,17 @@ async function postVerificationLog(
     .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Verification · ${getFooterTimestamp()}`));
 
-  // 1. Enviar mensaje privado (DM) al usuario verificado
+  // Enviar mensaje privado (DM) al usuario verificado — solo DM, no en canal del servidor
   try {
     const user = await client.users.fetch(discordId);
     await user.send({
       components: [container],
       flags: MessageFlags.IsComponentsV2 as any,
     });
-    console.log(`[OAUTH] ✅ Contenedor de verificación enviado al DM de ${user.tag}`);
+    console.log(`[OAUTH] ✅ DM de verificación enviado a ${user.tag}`);
   } catch (dmErr: any) {
     console.warn(`[OAUTH] No se pudo enviar DM a ${discordId}:`, dmErr.message);
   }
-
-  // 2. Enviar log al canal de verificación/logs
-  const channelId = config.verificationChannelId || config.logChannelId;
-  if (!channelId) return;
-
-  const channel = await client.channels.fetch(channelId).catch(() => null);
-  if (!channel || !(channel as any).isTextBased?.()) return;
-
-  await (channel as import("discord.js").TextChannel).send({
-    components: [container],
-    flags: MessageFlags.IsComponentsV2 as any,
-  }).catch((err) => console.error("[OAUTH_LOG] Error enviando log de verificación:", err));
 }
 
 // ─── HELPER HTML ──────────────────────────────────────────────────────────────
