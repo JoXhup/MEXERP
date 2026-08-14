@@ -300,12 +300,6 @@ async function postVerificationLog(
   robloxDisplayName: string,
   avatarUrl: string
 ): Promise<void> {
-  const channelId = config.verificationChannelId || config.logChannelId;
-  if (!channelId) return;
-
-  const channel = await client.channels.fetch(channelId).catch(() => null);
-  if (!channel || !(channel as any).isTextBased?.()) return;
-
   const nowUnix = Math.floor(Date.now() / 1000);
 
   const container = new ContainerBuilder()
@@ -332,6 +326,25 @@ async function postVerificationLog(
     )
     .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Sonora RP Verification · ${getFooterTimestamp()}`));
+
+  // 1. Enviar mensaje privado (DM) al usuario verificado
+  try {
+    const user = await client.users.fetch(discordId);
+    await user.send({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 as any,
+    });
+    console.log(`[OAUTH] ✅ Contenedor de verificación enviado al DM de ${user.tag}`);
+  } catch (dmErr: any) {
+    console.warn(`[OAUTH] No se pudo enviar DM a ${discordId}:`, dmErr.message);
+  }
+
+  // 2. Enviar log al canal de verificación/logs
+  const channelId = config.verificationChannelId || config.logChannelId;
+  if (!channelId) return;
+
+  const channel = await client.channels.fetch(channelId).catch(() => null);
+  if (!channel || !(channel as any).isTextBased?.()) return;
 
   await (channel as import("discord.js").TextChannel).send({
     components: [container],
