@@ -222,6 +222,7 @@ export async function handleVerificationStart(
 
   // Generar URL de autenticación oficial de Roblox OAuth 2.0
   const oauthUrl = generateRobloxOAuthUrl(interaction.user.id, interaction.guildId || config.guildId);
+  const serverIcon = interaction.guild?.iconURL({ size: 256 }) || interaction.client.user?.displayAvatarURL({ size: 256 }) || "";
 
   const container = new ContainerBuilder()
     .setAccentColor(0x38bdf8) // Azul Roblox OAuth
@@ -233,7 +234,7 @@ export async function handleVerificationStart(
           )
         )
         .setThumbnailAccessory(
-          new ThumbnailBuilder().setURL("https://images.rbxcdn.com/264531478229e71e72e1c3e38706d8a3.png")
+          new ThumbnailBuilder().setURL(serverIcon)
         )
     )
     .addSeparatorComponents(
@@ -270,7 +271,7 @@ export async function handleVerificationStart(
 
   await interaction.reply({
     components: [container],
-    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    flags: 64 | (MessageFlags.IsComponentsV2 as any),
   });
 }
 
