@@ -198,15 +198,11 @@ function buildConfirmRow(robloxId: number): ActionRowBuilder<ButtonBuilder> {
 export async function handleVerificationStart(
   interaction: ButtonInteraction,
 ): Promise<void> {
-  // Verificar si ya tiene el rol verificado
-  const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const yaVerificadoRol = config.verifiedRoleIds.some(id => member?.roles.cache.has(id));
-
   // Verificar si ya esta en la base de datos
   const yaEnDB = await VerifiedUser.findOne({ discordId: interaction.user.id });
 
-  if (yaVerificadoRol || yaEnDB) {
-    const robloxName = yaEnDB?.robloxName ? `@${yaEnDB.robloxName}` : "tu cuenta";
+  if (yaEnDB) {
+    const robloxName = `@${yaEnDB.robloxName}`;
     const alreadyContainer = new ContainerBuilder()
       .setAccentColor(0xef4444)
       .addTextDisplayComponents(new TextDisplayBuilder().setContent("## ⚠️ Ya te encuentras verificado"))
