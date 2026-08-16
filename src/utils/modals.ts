@@ -492,6 +492,56 @@ export function buildSolicitudRPModal(): ModalBuilder {
   return modal;
 }
 
+// ─── MODAL V2: REPORTE DE DESARROLLO / BOT (STRING SELECT V2) ─────────────────
+export function buildReporteDesarrolloModalV2(): ModalBuilder {
+  const modal = new ModalBuilder()
+    .setCustomId("ticket:modal:reporte_desarrollo")
+    .setTitle("Reporte de Desarrollo / BOT");
+
+  const sysSelect = new StringSelectMenuBuilder()
+    .setCustomId("sistema_fallo")
+    .setPlaceholder("Selecciona el sistema o comando con falla...")
+    .setMinValues(1).setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Economía / Banco").setValue("Economía"),
+      new StringSelectMenuOptionBuilder().setLabel("Trámite INE").setValue("INE"),
+      new StringSelectMenuOptionBuilder().setLabel("Verificación OAuth").setValue("Verificación"),
+      new StringSelectMenuOptionBuilder().setLabel("Sistema de Tickets").setValue("Tickets"),
+      new StringSelectMenuOptionBuilder().setLabel("Comandos Slash / IA").setValue("Comandos / IA"),
+      new StringSelectMenuOptionBuilder().setLabel("Otro problema técnico").setValue("Otro"),
+    );
+
+  const l1 = new LabelBuilder()
+    .setLabel("Sistema o Comando con falla")
+    .setDescription("Selecciona la función técnica donde ocurrió el error")
+    .setStringSelectMenuComponent(sysSelect);
+
+  const l2 = new LabelBuilder()
+    .setLabel("Descripción del error técnico")
+    .setDescription("Describe los pasos para reproducir la falla o lo que ocurrió")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("descripcion_bug")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Describe los pasos para reproducir la falla...")
+        .setRequired(true).setMinLength(15).setMaxLength(1000)
+    );
+
+  const l3 = new LabelBuilder()
+    .setLabel("Capturas o evidencias (opcional)")
+    .setDescription("Enlaces a imágenes o capturas de la falla (opcional)")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("pruebas")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Enlace a imágenes o capturas de la falla...")
+        .setRequired(false).setMaxLength(500)
+    );
+
+  modal.addLabelComponents(l1, l2, l3);
+  return modal;
+}
+
 // ─── MODAL: MOTIVO DE CIERRE DE TICKET ─────────────────────────────────────────
 export function buildCloseTicketModal(channelId: string): ModalBuilder {
   const modal = new ModalBuilder()

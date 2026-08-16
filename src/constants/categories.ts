@@ -422,7 +422,7 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
     fields: [
       {
         customId: "tipo_beneficio",
-        label: "Tipo de apoyo (Server Booster / Donante / Patrocinador)",
+        label: "Tipo de apoyo (Booster / Donante / etc)",
         style: "short",
         placeholder: "Indica cómo has apoyado al servidor",
         required: true,
@@ -452,7 +452,7 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
     fields: [
       {
         customId: "canal_contenido",
-        label: "Plataforma y canal (YouTube / Twitch / TikTok / Discord)",
+        label: "Plataforma y canal de contenido",
         style: "short",
         placeholder: "Enlace o nombre de tu canal / contenido",
         required: true,
