@@ -261,61 +261,56 @@ export function buildComprasRealesModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: EMPRESAS Y FACCION ─────────────────────────────────────────────
-export function buildEmpresaFaccionModal(): ModalBuilder {
+// ─── MODAL V2: SOLICITUD DE CK ────────────────────────────────────────────────
+export function buildCKModal(): ModalBuilder {
   const modal = new ModalBuilder()
-    .setCustomId("ticket:modal:empresas_faccion")
-    .setTitle("Solicitud de Empresa o Faccion");
+    .setCustomId("ticket:modal:solicitud_ck")
+    .setTitle("Solicitud de CK");
 
-  const tipoSelect = new StringSelectMenuBuilder()
-    .setCustomId("tipo")
-    .setPlaceholder("Tipo de organizacion...")
-    .setMinValues(1).setMaxValues(1)
+  const ckSelect = new StringSelectMenuBuilder()
+    .setCustomId("tipo_ck")
+    .setPlaceholder("Selecciona el tipo de CK...")
+    .setMinValues(1)
+    .setMaxValues(1)
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Empresa legal").setValue("empresa"),
-      new StringSelectMenuOptionBuilder().setLabel("Faccion / Banda").setValue("faccion"),
-      new StringSelectMenuOptionBuilder().setLabel("Cartel").setValue("cartel"),
-      new StringSelectMenuOptionBuilder().setLabel("Clan / Grupo").setValue("clan"),
-      new StringSelectMenuOptionBuilder().setLabel("Organizacion independiente").setValue("independiente"),
+      new StringSelectMenuOptionBuilder().setLabel("Auto CK").setValue("Auto CK").setDescription("Eliminación voluntaria de tu propio personaje"),
+      new StringSelectMenuOptionBuilder().setLabel("CK").setValue("CK").setDescription("Kill permanente de personaje"),
+      new StringSelectMenuOptionBuilder().setLabel("CK Administrativo").setValue("CK Administrativo").setDescription("Ejecutado por sanción o decisión administrativa"),
+      new StringSelectMenuOptionBuilder().setLabel("CK Cadena Perpetua").setValue("CK Cadena Perpetua").setDescription("Eliminación por condena máxima de prisión"),
+      new StringSelectMenuOptionBuilder().setLabel("CK2").setValue("CK2").setDescription("Solicitud especial de CK secundario"),
     );
 
   const l1 = new LabelBuilder()
-    .setLabel("Tipo de organizacion")
-    .setDescription("Selecciona la categoria de tu organizacion")
-    .setStringSelectMenuComponent(tipoSelect);
+    .setLabel("Tipo de CK")
+    .setDescription("Selecciona la modalidad de CK que solicitas")
+    .setStringSelectMenuComponent(ckSelect);
 
   const l2 = new LabelBuilder()
-    .setLabel("Nombre")
+    .setLabel("Nombre completo del personaje IC")
     .setTextInputComponent(
       new TextInputBuilder()
-        .setCustomId("nombre")
+        .setCustomId("nombre_personaje")
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre de tu empresa o faccion")
-        .setRequired(true).setMinLength(3).setMaxLength(100)
+        .setPlaceholder("Nombre y apellido de tu personaje IC")
+        .setRequired(true)
+        .setMinLength(3)
+        .setMaxLength(100)
     );
 
   const l3 = new LabelBuilder()
-    .setLabel("Descripcion")
-    .setDescription("Explica que hace tu organizacion en el servidor")
+    .setLabel("Motivo de la solicitud de CK")
+    .setDescription("Explica la razón de la eliminación del personaje...")
     .setTextInputComponent(
       new TextInputBuilder()
-        .setCustomId("descripcion")
+        .setCustomId("motivo_ck")
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder("Proposito, actividades y objetivos de tu organizacion...")
-        .setRequired(true).setMinLength(30).setMaxLength(800)
+        .setPlaceholder("Explica la razón de la solicitud...")
+        .setRequired(true)
+        .setMinLength(15)
+        .setMaxLength(1000)
     );
 
-  const l4 = new LabelBuilder()
-    .setLabel("Miembros fundadores (opcional)")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("miembros")
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder("Lista los nombres de los miembros iniciales...")
-        .setRequired(false).setMaxLength(400)
-    );
-
-  modal.addLabelComponents(l1, l2, l3, l4);
+  modal.addLabelComponents(l1, l2, l3);
   return modal;
 }
 
@@ -343,10 +338,6 @@ export function buildCloseTicketModal(channelId: string): ModalBuilder {
 }
 
 // ─── RAW MODALS CON FILE UPLOAD (type 19) ─────────────────────────────────────
-// discord.js aún no tiene FileUploadBuilder, usamos JSON raw de la API.
-// Se envía via: await interaction.respond({ type: 9, data: buildRawXxxModal() })
-// En el submit, los archivos llegan en: (interaction as any).resolved?.attachments
-
 function rawTextLabel(label: string, customId: string, style: 1 | 2, placeholder: string, required: boolean, minLength?: number, maxLength?: number) {
   return {
     type: 18,
@@ -378,64 +369,62 @@ function rawFileLabel(label: string, description: string, customId: string, requ
   };
 }
 
-export function buildRawReportarModal() {
+export function buildRawReportarUsuarioModal() {
   return {
     title: "Reporte de Usuario",
-    custom_id: "ticket:modal:reportar",
+    custom_id: "ticket:modal:reportar_usuario",
     components: [
-      rawTextLabel("Usuario reportado", "usuario_reportado", 1, "Nombre#0000 o ID del usuario", true, 2, 100),
-      rawTextLabel("Motivo del reporte", "motivo", 2, "Describe detalladamente el motivo...", true, 20, 1000),
-      rawFileLabel("Pruebas (captura o archivo)", "Sube una imagen o archivo como evidencia (opcional)", "pruebas", false),
+      rawTextLabel("Usuario reportado", "usuario_reportado", 1, "Nombre, Tag o ID del usuario a reportar", true, 2, 100),
+      rawTextLabel("Motivo del reporte", "motivo", 2, "Describe detalladamente la infracción cometida...", true, 15, 1000),
+      rawFileLabel("Pruebas o evidencias", "Sube capturas o archivos de evidencia (opcional)", "pruebas", false),
     ],
   };
 }
 
-export function buildRawReportarStaffModal() {
+export function buildRawReporteStaffModal() {
   return {
     title: "Reporte de Staff",
-    custom_id: "ticket:modal:reportar_staff",
+    custom_id: "ticket:modal:reporte_staff",
     components: [
-      rawTextLabel("Staff reportado", "staff_reportado", 1, "Nombre del miembro del staff", true, 2, 100),
-      rawTextLabel("Descripcion del incidente", "incidente", 2, "Describe el comportamiento inadecuado...", true, 30, 1000),
-      rawTextLabel("Fecha y hora aproximada", "fecha_hora", 1, "Ej: 21/07/2026 a las 20:00", true, undefined, 100),
-      rawFileLabel("Pruebas (captura o archivo)", "Sube evidencia visual del incidente (opcional)", "pruebas", false),
+      rawTextLabel("Miembro del Staff reportado", "staff_reportado", 1, "Nombre o Tag del staff", true, 2, 100),
+      rawTextLabel("Descripción del incidente", "incidente", 2, "Describe lo sucedido de forma objetiva...", true, 20, 1000),
+      rawFileLabel("Pruebas visuales", "Sube evidencias visuales o capturas del incidente (opcional)", "pruebas", false),
     ],
   };
 }
 
-export function buildRawPeticionRolModal() {
+export function buildRawRecompensasModal() {
   return {
-    title: "Peticion de Rol",
-    custom_id: "ticket:modal:peticion_rol",
+    title: "Reclamo de Recompensas",
+    custom_id: "ticket:modal:recompensas",
     components: [
-      rawTextLabel("Rol que solicitas", "rol_solicitado", 1, "Nombre exacto del rol que deseas", true, 2, 100),
-      rawTextLabel("Motivo de la solicitud", "motivo", 2, "Explica por que mereces o necesitas este rol...", true, 20, 800),
-      rawFileLabel("Pruebas o requisitos cumplidos", "Sube una captura que demuestre que cumples los requisitos", "pruebas", true),
+      rawTextLabel("Premio o recompensa a reclamar", "premio_ganado", 1, "Ej: 500 Robux, Discord Nitro, Rango VIP", true, 3, 150),
+      rawTextLabel("Evento o sorteo donde lo ganaste", "evento_sorteo", 1, "Nombre del sorteo o evento", true, 3, 150),
+      rawFileLabel("Prueba de ganador", "Sube captura del mensaje de sorteo o prueba similar", "pruebas", false),
     ],
   };
 }
 
-export function buildRawComprasRealesModal() {
+export function buildRawRobosICModal() {
   return {
-    title: "Gestion de Compra Real",
-    custom_id: "ticket:modal:compras_reales",
+    title: "Reclamo de Robo IC",
+    custom_id: "ticket:modal:robos_ic",
     components: [
-      rawTextLabel("Tipo de compra", "tipo_compra", 1, "Ej: Donacion, VIP, Rang, Robux, etc.", true, undefined, 100),
-      rawTextLabel("Monto / Cantidad", "monto", 1, "Ej: $5 USD / 1000 Robux", true, undefined, 50),
-      rawFileLabel("Comprobante de pago", "Sube la captura o comprobante de tu pago", "comprobante", true),
-      rawTextLabel("Que esperas recibir", "que_esperas", 2, "Describe que beneficio, rol o item debes recibir...", true, 10, 400),
+      rawTextLabel("Monto o bienes robados", "monto_robo", 1, "Ej: $50,000 IC / Armamento", true, 2, 100),
+      rawTextLabel("Circunstancias e involucrados", "detalles_robo", 2, "Describe dónde y cómo ocurrió el robo...", true, 15, 1000),
+      rawFileLabel("Pruebas del robo IC", "Sube evidencias o capturas del robo IC", "pruebas", false),
     ],
   };
 }
 
-export function buildRawReclamarSorteoModal() {
+export function buildRawReporteDesarrolloModal() {
   return {
-    title: "Reclamacion de Premio",
-    custom_id: "ticket:modal:reclamar_sorteos",
+    title: "Reporte de Desarrollo / BOT",
+    custom_id: "ticket:modal:reporte_desarrollo",
     components: [
-      rawTextLabel("Sorteo o evento ganado", "sorteo", 1, "Nombre del sorteo o descripcion del evento", true, 3, 200),
-      rawTextLabel("Premio ganado", "premio", 1, "Describe el premio que ganaste", true, 3, 200),
-      rawFileLabel("Prueba de que ganaste", "Sube la captura del mensaje donde ganaste o evidencia similar", "prueba_ganador", true),
+      rawTextLabel("Comando, sistema o función con falla", "sistema_fallo", 1, "Ej: /multas, verificación OAuth, economía", true, 3, 150),
+      rawTextLabel("Descripción del error técnico", "descripcion_bug", 2, "Describe los pasos para reproducir la falla...", true, 15, 1000),
+      rawFileLabel("Capturas o evidencias del error", "Sube capturas de pantalla o evidencia de la falla", "pruebas", false),
     ],
   };
 }

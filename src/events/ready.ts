@@ -1,7 +1,8 @@
 import type { Client, TextChannel } from "discord.js";
 import { ActivityType, MessageFlags } from "discord.js";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
-import { buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
+import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
+import { config } from "../config.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
 import { documentCache } from "../utils/documentCache.js";
@@ -35,6 +36,33 @@ export async function execute(client: Client): Promise<void> {
 
   // Limpiar cooldowns expirados cada 5 minutos
   setInterval(cleanExpiredCooldowns, 5 * 60 * 1000);
+
+  // 0. Inicializar Panel Principal de Tickets en el canal 1528868846906114321
+  try {
+    const PANEL_CHANNEL_ID = config.panelChannelId || "1528868846906114321";
+    const panelChan = await client.channels.fetch(PANEL_CHANNEL_ID).catch(() => null);
+
+    if (panelChan && panelChan.isTextBased()) {
+      const textChan = panelChan as TextChannel;
+      const messages = await textChan.messages.fetch({ limit: 20 }).catch(() => null);
+      const existingPanel = messages?.find(m => m.author.id === client.user?.id && m.components.length > 0);
+      if (existingPanel) {
+        await existingPanel.delete().catch(() => null);
+        console.log("[READY] Panel antiguo de Tickets eliminado.");
+      }
+
+      const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
+
+      await textChan.send({
+        components: [buildPanelContainer(client, guildIconUrl)],
+        // @ts-ignore — Components V2 flag required
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[READY] Panel de Tickets Soporte publicado automáticamente en el canal.");
+    }
+  } catch (panelErr) {
+    console.error("[READY] Error enviando panel de Tickets Soporte:", panelErr);
+  }
 
   // 1. Inicializar Panel de Jornadas Staff en el canal 1528869236687110215
   try {

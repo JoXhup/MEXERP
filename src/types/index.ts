@@ -2,16 +2,23 @@ import type { Collection } from "discord.js";
 
 // ─── CATEGORIAS DE TICKETS ─────────────────────────────────────────────────────
 export type TicketCategory =
-  | "reportar"
-  | "reportar_staff"
-  | "peticion_rol"
-  | "reporte_invisible"
-  | "remover_rol"
-  | "compras_reales"
-  | "reclamar_sorteos"
-  | "empresas_faccion"
-  | "otro"
-  | "dudas_general";
+  | "reportar_usuario"
+  | "solicitud_ck"
+  | "solicitud_rp"
+  | "retiro_rol"
+  | "reporte_staff"
+  | "retiro_sanciones"
+  | "soporte"
+  | "recompensas"
+  | "area_rol"
+  | "robos_ic"
+  | "tienda"
+  | "beneficios"
+  | "solicitud_promo"
+  | "alianza"
+  | "propuesta_evento"
+  | "otros"
+  | "reporte_desarrollo";
 
 // ─── PRIORIDADES ───────────────────────────────────────────────────────────────
 export type TicketPriority = "low" | "medium" | "high" | "critical";
@@ -28,6 +35,7 @@ export interface CategoryMeta {
   modalTitle: string;
   fields: ModalField[];
   channelPrefix: string;
+  pingRoleIds: string[];
 }
 
 export interface ModalField {

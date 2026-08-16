@@ -43,7 +43,7 @@ export const PRIORITY_DISPLAY: Record<string, { label: string }> = {
 export function buildPanelContainer(client: Client, guildIconUrl?: string): ContainerBuilder {
   const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
-  // Opciones del select menu
+  // Opciones del select menu con las 17 categorías
   const options = CATEGORY_ORDER.map(catId => {
     const cat = CATEGORIES[catId]!;
     return new StringSelectMenuOptionBuilder()
@@ -55,7 +55,7 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
 
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("ticket:select_category")
-    .setPlaceholder("Elige la categoría que mejor describa tu consulta...")
+    .setPlaceholder("Elige la categoría de tu solicitud...")
     .setMinValues(1)
     .setMaxValues(1)
     .addOptions(options);
@@ -64,26 +64,33 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
     .addComponents(selectMenu);
 
   const headerText =
-    "# 🆘 Soporte & Ayuda\n**Bienvenid@** al apartado de ayuda y atencion a los usuarios de forma **OOC**, revisa con lo que podemos ayudarte y auxiliarte para tu mejor atencion.";
+    "# 🆘 Sistema de Soporte & Atencion — Sonora RP\nBienvenid@ al apartado de atención al usuario de **Sonora RP**. Selecciona la categoría que corresponda a tu consulta para ser atendido por el equipo de moderación.";
 
   const categoriesText = [
-    "🛡️ **Reportar**\nInforma sobre un jugador que haya incumplido las normas del servidor.",
-    "👮 **Reportar Staff**\nSi tuviste un problema con un miembro del equipo, cuéntanos qué ocurrió.",
-    "📋 **Petición de Rol**\nSolicita un rol y adjunta las pruebas o requisitos necesarios.",
-    "🔒 **Reporte Confidencial**\nEnvía un reporte de forma confidencial cuando la situación lo requiera.",
-    "🎭 **Remover Rol**\nSolicita que se retire un rol de tu cuenta o de otro usuario cuando corresponda.",
-    "💵 **IRL**\nSoporte para compras realizadas con dinero real o Robux.",
-    "🎁 **Reclamar Sorteo**\nReclama el premio de un sorteo que hayas ganado.",
-    "🤝 **Empresas y Facciones**\nCrea una empresa o facción, o solicita ayuda relacionada con una existente.",
-    "📦 **Otros**\nSi tu consulta no encaja en ninguna categoría, abre un ticket aquí.",
-    "💬 **Dudas Generales**\nHaz cualquier pregunta sobre el servidor y con gusto te ayudaremos.",
-  ].join("\n\n");
+    "🚫 **Reportar Usuario** — Reporta infracciones a las normas del servidor.",
+    "💀 **Solicitud de CK** — Tramita un CK para eliminar permanentemente a tu personaje.",
+    "🎭 **Solicitud de Roleplay** — Pide asistencia para coordinar situaciones de RP.",
+    "❌ **Retiro de Rol** — Solicita remover un rol o personaje de tu cuenta.",
+    "🛡️ **Reporte de Staff** — Informa conductas inadecuadas de un miembro del equipo.",
+    "⚠️ **Retiro de Sanciones** — Apela o revisa una advertencia recibida.",
+    "⁉️ **Soporte / Preguntas** — Para cualquier duda o problema general.",
+    "🎁 **Recompensas / Robux / Nitro** — Reclama premios de sorteos o eventos.",
+    "📋 **Área de ROL** — Creación o registro de facciones y empresas.",
+    "💸 **Robos IC** — Solicitud de dinero o bienes de robos dentro del juego.",
+    "🛒 **Tienda del Servidor** — Compras de productos y servicios VIP.",
+    "💎 **Beneficios / Boosters** — Reclamo de beneficios por boostear el servidor.",
+    "📰 **Solicitud de Promoción** — Autorización para difundir tu contenido.",
+    "🤝 **Alianza Comunitaria** — Solicitud de alianza entre servidores.",
+    "🎉 **Propuesta de Evento** — Propón actividades para la comunidad.",
+    "➕ **Otros** — Consultas generales no especificadas.",
+    "💻 **Reporte Desarrollo** — Informa fallas técnicas o errores del bot.",
+  ].join("\n");
 
   const recuerdaText = [
-    "**❗RECUERDA**",
-    "* Usa el sistema con madurez, cualquier chiste & broma sera una sancion directa sin apelacion.",
-    "* Recuerda que todo reporte puede variar en su tiempo de respuesta, no hagas **ping a moderadores.**",
-    "* Recuerda mantener una actitud deacuerdo a la normativa especifica dentro del servidor y en atención con la moderacion.",
+    "**REGLAS Y RECOMENDACIONES:**",
+    "• Mantén una actitud respetuosa en todo momento.",
+    "• El mal uso o bromas en los tickets será sancionado directamente.",
+    "• No realices pings innecesarios al personal de moderación.",
   ].join("\n");
 
   return new ContainerBuilder()
@@ -270,8 +277,8 @@ export function buildTicketContainer(
   const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
   const cat = CATEGORIES[ticket.category]!;
 
-  const staffPing = `<@&${config.staffRoleId}>`;
-  const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\nHola, tu solicitud esta creada, espera a un miembro del staff para ser **atendid@** ${staffPing}`;
+  const rolePings = cat.pingRoleIds.map(id => `<@&${id}>`).join(" ");
+  const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\nTu solicitud ha sido registrada correctamente. Un miembro del equipo staff ${rolePings} te atenderá a la brevedad.`;
 
   // Información de tu Ticket
   const infoLines: string[] = ["📝 **Información de tu Ticket:**"];
@@ -281,7 +288,7 @@ export function buildTicketContainer(
   for (const [key, value] of ticket.modalData) {
     if (!value || !value.trim()) continue; // Si es opcional y no puso nada, no aparece
     const fieldDef = cat.fields.find(f => f.customId === key);
-    const label = fieldDef?.label ?? key;
+    const label = fieldDef?.label ?? (key === "tipo_ck" ? "Tipo de CK" : key);
 
     const lines = value.split("\n").map(l => l.trim()).filter(Boolean);
     const urls = lines.filter(l => l.startsWith("attachment://") || l.startsWith("http://") || l.startsWith("https://"));
@@ -304,7 +311,7 @@ export function buildTicketContainer(
   // Estado
   const statusText = ticket.claimedBy
     ? `* 🟢 Atendido por <@${ticket.claimedBy}>`
-    : `* 🟡 Espera de atencion`;
+    : `* 🟡 Espera de atención`;
   infoLines.push(`**Estado:**\n${statusText}`);
 
   // Botón Reclamar con estado
@@ -326,10 +333,10 @@ export function buildTicketContainer(
 
   const claimRow = new ActionRowBuilder<ButtonBuilder>().addComponents(claimBtn);
 
-  // Select menu con las opciones de Cerrar / Transcript
+  // Select menu con las opciones de Cerrar / Agregar / Retirar Usuario
   const managementSelect = new StringSelectMenuBuilder()
     .setCustomId(`ticket:management:${ticket.channelId}`)
-    .setPlaceholder("Opciones de gestión...")
+    .setPlaceholder("Opciones de gestión del ticket...")
     .setMinValues(1)
     .setMaxValues(1)
     .addOptions(
@@ -337,12 +344,12 @@ export function buildTicketContainer(
         .setLabel("Cerrar")
         .setValue("close")
         .setEmoji("🔒")
-        .setDescription("Cierra este ticket"),
+        .setDescription("Cierra este ticket y genera la transcripción"),
       new StringSelectMenuOptionBuilder()
-        .setLabel("Transcript")
-        .setValue("transcript")
-        .setEmoji("📰")
-        .setDescription("Genera la transcripción de este ticket"),
+        .setLabel("Agregar / Retirar Usuario")
+        .setValue("add_remove_user")
+        .setEmoji("👤")
+        .setDescription("Gestiona los usuarios con acceso a este ticket"),
     );
 
   const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(managementSelect);

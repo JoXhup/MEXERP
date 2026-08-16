@@ -46,6 +46,11 @@ import {
   handleSancionRetirarModalSubmit,
   handleSancionRetirarButton,
 } from "../handlers/warnHandler.js";
+import {
+  handleUserSelectTarget,
+  handleDoAddUser,
+  handleDoRemoveUser,
+} from "../handlers/ticketUserHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -149,6 +154,18 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Botones de Sanción Administrativa — Retirar
       if (id.startsWith("sancion:retirar:confirm:") || id === "sancion:retirar:cancel") {
         await handleSancionRetirarButton(interaction, client);
+        return;
+      }
+
+      // Botones de Agregar / Retirar Usuario en Ticket
+      if (id.startsWith("ticket:do_add_user:")) {
+        const [, , channelId, targetUserId] = id.split(":");
+        await handleDoAddUser(interaction, client, channelId!, targetUserId!);
+        return;
+      }
+      if (id.startsWith("ticket:do_remove_user:")) {
+        const [, , channelId, targetUserId] = id.split(":");
+        await handleDoRemoveUser(interaction, client, channelId!, targetUserId!);
         return;
       }
 
@@ -289,6 +306,11 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── USER SELECT MENUS ───────────────────────────────────────────────
     if (interaction.isUserSelectMenu()) {
       const id = interaction.customId;
+
+      if (id.startsWith("ticket:select_user_target:")) {
+        await handleUserSelectTarget(interaction, client);
+        return;
+      }
 
       // Jefe Faccionario / Empresarial (fallback)
       if (id.startsWith("subir:jefe:")) {

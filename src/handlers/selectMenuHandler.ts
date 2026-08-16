@@ -3,23 +3,19 @@ import { MessageFlags, InteractionResponseType, Routes } from "discord.js";
 import { CATEGORIES } from "../constants/categories.js";
 import {
   buildCategoryModal,
-  buildReportarModal,
-  buildReportarStaffModal,
-  buildPeticionRolModal,
-  buildComprasRealesModal,
-  buildEmpresaFaccionModal,
-  buildRawReportarModal,
-  buildRawReportarStaffModal,
-  buildRawPeticionRolModal,
-  buildRawComprasRealesModal,
-  buildRawReclamarSorteoModal,
+  buildCKModal,
+  buildRawReportarUsuarioModal,
+  buildRawReporteStaffModal,
+  buildRawRecompensasModal,
+  buildRawRobosICModal,
+  buildRawReporteDesarrolloModal,
 } from "../utils/modals.js";
 import { buildErrorContainer } from "../utils/components.js";
 import { getCooldownRemaining, formatMs } from "../utils/cooldown.js";
-import { handleClose, handleTranscript } from "./buttonHandler.js";
+import { handleClose } from "./buttonHandler.js";
+import { showAddRemoveUserMenu } from "./ticketUserHandler.js";
 
 // Helper: manda raw modal con FileUpload usando REST directo
-// interaction.respond() no existe en discord.js — usamos client.rest.post()
 async function showRawModal(interaction: StringSelectMenuInteraction, data: object): Promise<void> {
   await interaction.client.rest.post(
     Routes.interactionCallback(interaction.id, interaction.token),
@@ -44,7 +40,7 @@ export async function handleSelectCategory(
     return;
   }
 
-  // Verificar cooldown en memoria (súper rápido)
+  // Verificar cooldown en memoria
   const remaining = getCooldownRemaining(interaction.user.id, "create_ticket");
   if (remaining > 0) {
     await interaction.reply({
@@ -57,28 +53,26 @@ export async function handleSelectCategory(
     return;
   }
 
-  // Mostrar modal v2 especifico por categoria inmediatamente
+  // Mostrar modal específico por categoría
   try {
     switch (categoryId) {
-      // Categorías con FileUpload → usar raw modal via REST
-      case "reportar":
-        await showRawModal(interaction, buildRawReportarModal());
+      case "solicitud_ck":
+        await interaction.showModal(buildCKModal());
         break;
-      case "reportar_staff":
-        await showRawModal(interaction, buildRawReportarStaffModal());
+      case "reportar_usuario":
+        await showRawModal(interaction, buildRawReportarUsuarioModal());
         break;
-      case "peticion_rol":
-        await showRawModal(interaction, buildRawPeticionRolModal());
+      case "reporte_staff":
+        await showRawModal(interaction, buildRawReporteStaffModal());
         break;
-      case "compras_reales":
-        await showRawModal(interaction, buildRawComprasRealesModal());
+      case "recompensas":
+        await showRawModal(interaction, buildRawRecompensasModal());
         break;
-      case "reclamar_sorteos":
-        await showRawModal(interaction, buildRawReclamarSorteoModal());
+      case "robos_ic":
+        await showRawModal(interaction, buildRawRobosICModal());
         break;
-      // Categorías con StringSelect → usar builder de discord.js
-      case "empresas_faccion":
-        await interaction.showModal(buildEmpresaFaccionModal());
+      case "reporte_desarrollo":
+        await showRawModal(interaction, buildRawReporteDesarrolloModal());
         break;
       default:
         await interaction.showModal(buildCategoryModal(cat));
@@ -101,7 +95,7 @@ export async function handleTicketManagementSelect(
 
   if (selectedValue === "close") {
     await handleClose(interaction, client, channelId);
-  } else if (selectedValue === "transcript") {
-    await handleTranscript(interaction, client, channelId);
+  } else if (selectedValue === "add_remove_user") {
+    await showAddRemoveUserMenu(interaction, client, channelId);
   }
 }

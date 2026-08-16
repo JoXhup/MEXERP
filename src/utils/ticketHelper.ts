@@ -1,4 +1,4 @@
-﻿import type { Guild, TextChannel, Client } from "discord.js";
+import type { Guild, TextChannel, Client } from "discord.js";
 import {
   ChannelType,
   PermissionFlagsBits,
@@ -28,9 +28,11 @@ export async function createTicketChannel(
   const ticketId = formatTicketId(num);
   const channelName = `${cat.channelPrefix}-${String(num).padStart(4, "0")}`;
 
-  // Permisos: Everyone -> Deny, Owner -> Allow, Admins/Staff -> Allow
+  // Permisos: Everyone -> Deny, Owner -> Allow, Admins/Staff/PingRoles -> Allow
   const adminRoleIds = config.adminRoleIds ?? [];
-  const validAdminOverwrites = adminRoleIds
+  const allRoleIds = Array.from(new Set([...adminRoleIds, ...(cat.pingRoleIds ?? [])]));
+
+  const validRoleOverwrites = allRoleIds
     .filter(roleId => guild.roles.cache.has(roleId))
     .map(roleId => ({
       id: roleId,
@@ -70,7 +72,7 @@ export async function createTicketChannel(
         PermissionFlagsBits.ManageMessages,
       ],
     },
-    ...validAdminOverwrites,
+    ...validRoleOverwrites,
   ];
 
   const channel = await guild.channels.create({
@@ -143,6 +145,12 @@ export async function createTicketChannel(
     files: attachments,
     flags: MessageFlags.IsComponentsV2,
   });
+
+  // Notificar con ping a los roles correspondientes de la categoría
+  if (cat.pingRoleIds && cat.pingRoleIds.length > 0) {
+    const pings = cat.pingRoleIds.map(id => `<@&${id}>`).join(" ");
+    await channel.send({ content: pings }).catch(() => null);
+  }
 
   return channel;
 }

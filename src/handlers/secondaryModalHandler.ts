@@ -1,5 +1,5 @@
 import type { ModalSubmitInteraction, Client, TextChannel } from "discord.js";
-import { MessageFlags, ChannelType } from "discord.js";
+import { MessageFlags, ChannelType, AttachmentBuilder } from "discord.js";
 import { Ticket } from "../models/Ticket.js";
 import { incrementStat } from "../models/StaffStats.js";
 import { CATEGORIES } from "../constants/categories.js";
@@ -7,6 +7,7 @@ import { buildErrorContainer, buildSuccessContainer } from "../utils/components.
 import { generateTranscript } from "../utils/transcript.js";
 import { sendLog } from "../utils/logger.js";
 import { getDuration } from "./buttonHandler.js";
+import { config } from "../config.js";
 
 // ─── HANDLER DE MODALES SECUNDARIOS ───────────────────────────────────────────
 export async function handleSecondaryModals(
@@ -88,6 +89,24 @@ async function handleCloseModal(
   // Enviar LOG de cierre en Embed Rojo con inline fields (columnas al lado)
   const cat = CATEGORIES[ticket.category];
   const catLabel = cat?.label ?? ticket.category;
+
+  // Enviar transcripción al canal de transcripciones si está configurado
+  if (config.transcriptChannelId && ticket.transcriptPath) {
+    try {
+      const tchan = await client.channels.fetch(config.transcriptChannelId).catch(() => null);
+      if (tchan?.isTextBased()) {
+        const attachment = new AttachmentBuilder(ticket.transcriptPath, {
+          name: `transcript-${ticket.ticketId}.html`,
+        });
+        await (tchan as TextChannel).send({
+          content: `📰 Transcripción de **${ticket.ticketId}** — Creado por: <@${ticket.ownerId}> | Cerrado por: <@${interaction.user.id}> | Motivo: ${motivo}`,
+          files: [attachment],
+        }).catch((err) => console.error("[CLOSE] Error enviando transcript al canal:", err));
+      }
+    } catch (err) {
+      console.error("[CLOSE] Error en envío de transcript:", err);
+    }
+  }
 
   await sendLog(
     client,
