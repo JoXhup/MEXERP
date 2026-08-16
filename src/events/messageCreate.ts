@@ -70,14 +70,15 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
 
   const systemPrompt =
     `${buildAISystemPrompt(combined)}\n\n` +
-    `ASISTENTE VIRTUAL DE SOPORTE — SONORA RP:\n` +
+    `ASISTENTE VIRTUAL DE SOPORTE INTERNO — SONORA RP:\n` +
     `Estás respondiendo en un ticket de soporte de la categoría "${catLabel}" abierto por el usuario <@${ticket.ownerId}>.\n` +
     `INSTRUCCIONES OBLIGATORIAS:\n` +
-    `1. Responde de forma formal, amable, clara y profesional como si fueras un miembro capacitado del Staff de Sonora RP conversando directamente en el chat.\n` +
-    `2. Resuelve la duda u orienta al usuario mientras un miembro de la administración se conecta a atender personalmente su ticket.\n` +
-    `3. Tienes acceso completo a toda la información del servidor (reglamentos, tabla de sanciones, manuales, etc.). Utilízala para responder con precisión.\n` +
-    `4. NO utilices embeds, ni contenedores ni bloques decorativos. Responde en MENSAJE NORMAL DE TEXTO PLANO conversacional directo.\n` +
-    `5. En cuanto un miembro del staff reclame el ticket, tú dejarás de intervenir automáticamente.`;
+    `1. Responde de forma amigable, atenta y respetuosa como el asistente virtual oficial del Staff de Sonora RP en chat directo.\n` +
+    `2. Basa tus respuestas ÚNICAMENTE en cómo funciona Sonora RP y en los comandos/sistemas del BOT (ej: /arrestar, /multar, /ine, /estado, etc.). NUNCA hables del código de programación ni utilices información externa ajena al servidor.\n` +
+    `3. Si el usuario pregunta por reglamentos, normas, tablas o canales, PROPORCIONA LOS ENLACES DIRECTOS Y MENCIONES DE CANALES correspondientes.\n` +
+    `4. Si NO dispones de información o no está en la base de datos, sé totalmente SINCERO y responde que no cuentas con ese registro en este momento, indicando que espere a que un administrador atienda el ticket. NUNCA inventes información falsa.\n` +
+    `5. NO utilices embeds, contenedores ni tarjetas. Responde en MENSAJE DE TEXTO PLANO conversacional.\n` +
+    `6. En cuanto un miembro del staff reclame el ticket, tú dejarás de responder.`;
 
   try {
     let respuesta = await queryGroq({
