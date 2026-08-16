@@ -321,38 +321,13 @@ export function buildCKModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: ÁREA DE ROL (USER SELECT + STRING SELECT + DOBLE DESCRIPCIÓN) ────
+// ─── MODAL V2: ÁREA DE ROL (CO-FUNDADOR OPCIONAL) ─────────────────────────────
 export function buildAreaRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:area_rol")
     .setTitle("Solicitud de Área de ROL");
 
-  const tipoSelect = new StringSelectMenuBuilder()
-    .setCustomId("tipo_organizacion")
-    .setPlaceholder("Selecciona el tipo de organización...")
-    .setMinValues(1).setMaxValues(1)
-    .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Facción Legal").setValue("Facción Legal").setDescription("LSPD, Gobierno, Médicos, etc."),
-      new StringSelectMenuOptionBuilder().setLabel("Facción Ilegal").setValue("Facción Ilegal").setDescription("Cartel, Mafia, Pandilla, etc."),
-      new StringSelectMenuOptionBuilder().setLabel("Organización Extranjera").setValue("Organización Extranjera").setDescription("Mercenarios o Grupo Internacional"),
-      new StringSelectMenuOptionBuilder().setLabel("Empresa / Negocio").setValue("Empresa / Negocio").setDescription("Taller, Discoteca, Comercio IC"),
-    );
-
   const l1 = new LabelBuilder()
-    .setLabel("Tipo de Organización (V2 Option Select)")
-    .setDescription("Selecciona la modalidad oficial de tu proyecto de ROL")
-    .setStringSelectMenuComponent(tipoSelect);
-
-  const userSelect = new UserSelectMenuBuilder()
-    .setCustomId("cofundador_usuario")
-    .setPlaceholder("Selecciona al Co-Fundador o encargado secundario (opcional)...");
-
-  const l2 = new LabelBuilder()
-    .setLabel("Co-Fundador / Encargado (V2 User Select)")
-    .setDescription("Selecciona directamente al usuario en Discord que administrará la facción")
-    .setUserSelectMenuComponent(userSelect);
-
-  const l3 = new LabelBuilder()
     .setLabel("Nombre oficial de la facción o empresa")
     .setDescription("Ingresa el nombre exacto de la organización")
     .setTextInputComponent(
@@ -363,9 +338,31 @@ export function buildAreaRolModal(): ModalBuilder {
         .setRequired(true).setMinLength(3).setMaxLength(100)
     );
 
+  const l2 = new LabelBuilder()
+    .setLabel("Tipo (Legal / Ilegal / Extranjera / Empresa)")
+    .setDescription("Indica la modalidad de tu proyecto de ROL")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("tipo_organizacion")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Legal / Ilegal / Extranjera / Empresa")
+        .setRequired(true).setMaxLength(50)
+    );
+
+  const l3 = new LabelBuilder()
+    .setLabel("Co-Fundador / Usuario encargado (Opcional)")
+    .setDescription("Menciona o indica al usuario secundario de la facción si aplica")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("cofundador_usuario")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Nombre, Tag o ID del Co-Fundador (Opcional)")
+        .setRequired(false).setMaxLength(100)
+    );
+
   const l4 = new LabelBuilder()
     .setLabel("Lore, Objetivos e Historia")
-    .setDescription("Describe la trama IC, actividades iniciales y miembros de la facción")
+    .setDescription("Describe la trama IC, actividades iniciales y miembros fundadores")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("detalles")
@@ -378,20 +375,54 @@ export function buildAreaRolModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: RETIRO DE ROL (ROLE SELECT V2 + DOBLE DESCRIPCIÓN) ─────────────
+// ─── MODAL V2: CONTROL DE ROL ─────────────────────────────────────────────────
+export function buildControlRolModal(): ModalBuilder {
+  const modal = new ModalBuilder()
+    .setCustomId("ticket:modal:control_rol")
+    .setTitle("Control de Rol");
+
+  const l1 = new LabelBuilder()
+    .setLabel("Solicitud")
+    .setDescription("Describe tu solicitud para el control de rol")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("solicitud")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Describe tu solicitud")
+        .setRequired(true).setMinLength(3).setMaxLength(150)
+    );
+
+  const l2 = new LabelBuilder()
+    .setLabel("Detalles")
+    .setDescription("Ingresa los detalles amplios de tu solicitud")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("detalles")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Describe detalladamente la solicitud y los requerimientos...")
+        .setRequired(true).setMinLength(10).setMaxLength(1000)
+    );
+
+  modal.addLabelComponents(l1, l2);
+  return modal;
+}
+
+// ─── MODAL V2: RETIRO DE ROL ──────────────────────────────────────────────────
 export function buildRetiroRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:retiro_rol")
     .setTitle("Solicitud de Retiro de Rol");
 
-  const roleSelect = new RoleSelectMenuBuilder()
-    .setCustomId("rol_a_remover")
-    .setPlaceholder("Selecciona el rol de Discord a retirar...");
-
   const l1 = new LabelBuilder()
-    .setLabel("Rol de Discord a remover (V2 Role Select)")
-    .setDescription("Selecciona directamente el rol del servidor que solicitas retirar")
-    .setRoleSelectMenuComponent(roleSelect);
+    .setLabel("Rol de Discord a remover")
+    .setDescription("Ingresa el nombre exacto del rol a retirar")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("rol_a_remover")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Nombre del rol a remover")
+        .setRequired(true).setMinLength(2).setMaxLength(100)
+    );
 
   const l2 = new LabelBuilder()
     .setLabel("Motivo de la solicitud")
@@ -408,38 +439,24 @@ export function buildRetiroRolModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: SOLICITUD DE ROLEPLAY (STRING SELECT + USER SELECT V2) ─────────
+// ─── MODAL V2: SOLICITUD DE ROLEPLAY ──────────────────────────────────────────
 export function buildSolicitudRPModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:solicitud_rp")
     .setTitle("Solicitud de Roleplay");
 
-  const rpSelect = new StringSelectMenuBuilder()
-    .setCustomId("tipo_rp")
-    .setPlaceholder("Selecciona el tipo de situación de RP...")
-    .setMinValues(1).setMaxValues(1)
-    .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Evento de RP").setValue("Evento de RP").setDescription("Coordinación de evento masivo"),
-      new StringSelectMenuOptionBuilder().setLabel("Tiroteo / Enfrentamiento").setValue("Tiroteo").setDescription("Supervisión de tiroteo IC"),
-      new StringSelectMenuOptionBuilder().setLabel("Asalto / Secuestro").setValue("Asalto / Secuestro").setDescription("Negociación o asistencia de staff"),
-      new StringSelectMenuOptionBuilder().setLabel("Otro tipo de RP").setValue("Otro RP").setDescription("Situaciones especiales de roleplay"),
+  const l1 = new LabelBuilder()
+    .setLabel("Tipo de situación de RP")
+    .setDescription("Ejemplo: Evento, Tiroteo masivo, Asalto, Negociaciones")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("tipo_rp")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ej: Evento, Tiroteo masivo, Asalto, Negociación, etc.")
+        .setRequired(true).setMinLength(3).setMaxLength(100)
     );
 
-  const l1 = new LabelBuilder()
-    .setLabel("Tipo de situación de RP (V2 Option Select)")
-    .setDescription("Selecciona la categoría del evento o escena a coordinar")
-    .setStringSelectMenuComponent(rpSelect);
-
-  const userSelect = new UserSelectMenuBuilder()
-    .setCustomId("participante_principal")
-    .setPlaceholder("Selecciona al usuario clave / líder (opcional)...");
-
   const l2 = new LabelBuilder()
-    .setLabel("Participante principal / Líder (V2 User Select)")
-    .setDescription("Selecciona al usuario involucrado en la escena")
-    .setUserSelectMenuComponent(userSelect);
-
-  const l3 = new LabelBuilder()
     .setLabel("Detalles y requerimientos del Staff")
     .setDescription("Describe la situación y qué requieren del equipo de soporte")
     .setTextInputComponent(
@@ -450,7 +467,7 @@ export function buildSolicitudRPModal(): ModalBuilder {
         .setRequired(true).setMinLength(15).setMaxLength(1000)
     );
 
-  modal.addLabelComponents(l1, l2, l3);
+  modal.addLabelComponents(l1, l2);
   return modal;
 }
 

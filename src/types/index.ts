@@ -11,6 +11,7 @@ export type TicketCategory =
   | "soporte"
   | "recompensas"
   | "area_rol"
+  | "control_rol"
   | "robos_ic"
   | "tienda"
   | "beneficios"

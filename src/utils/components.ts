@@ -384,8 +384,20 @@ export function buildTicketContainer(
 
   const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(managementSelect);
 
+  const isRolCategory = [
+    "area_rol",
+    "control_rol",
+    "solicitud_rp",
+    "solicitud_ck",
+    "retiro_rol",
+    "robos_ic",
+  ].includes(ticket.category);
+
+  // Container naranja para tickets de ROL, aleatorio para los demas
+  const containerColor = isRolCategory ? 0xf97316 : getRandomColor();
+
   const container = new ContainerBuilder()
-    .setAccentColor(getRandomColor()) // Color aleatorio
+    .setAccentColor(containerColor)
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
