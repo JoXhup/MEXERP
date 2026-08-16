@@ -164,15 +164,17 @@ export async function handleRatingButtonClick(
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
-    .addActionRowComponents(
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)
-    )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(
+        `Selecciona cuántas estrellas merece la atención que recibiste:\n` +
+        `-# Sonora RP System · ${getFooterTimestamp()}`
+      )
     );
 
+  const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
   await interaction.reply({
-    components: [selectContainer],
+    components: [selectContainer, selectRow],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
   });
 }
