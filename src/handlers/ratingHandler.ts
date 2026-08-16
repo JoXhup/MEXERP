@@ -153,13 +153,19 @@ export async function handleRatingButtonClick(
   const selectContainer = new ContainerBuilder()
     .setAccentColor(0xf59e0b)
     .addSectionComponents(
-      new SectionBuilder().addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `### ⭐ EVALUACIÓN DE ATENCIÓN STAFF\n` +
-          `Estás evaluando a: ${staffName}\n` +
-          `Ticket: \`${ticketId.toUpperCase()}\``
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `### ⭐ EVALUACIÓN DE ATENCIÓN STAFF\n` +
+            `Estás evaluando a: ${staffName}\n` +
+            `Ticket: \`${ticketId.toUpperCase()}\``
+          )
         )
-      )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(
+            staffUser?.displayAvatarURL({ size: 256 }) ?? client.user?.displayAvatarURL({ size: 256 }) ?? ""
+          )
+        )
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
