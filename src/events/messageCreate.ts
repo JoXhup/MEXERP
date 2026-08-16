@@ -111,6 +111,10 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
     }
   } catch (err: any) {
     console.error("[TICKET_AI] Error procesando respuesta de IA en ticket:", err.message);
+    await message.reply({
+      content: "¡Hola! En este momento mis sistemas de IA están ajustando su carga, pero he registrado tu consulta. Un miembro del equipo de Staff te atenderá aquí en breve. 🙌",
+      allowedMentions: { repliedUser: false },
+    }).catch(() => null);
   }
 }
 

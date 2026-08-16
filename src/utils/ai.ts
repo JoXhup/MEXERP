@@ -3,8 +3,7 @@ import { config } from "../config.js";
 export const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
-  "llama-3.2-1b-preview",
-  "llama-3.2-11b-vision-preview",
+  "openai/gpt-oss-20b",
 ];
 
 export interface GroqChatMessage {
