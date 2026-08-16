@@ -7,6 +7,7 @@ import { buildErrorContainer, buildSuccessContainer } from "../utils/components.
 import { generateTranscript } from "../utils/transcript.js";
 import { sendLog } from "../utils/logger.js";
 import { getDuration } from "./buttonHandler.js";
+import { sendTicketRatingRequest } from "./ratingHandler.js";
 import { config } from "../config.js";
 
 // ─── HANDLER DE MODALES SECUNDARIOS ───────────────────────────────────────────
@@ -122,6 +123,13 @@ async function handleCloseModal(
       { name: "Duracion",       value: getDuration(ticket.openedAt) },
     ],
   );
+
+  // Enviar invitación de calificación de Staff al creador del ticket
+  if (ticket.claimedBy) {
+    sendTicketRatingRequest(client, ticket).catch((err) => {
+      console.error("[CLOSE] Error enviando rating request:", err);
+    });
+  }
 
   // Eliminar canal despues de 5 segundos
   setTimeout(async () => {

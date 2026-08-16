@@ -664,6 +664,8 @@ export function buildStaffProfileContainer(
   client: Client,
   totalShiftTimeMs?: number,
   activeWarnsCount?: number,
+  ratingCount?: number,
+  ratingSum?: number,
 ): ContainerBuilder {
   const userAvatar = targetMember.user.displayAvatarURL({ size: 256 });
 
@@ -703,10 +705,17 @@ export function buildStaffProfileContainer(
 
   const horasDisplay = formatShiftTime(totalShiftTimeMs);
 
+  const avgRating = (ratingCount && ratingCount > 0 && ratingSum) ? (ratingSum / ratingCount) : 0;
+  const ratingStars = avgRating > 0 ? "⭐".repeat(Math.round(avgRating)) : "";
+  const ratingText = (ratingCount && ratingCount > 0)
+    ? `${ratingStars} **${avgRating.toFixed(1)} / 5.0** (${ratingCount} evaluaciones)`
+    : "*Sin evaluaciones aún*";
+
   const statsText = [
     "**Estadisticas:**",
     `* <:discotoolsxyzicon3:1532137821077504020> Tickets Atendidos:\n${processedCount}`,
     `* <:discotoolsxyzicon8:1532141321198764093> Horas Realizadas:\n${horasDisplay}`,
+    `* ⭐ Calificación Promedio:\n${ratingText}`,
   ].join("\n");
 
   const advertenciasDisplay = (activeWarnsCount && activeWarnsCount > 0)

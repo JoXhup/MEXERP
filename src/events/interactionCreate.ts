@@ -53,6 +53,7 @@ import {
 } from "../handlers/ticketUserHandler.js";
 import { handleCkModalSubmit, handleCkButtonInteraction } from "../handlers/ckHandler.js";
 import { handlePeriodicoModalSubmit } from "../handlers/periodicoHandler.js";
+import { handleRatingButtonClick, handleRatingSelectMenu } from "../handlers/ratingHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -82,6 +83,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── BOTONES ────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
       const id = interaction.customId;
+
+      // Botón Calificar Staff
+      if (id.startsWith("ticket:rate_btn:")) {
+        await handleRatingButtonClick(interaction, client);
+        return;
+      }
 
       // Botones Confirmar / Anular CK
       if (id.startsWith("ck:confirm:") || id.startsWith("ck:cancel:")) {
@@ -288,6 +295,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── SELECT MENUS ───────────────────────────────────────────────────────
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
+
+      // Select menú Calificar Staff
+      if (id.startsWith("ticket:rate_select:")) {
+        await handleRatingSelectMenu(interaction, client);
+        return;
+      }
 
       if (id === "ticket:select_category") {
         await handleSelectCategory(interaction, client);

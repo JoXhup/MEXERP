@@ -14,6 +14,8 @@ export interface IStaffStats extends Document {
   hiredBy?: string;
   totalShiftTimeMs?: number;
   categoryCounts: Map<string, number>;
+  ratingCount: number;
+  ratingSum: number;
 }
 
 // ─── SCHEMA ────────────────────────────────────────────────────────────────────
@@ -30,6 +32,8 @@ const StaffStatsSchema = new Schema<IStaffStats>({
   hiredBy: { type: String },
   totalShiftTimeMs: { type: Number, default: 0 },
   categoryCounts: { type: Map, of: Number, default: {} },
+  ratingCount: { type: Number, default: 0 },
+  ratingSum: { type: Number, default: 0 },
 }, {
   timestamps: true,
   collection: "staff_stats",
@@ -61,4 +65,24 @@ export async function incrementStat(
     update,
     { upsert: true },
   );
+}
+
+export async function addStaffRating(
+  guildId: string,
+  userId: string,
+  userTag: string,
+  stars: number,
+): Promise<{ newAverage: number; totalRatings: number }> {
+  const stats = await StaffStats.findOneAndUpdate(
+    { guildId, userId },
+    {
+      $inc: { ratingCount: 1, ratingSum: stars },
+      $set: { userTag, lastActiveAt: new Date() },
+    },
+    { new: true, upsert: true },
+  );
+
+  const totalRatings = stats.ratingCount || 1;
+  const newAverage = (stats.ratingSum || stars) / totalRatings;
+  return { newAverage, totalRatings };
 }

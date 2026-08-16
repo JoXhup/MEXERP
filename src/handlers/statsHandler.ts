@@ -161,7 +161,9 @@ export async function handleStatsSelectMenu(
       hiredAt,
       client,
       totalShiftTimeMs,
-      activeWarns.length
+      activeWarns.length,
+      userStats?.ratingCount ?? 0,
+      userStats?.ratingSum ?? 0,
     );
 
     await interaction.update({
