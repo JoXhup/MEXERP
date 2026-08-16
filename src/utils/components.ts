@@ -40,7 +40,7 @@ export const PRIORITY_DISPLAY: Record<string, { label: string }> = {
 };
 
 // ─── PANEL PRINCIPAL (COMPONENTS V2 CONTAINER) ────────────────────────────────
-export function buildPanelContainer(client: Client, guildIconUrl?: string): ContainerBuilder {
+export function buildPanelContainer(client: Client, guildIconUrl?: string, bannerUrl?: string): ContainerBuilder {
   const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
   // Opciones del select menu con las 17 categorías
@@ -55,7 +55,7 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
 
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("ticket:select_category")
-    .setPlaceholder("Elige la categoría de tu solicitud...")
+    .setPlaceholder("❗Selecciona la opccion que se acomode a tu solicitud.")
     .setMinValues(1)
     .setMaxValues(1)
     .addOptions(options);
@@ -64,37 +64,51 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
     .addComponents(selectMenu);
 
   const headerText =
-    "# 🆘 Sistema de Soporte & Atencion — Sonora RP\nBienvenid@ al apartado de atención al usuario de **Sonora RP**. Selecciona la categoría que corresponda a tu consulta para ser atendido por el equipo de moderación.";
+    "# ❗ Soporte & Ayuda - SORP\n**Bienvenid@** al apartado de ayuda y atencion a los usuarios de forma **OOC**, revisa con lo que podemos ayudarte y auxiliarte para tu mejor atencion.";
 
-  const categoriesText = [
-    "🚫 **Reportar Usuario** — Reporta infracciones a las normas del servidor.",
-    "💀 **Solicitud de CK** — Tramita un CK para eliminar permanentemente a tu personaje.",
-    "🎭 **Solicitud de Roleplay** — Pide asistencia para coordinar situaciones de RP.",
-    "❌ **Retiro de Rol** — Solicita remover un rol o personaje de tu cuenta.",
-    "🛡️ **Reporte de Staff** — Informa conductas inadecuadas de un miembro del equipo.",
-    "⚠️ **Retiro de Sanciones** — Apela o revisa una advertencia recibida.",
-    "⁉️ **Soporte / Preguntas** — Para cualquier duda o problema general.",
-    "🎁 **Recompensas / Robux / Nitro** — Reclama premios de sorteos o eventos.",
-    "📋 **Área de ROL** — Creación o registro de facciones y empresas.",
-    "💸 **Robos IC** — Solicitud de dinero o bienes de robos dentro del juego.",
-    "🛒 **Tienda del Servidor** — Compras de productos y servicios VIP.",
-    "💎 **Beneficios / Boosters** — Reclamo de beneficios por boostear el servidor.",
-    "📰 **Solicitud de Promoción** — Autorización para difundir tu contenido.",
-    "🤝 **Alianza Comunitaria** — Solicitud de alianza entre servidores.",
-    "🎉 **Propuesta de Evento** — Propón actividades para la comunidad.",
-    "➕ **Otros** — Consultas generales no especificadas.",
-    "💻 **Reporte Desarrollo** — Informa fallas técnicas o errores del bot.",
+  const politicaText = [
+    "Antes de abrir ticket te recordamos nuestra politica de actitud y comportamiento en el soporte con el **equipo de moderacion.**",
+    "* No se permiten actitudes grotescas & comportamientos negativos, todo usuario debera mantener una actitud respetuosa y acorde al reglamento de ética del servidor.",
+    "",
+    "* Todo usuario tiene derecho a recibir atención respetuosa de parte del **staff**, un ticket no puede durar menos de 12hrs sin ser atendido.",
   ].join("\n");
 
-  const recuerdaText = [
-    "**REGLAS Y RECOMENDACIONES:**",
-    "• Mantén una actitud respetuosa en todo momento.",
-    "• El mal uso o bromas en los tickets será sancionado directamente.",
-    "• No realices pings innecesarios al personal de moderación.",
+  const faqText = [
+    "**Dudas & FAQ**",
+    "",
+    "Si tu ticket es para alguna duda relacionada al servidor, puede revisar estos enlaces:",
+    "",
+    "**Tabla de Sanciones:**",
+    "[Ver](https://discord.com/channels/1528571127352262866/1531094184142831698)",
+    "",
+    "**Reglamento:**",
+    "[Ver](https://discord.com/channels/1528571127352262866/1528865749987491990)",
+    "",
+    "**Rol Server:**",
+    "[Ver](https://discord.gg/YhJcq4Mx7G)",
   ].join("\n");
 
-  return new ContainerBuilder()
-    .setAccentColor(0x5865f2) // Azul-morado Blurple
+  const soporteText =
+    "Si tienes problemas con el funcionamiento del sistema puedes consultar con un **STAFF** via general para ser auxiliado.";
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0x5865f2); // Azul-morado Blurple
+
+  // Si se proporciona un banner (ej: attachment://ticketsupport.png), se agrega MediaGallery en la parte superior
+  if (bannerUrl) {
+    (container as any).components.push({
+      type: 12, // MediaGallery ComponentType
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
@@ -108,21 +122,29 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string): Cont
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(categoriesText)
+      new TextDisplayBuilder().setContent(politicaText)
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(recuerdaText)
+      new TextDisplayBuilder().setContent(faqText)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(soporteText)
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addActionRowComponents(selectRow)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFooterTimestamp()}`)
+      new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
     );
+
+  return container;
 }
 
 // ─── PANEL DE JORNADAS STAFF (CHANNEL 1528869236687110215) ─────────────────

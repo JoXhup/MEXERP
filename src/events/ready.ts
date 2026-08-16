@@ -1,5 +1,7 @@
 import type { Client, TextChannel } from "discord.js";
-import { ActivityType, MessageFlags } from "discord.js";
+import { ActivityType, MessageFlags, AttachmentBuilder } from "discord.js";
+import fs from "fs";
+import path from "path";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
 import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
 import { config } from "../config.js";
@@ -53,8 +55,24 @@ export async function execute(client: Client): Promise<void> {
 
       const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
 
+      // Buscar si existe imagen banner en assets/ticketsupport.png (o fallback a assets/BienvenidasSonoraRP.png)
+      let bannerUrl: string | undefined = undefined;
+      const attachments: AttachmentBuilder[] = [];
+
+      const customBannerPath = path.join(process.cwd(), "assets", "ticketsupport.png");
+      const defaultBannerPath = path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png");
+
+      if (fs.existsSync(customBannerPath)) {
+        attachments.push(new AttachmentBuilder(customBannerPath, { name: "ticketsupport.png" }));
+        bannerUrl = "attachment://ticketsupport.png";
+      } else if (fs.existsSync(defaultBannerPath)) {
+        attachments.push(new AttachmentBuilder(defaultBannerPath, { name: "BienvenidasSonoraRP.png" }));
+        bannerUrl = "attachment://BienvenidasSonoraRP.png";
+      }
+
       await textChan.send({
-        components: [buildPanelContainer(client, guildIconUrl)],
+        components: [buildPanelContainer(client, guildIconUrl, bannerUrl)],
+        files: attachments,
         // @ts-ignore — Components V2 flag required
         flags: MessageFlags.IsComponentsV2,
       });
