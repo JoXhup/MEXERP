@@ -22,18 +22,15 @@ import {
   buildSuccessContainer,
   getFooterTimestamp,
 } from "../utils/components.js";
-import {
-  extractModalAttachments,
-  findModalFieldValue,
-} from "./tryoutHandler.js";
+import { getRawResolved } from "../utils/rawInteractionStore.js";
 
 // Configuración constante para Narco Post
 export const NARCO_ROLE_ID = "1531406663507247184";
 export const NARCO_CHANNEL_ID = "1532154858142957678";
+export const BLOOD_RED_COLOR = 0x8b0000; // Rojo fuerte / Rojo sangre
 
 /**
- * Genera el contenedor V2 para la publicación del Narco Post con estética criminal.
- * Color: Carmesí oscuro / negro (0x8b0000).
+ * Genera el contenedor V2 para la publicación del Narco Post con estética criminal interceptada.
  */
 export function buildNarcoPostContainer(
   author: User,
@@ -45,31 +42,25 @@ export function buildNarcoPostContainer(
 ): ContainerBuilder {
   const avatarUrl = author.displayAvatarURL({ extension: "png", size: 256 });
 
-  // Título General & Encabezado criminal
-  const headerContent = `# 💀 Narco Post · Red Criminal\n**Mensaje Encriptado / Reporte de Operación**`;
+  // Contenido principal de la transmisión
+  const mainContent = `### ☠️ ${titulo}\n${descripcion}`;
 
-  // Estado de Ubicación e IP
-  const locationStatus = isEncrypted
-    ? `🔒 **Estado de Ubicación:** \`🔒 ENCRIPTADA ($2,500 MXN en efectivo)\`\n📡 **IP de Conexión TOR:** \`${fakeIP}\``
-    : `🌐 **Estado de Ubicación:** \`🌐 UBICACIÓN ABIERTA / RED PÚBLICA (Sin Encriptar)\``;
-
-  const infoContent = [
-    `# 📋 ${titulo}`,
-    `👤 **Publicado por:** ${author} (\`${author.tag}\`)`,
-    locationStatus,
-  ].join("\n");
-
-  const detailsContent = [
-    `📝 **Detalles de la Operación / Mercancía:**`,
-    `>>> ${descripcion}`,
-  ].join("\n");
+  // Formato Intercepted Transmission (inspirado en la imagen de referencia)
+  const interceptedInfo = isEncrypted
+    ? `**Message Intercepted**\n` +
+      `🔒 **Origin:** Encrypted Signal (TOR Proxy)\n` +
+      `🌐 **IP:** \`${fakeIP}\`\n` +
+      `📱 **Device:** Encrypted Android Device ($2,500 MXN en efectivo)`
+    : `**Message Intercepted**\n` +
+      `🌐 **Origin:** Open Network (Public Location)\n` +
+      `📱 **Device:** Unencrypted Mobile Device`;
 
   const container = new ContainerBuilder()
-    .setAccentColor(0x8b0000) // Rojo carmesí oscuro criminal
+    .setAccentColor(BLOOD_RED_COLOR)
     .addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(headerContent)
+          new TextDisplayBuilder().setContent(mainContent)
         )
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl))
     )
@@ -77,18 +68,12 @@ export function buildNarcoPostContainer(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(infoContent)
-    )
-    .addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-    )
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(detailsContent)
+      new TextDisplayBuilder().setContent(interceptedInfo)
     );
 
-  // Si se adjuntaron imágenes, agregamos la galería MediaGallery V2
+  // Si se adjuntaron imágenes, agregamos MediaGallery V2 (hasta 10 fotos)
   if (imageUrls.length > 0) {
-    const galleryItems = imageUrls.slice(0, 5).map((url) => ({ media: { url } }));
+    const galleryItems = imageUrls.slice(0, 10).map((url) => ({ media: { url } }));
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     );
@@ -110,7 +95,7 @@ export function buildNarcoPostContainer(
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# 💀 Red Narco Post · Transmisión Segura · ${getFooterTimestamp()}`
+        `[SORP] Sonora Roleplay · ${getFooterTimestamp()}`
       )
     );
 
@@ -118,7 +103,7 @@ export function buildNarcoPostContainer(
 }
 
 /**
- * Handler del comando /narcopost.
+ * Handler del comando /narco post (y /narcopost).
  * Valida el rol criminal 1531406663507247184 y despliega el Modal V2.
  */
 export async function handleNarcoPostCommand(
@@ -138,7 +123,7 @@ export async function handleNarcoPostCommand(
 
   if (!hasRole) {
     const container = buildErrorContainer(
-      `Solo los miembros autorizados de la red criminal (<@&${NARCO_ROLE_ID}>) pueden usar el comando **/narcopost**.`,
+      `Solo los miembros autorizados de la red criminal (<@&${NARCO_ROLE_ID}>) pueden usar la red **Narco Post**.`,
       client
     );
     await interaction.reply({
@@ -161,60 +146,60 @@ export async function handleNarcoPostCommand(
             components: [
               {
                 type: 18, // LABEL
-                label: "Adjuntar Imágenes (Opcional - Máx. 5)",
-                description: "Fotografías o evidencias de la operación (Hasta 5 imágenes)",
+                label: "Adjuntar Fotografías / Evidencias",
+                description: "Imágenes o videos de la operación (Hasta 10 archivos)",
                 component: {
                   type: 19, // FILE_UPLOAD
                   custom_id: "narco_files",
                   min_values: 0,
-                  max_values: 5,
+                  max_values: 10,
                   required: false,
                 },
               },
               {
                 type: 18, // LABEL
-                label: "Título del Narco Post",
+                label: "Título o Asunto del Comunicado",
                 component: {
                   type: 4, // TextInput
                   custom_id: "narco_titulo",
                   style: 1, // Short
-                  placeholder: "Ej. Venta de Armamento Pesado / Cargamento",
+                  placeholder: "Ej. Venta de Armamento Pesado / Comunicado Oficial",
                   required: true,
                   max_length: 100,
                 },
               },
               {
                 type: 18, // LABEL
-                label: "Descripción / Detalles",
+                label: "Mensaje o Detalles del Comunicado",
                 component: {
                   type: 4, // TextInput
                   custom_id: "narco_descripcion",
                   style: 2, // Paragraph
-                  placeholder: "Especifica los detalles de la mercancía, condiciones o mensaje...",
+                  placeholder: "Especifica el mensaje, condiciones o detalles de la operación...",
                   required: true,
-                  max_length: 2400,
+                  max_length: 2000,
                 },
               },
               {
                 type: 18, // LABEL
-                label: "Opción de Encriptación",
-                description: "Encriptar ubicación ($2,500 en efectivo) o ubicación abierta",
+                label: "Ubicación Encriptada (Opciones V2)",
+                description: "Encriptar ubicación ($2,500 MXN en efectivo) o ubicación abierta",
                 component: {
                   type: 3, // StringSelect
                   custom_id: "narco_encriptado",
-                  placeholder: "Selecciona el tipo de encriptación...",
+                  placeholder: "Selecciona el nivel de encriptación...",
+                  min_values: 1,
+                  max_values: 1,
                   options: [
                     {
-                      label: "Sí, costeo $2,500 ($2,500 en efectivo)",
+                      label: "🔒 Encriptar Ubicación ($2,500 MXN en efectivo)",
                       value: "encriptado_2500",
-                      description: "Cuesta $2,500 MXN en efectivo (mano). Muestra IP 🔒",
-                      emoji: { name: "🔒" },
+                      description: "Cobra $2,500 MXN en efectivo. Oculta ubicación e IP 🔒",
                     },
                     {
-                      label: "Ubicación Abierta (Sin costo)",
+                      label: "🌐 Ubicación Abierta (Sin Costo)",
                       value: "ubicacion_abierta",
-                      description: "Ubicación pública sin encriptar (Gratis)",
-                      emoji: { name: "🌐" },
+                      description: "Ubicación pública sin encriptación (Gratis)",
                     },
                   ],
                 },
@@ -225,15 +210,14 @@ export async function handleNarcoPostCommand(
       }
     );
   } catch (err) {
-    console.error("[NARCO_POST] Fallo REST Modal V2, probando modal estándar:", err);
-    // Fallback a modal estándar
+    console.error("[NARCO_POST] Fallo REST Modal V2, usando fallback:", err);
     const modal = new ModalBuilder()
       .setCustomId("narco:modal_submit")
       .setTitle("Narco Post · Red Criminal");
 
     const inputTitulo = new TextInputBuilder()
       .setCustomId("narco_titulo")
-      .setLabel("Título del Narco Post")
+      .setLabel("Título del Comunicado")
       .setStyle(TextInputStyle.Short)
       .setPlaceholder("Ej. Venta de Armamento Pesado")
       .setRequired(true)
@@ -241,17 +225,17 @@ export async function handleNarcoPostCommand(
 
     const inputDesc = new TextInputBuilder()
       .setCustomId("narco_descripcion")
-      .setLabel("Descripción de la Operación")
+      .setLabel("Detalles del Comunicado")
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Detalles de la mercancía...")
+      .setPlaceholder("Mensaje o detalles...")
       .setRequired(true)
-      .setMaxLength(2400);
+      .setMaxLength(2000);
 
     const inputEnc = new TextInputBuilder()
       .setCustomId("narco_encriptado_text")
       .setLabel("¿Encriptar? (1 = $2500 Efectivo, 2 = Abierto)")
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Escribe 1 para Encriptado ($2,500) o 2 para Ubicación Abierta")
+      .setPlaceholder("Escribe 1 para Encriptado ($2,500) o 2 para Abierto")
       .setRequired(true)
       .setMaxLength(40);
 
@@ -274,53 +258,63 @@ export async function handleNarcoModalSubmit(
 ): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  // 1. Extraer adjuntos / imágenes
-  const attachmentsList = extractModalAttachments(interaction);
+  // 1. Extraer archivos subidos (resolved.attachments)
+  const rawResolved = getRawResolved(interaction.id);
+  const resolvedData =
+    rawResolved ??
+    (interaction as any).data?.resolved ??
+    (interaction as any).resolved ??
+    (interaction as any).fields?.resolved;
+
+  const attachmentsMap = resolvedData?.attachments ?? {};
+  const imageUrls: string[] = [];
+
+  for (const att of Object.values(attachmentsMap) as any[]) {
+    if (att?.url) imageUrls.push(att.url);
+  }
 
   // 2. Extraer campos del formulario
-  const titulo = findModalFieldValue(interaction, "narco_titulo") || "Narco Post Sin Título";
-  const descripcion = findModalFieldValue(interaction, "narco_descripcion") || "Sin descripción.";
+  let titulo = "Comunicado Criminal";
+  let descripcion = "Sin contenido.";
+  let optionValue = "";
 
-  let optionValue = findModalFieldValue(interaction, "narco_encriptado");
+  const rawComponents =
+    (interaction as any).data?.components ?? (interaction as any).components ?? [];
+
+  for (const row of rawComponents) {
+    const inner = row?.component ?? row?.components?.[0] ?? row;
+    const customId = inner?.customId ?? inner?.custom_id;
+    const values = inner?.values;
+    const value = inner?.value;
+
+    if (customId === "narco_titulo" && value) titulo = value;
+    if (customId === "narco_descripcion" && value) descripcion = value;
+    if (customId === "narco_encriptado" && values?.length) optionValue = values[0];
+  }
+
+  // Fallbacks por interaction.fields
+  try {
+    const t = interaction.fields.getTextInputValue("narco_titulo");
+    if (t) titulo = t;
+  } catch {}
+
+  try {
+    const d = interaction.fields.getTextInputValue("narco_descripcion");
+    if (d) descripcion = d;
+  } catch {}
 
   if (!optionValue) {
-    const rawComponents = (interaction as any).data?.components ?? (interaction as any).components ?? [];
-
-    function searchSelectValues(list: any[]): string | null {
-      for (const comp of list) {
-        if ((comp.custom_id === "narco_encriptado" || comp.customId === "narco_encriptado") && Array.isArray(comp.values) && comp.values[0]) {
-          return comp.values[0];
-        }
-        if (comp.value && (comp.custom_id === "narco_encriptado" || comp.customId === "narco_encriptado")) {
-          return comp.value;
-        }
-        if (comp.component) {
-          const res = searchSelectValues([comp.component]);
-          if (res) return res;
-        }
-        if (comp.components && Array.isArray(comp.components)) {
-          const res = searchSelectValues(comp.components);
-          if (res) return res;
-        }
+    try {
+      const e = interaction.fields.getTextInputValue("narco_encriptado_text");
+      if (e && (e.includes("1") || e.toLowerCase().includes("si") || e.toLowerCase().includes("sí"))) {
+        optionValue = "encriptado_2500";
       }
-      return null;
-    }
-
-    optionValue = searchSelectValues(rawComponents) ?? "";
+    } catch {}
   }
-
-  if (!optionValue) {
-    const textVal = findModalFieldValue(interaction, "narco_encriptado_text");
-    if (textVal && (textVal.includes("1") || textVal.toLowerCase().includes("si") || textVal.toLowerCase().includes("sí"))) {
-      optionValue = "encriptado_2500";
-    }
-  }
-
-  console.log(`[NARCO_SUBMIT] Usuario: ${interaction.user.tag} (${interaction.user.id}), optionValue parseado: "${optionValue}"`);
 
   const esEncriptado = optionValue.includes("encriptado");
 
-  // 3. Si solicitó encriptado ($2,500), verificar que tenga $2,500 en efectivo fuera del banco
+  // 3. Si solicitó encriptado ($2,500), verificar saldo en efectivo
   if (esEncriptado) {
     const eco = await Economy.findOne({ discordId: interaction.user.id });
     const efectivo = eco?.money ?? 0;
@@ -349,7 +343,7 @@ export async function handleNarcoModalSubmit(
   }
 
   // 4. Generar IP falsa para encriptación TOR
-  const fakeIP = `185.220.101.${Math.floor(Math.random() * 200 + 10)}`;
+  const fakeIP = `188.40.${Math.floor(Math.random() * 200 + 10)}.${Math.floor(Math.random() * 200 + 10)}`;
 
   // 5. Enviar mensaje al canal target 1532154858142957678
   const targetChannel = await client.channels.fetch(NARCO_CHANNEL_ID).catch(() => null);
@@ -360,7 +354,6 @@ export async function handleNarcoModalSubmit(
     return;
   }
 
-  const imageUrls = attachmentsList.map((a) => a.url);
   const container = buildNarcoPostContainer(
     interaction.user,
     titulo,
@@ -376,18 +369,15 @@ export async function handleNarcoModalSubmit(
   });
 
   // 6. Confirmación efímera al autor
-  const confirmLines = [
-    `✅ **¡Narco Post publicado exitosamente en <#${NARCO_CHANNEL_ID}>!**`,
-    `› **Título:** \`${titulo}\``,
-    `› **Encriptación:** ${
+  const confirmLines =
+    `✅ **¡Narco Post publicado exitosamente en <#${NARCO_CHANNEL_ID}>!**\n\n` +
+    `• **Título:** \`${titulo}\`\n` +
+    `• **Encriptación:** ${
       esEncriptado
         ? `\`🔒 ENCRIPTADO ($2,500 MXN descontados en efectivo)\` (IP: \`${fakeIP}\`)`
         : "`🌐 UBICACIÓN ABIERTA`"
-    }`,
-    imageUrls.length > 0 ? `› **Imágenes adjuntas:** \`${imageUrls.length}\`` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+    }\n` +
+    (imageUrls.length > 0 ? `• **Imágenes adjuntas:** \`${imageUrls.length}\`` : "");
 
   const successContainer = buildSuccessContainer("💀 Narco Post Publicado", confirmLines, client);
   await interaction.editReply({
