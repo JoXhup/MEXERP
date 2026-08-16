@@ -3,7 +3,8 @@ import { config } from "../config.js";
 export const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
-  "gemma2-9b-it",
+  "qwen-2.5-coder-32b",
+  "llama-3.2-3b-preview",
 ];
 
 export interface GroqChatMessage {
