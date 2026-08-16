@@ -103,6 +103,7 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
     });
 
     if (respuesta) {
+      respuesta = cleanRepetitiveResponse(respuesta);
       if (respuesta.length > 1900) {
         respuesta = respuesta.substring(0, 1900) + "...";
       }
@@ -185,6 +186,8 @@ async function handleAIChannel(message: Message): Promise<void> {
 
   if (!respuesta) return;
 
+  respuesta = cleanRepetitiveResponse(respuesta);
+
   if (respuesta === "NO_INFO" || respuesta.toUpperCase().includes("NO_INFO")) {
     await message.reply({
       content: [
@@ -206,4 +209,28 @@ async function handleAIChannel(message: Message): Promise<void> {
   await message.reply({
     content: respuesta,
   });
+}
+
+function cleanRepetitiveResponse(text: string): string {
+  if (!text) return text;
+  // Corregir menciones de canal corruptas como <#1528571127352262866/1528973867362812024> -> <#1528973867362812024>
+  let cleaned = text.replace(/<#\d+\/(\d+)>/g, "<#$1>");
+
+  // Evitar bucles repetitivos si la IA duplica líneas o frases
+  const lines = cleaned.split("\n");
+  const resultLines: string[] = [];
+  const seenLines = new Set<string>();
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (seenLines.has(trimmed) && trimmed.length > 10) {
+      continue;
+    }
+    if (trimmed.length > 10) {
+      seenLines.add(trimmed);
+    }
+    resultLines.push(line);
+  }
+
+  return resultLines.join("\n").trim();
 }
