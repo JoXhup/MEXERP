@@ -971,3 +971,174 @@ export function buildNormativaPanelContainer(
 
   return container;
 }
+
+// ─── PANEL INTRODUCCIÓN / OUR-INFO (COMPONENTS V2 CONTAINER) ─────────────────
+export function buildIntroduccionPanelContainer(
+  client: Client,
+  guildIconUrl?: string,
+  bannerUrl?: string,
+): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const headerContent = `# 📘 OUR-INFO · INTRODUCCIÓN\n**Guía Informativa Oficial de la Comunidad — Sonora RP**`;
+
+  const sec1 = [
+    "### 1.1 | ¿Cómo me puedo verificar?",
+    "Para verificarte, dirígete al canal <#1528973867362812024> y presiona el botón **Verificar**. Posteriormente, introduce tu **usuario de Roblox** y confirma que la información proporcionada sea correcta.",
+    "",
+    "Una vez completado el proceso, el bot de **SONORA RP** verificará automáticamente tu cuenta, asignará los roles correspondientes y te otorgará acceso como **Ciudadano Mexicano** dentro de nuestro servidor de Discord.",
+  ].join("\n");
+
+  const sec2 = [
+    "### 1.2 | ¿Cómo puedo comprar?",
+    "Para realizar una **compra benéfica o publicitaria**, dirígete al canal <#1528868846906114321> y abre un ticket. Posteriormente, presiona el botón **Sección** y selecciona la categoría **IRL**.",
+    "",
+    "Un encargado del área de **Marketing** se pondrá en contacto contigo para conocer tu solicitud, resolver tus dudas y gestionar el proceso de compra correspondiente.",
+  ].join("\n");
+
+  const sec3 = [
+    "### 1.3 | ¿Cómo entro a Roblox?",
+    "Para ingresar a nuestro servidor de Roblox, primero debes acceder a **Liberty County (ER:LC)**.",
+    "",
+    "Una vez dentro del juego:",
+    "1. Abre el menú lateral ubicado en la parte derecha de la pantalla.",
+    "2. Selecciona la opción **Servidores**.",
+    "3. Presiona **Unirse por código**.",
+    "4. Introduce el código **SORPA**.",
+    "5. Confirma tu ingreso al servidor.",
+    "",
+    "También puedes acceder mediante el **Listado de servidores**, buscando **MX SONORA RP**. Una vez localizado, podrás unirte directamente y comenzar tu experiencia de roleplay.",
+  ].join("\n");
+
+  const sec4 = [
+    "### 1.4 | ¿Cómo gestiono mi economía?",
+    "Para gestionar tu economía dentro de **SONORA RP**, dirígete al canal <#1533672379786723398> y utiliza los comandos indicados en los **MENSAJES FIJADOS**.",
+    "",
+    "Actualmente, encontrarás los siguientes comandos:",
+    "* `/estado monetario`",
+    "* `/cobrar`",
+    "* `/depositar`",
+    "* `/estado ilegal`",
+    "* `/historial`",
+    "* `/lavar`",
+    "* `/retirar`",
+    "* `/transferir`",
+    "* `/transferencias`",
+    "",
+    "> Cada comando cumple una función específica y te permitirá administrar diferentes aspectos de tu economía dentro del servidor.",
+  ].join("\n");
+
+  const sec5 = [
+    "### 1.5 | ¿Cómo creo una facción legal, ilegal o empresa?",
+    "Si deseas crear una **Facción Legal**, **Facción Ilegal** o **Empresa**, dirígete al canal <#1528868846906114321> y accede al apartado **Empresas y Facciones**.",
+    "",
+    "Una vez abierto el ticket, un encargado del área correspondiente atenderá tu solicitud y te proporcionará el **formato, requisitos y procedimiento** necesarios para comenzar el proceso de verificación.",
+    "",
+    "> Toda facción o empresa deberá cumplir con los requisitos establecidos antes de ser aprobada oficialmente.",
+  ].join("\n");
+
+  const sec6 = [
+    "### 1.6 | ¿Cómo me uno a una facción o empresa?",
+    "Para formar parte de una facción o empresa, dirígete a la categoría **EMPLEOS**.",
+    "",
+    "Dentro de esta categoría encontrarás los espacios correspondientes a:",
+    "* **Facciones Legales**",
+    "* **Facciones Ilegales**",
+    "* **Empresas**",
+    "",
+    "En cada apartado podrás consultar las organizaciones disponibles, sus requisitos y la información necesaria para postularte.",
+    "",
+    "Para ingresar a una facción o empresa, deberás realizar la **convocatoria, solicitud o postulación** indicada por la organización correspondiente y esperar a que sus responsables revisen tu solicitud.",
+  ].join("\n");
+
+  const sec7 = [
+    "### 1.7 | ¿Cómo me uno al Staff de SORP?",
+    "Si deseas formar parte del **Staff de SORP**, deberás cumplir con los requisitos establecidos para la convocatoria correspondiente.",
+    "",
+    "Las convocatorias y requisitos se publican en el canal <#1528868451517599784>. Antes de enviar tu solicitud, asegúrate de cumplir correctamente con cada uno de los requisitos indicados.",
+    "",
+    "Una vez enviada tu postulación, deberás esperar a que un integrante de **Recursos Humanos (RR. HH.)** revise tu solicitud.",
+    "",
+    "Si tu postulación cumple con los requisitos establecidos, será aceptada y podrás continuar con las siguientes etapas del proceso de selección.",
+    "",
+    "> Recuerda que enviar una postulación no garantiza tu ingreso al Staff. Todas las solicitudes están sujetas a revisión y selección por parte de Recursos Humanos.",
+  ].join("\n");
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0xff1493) // Rosado fuerte / Hot Pink
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(headerContent)
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec1)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec2)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec3)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec4)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec5)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec6)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(sec7)
+    );
+
+  if (bannerUrl) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    );
+    (container as any).components.push({
+      type: 12, // MediaGallery
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
+    );
+
+  return container;
+}

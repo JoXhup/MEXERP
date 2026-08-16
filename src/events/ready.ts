@@ -3,7 +3,7 @@ import { ActivityType, MessageFlags, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
-import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer, buildNormativaPanelContainer } from "../utils/components.js";
+import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer, buildNormativaPanelContainer, buildIntroduccionPanelContainer } from "../utils/components.js";
 import { config } from "../config.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
@@ -236,7 +236,56 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Normativa General:", normativaErr);
   }
 
-  // 5. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
+  // 5. Inicializar Panel de Introducción / OUR-INFO en el canal 1528868521457619136
+  try {
+    const INTRO_CHANNEL_ID = "1528868521457619136";
+    const introChan = await client.channels.fetch(INTRO_CHANNEL_ID).catch(() => null);
+
+    if (introChan && introChan.isTextBased()) {
+      const textChan = introChan as TextChannel;
+      const messages = await textChan.messages.fetch({ limit: 20 }).catch(() => null);
+      const existingPanel = messages?.find(m => m.author.id === client.user?.id && m.components.length > 0);
+      if (existingPanel) {
+        await existingPanel.delete().catch(() => null);
+        console.log("[READY] Panel antiguo de Introducción eliminado.");
+      }
+
+      const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
+
+      let bannerUrl: string | undefined = undefined;
+      const attachments: AttachmentBuilder[] = [];
+
+      const candidatePaths = [
+        path.join(process.cwd(), "src", "utils", "Assets", "Introduccion.png"),
+        path.join(process.cwd(), "assets", "Introduccion.png"),
+        path.join(process.cwd(), "Introduccion.png"),
+        path.join(process.cwd(), "src", "utils", "Assets", "Introduccion.jpg"),
+        path.join(process.cwd(), "assets", "Introduccion.jpg"),
+        path.join(process.cwd(), "Introduccion.jpg"),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          attachments.push(new AttachmentBuilder(p, { name: "Introduccion.png" }));
+          bannerUrl = "attachment://Introduccion.png";
+          console.log(`[READY] Banner de Introducción encontrado en: ${p}`);
+          break;
+        }
+      }
+
+      await textChan.send({
+        components: [buildIntroduccionPanelContainer(client, guildIconUrl, bannerUrl)],
+        files: attachments,
+        // @ts-ignore — Components V2 flag required
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[READY] Panel de Introducción (OUR-INFO) publicado automáticamente en el canal.");
+    }
+  } catch (introErr) {
+    console.error("[READY] Error enviando panel de Introducción:", introErr);
+  }
+
+  // 6. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
   await restoreActiveArrests(client);
   initLockupExpirationChecker(client);
   await documentCache.loadAllFromDb();
