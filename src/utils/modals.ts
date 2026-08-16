@@ -323,7 +323,7 @@ export function buildCKModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: ÁREA DE ROL (CO-FUNDADOR OPCIONAL CON MINVALUES 0) ───────────────
+// ─── MODAL V2: ÁREA DE ROL (STRING SELECT + CO-FUNDADOR OPCIONAL) ─────────────
 export function buildAreaRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:area_rol")
@@ -345,16 +345,16 @@ export function buildAreaRolModal(): ModalBuilder {
     .setDescription("Selecciona la modalidad oficial de tu proyecto de ROL")
     .setStringSelectMenuComponent(tipoSelect);
 
-  const userSelect = new UserSelectMenuBuilder()
-    .setCustomId("cofundador_usuario")
-    .setPlaceholder("Selecciona al Co-Fundador (opcional)...")
-    .setMinValues(0)
-    .setMaxValues(1);
-
   const l2 = new LabelBuilder()
     .setLabel("Co-Fundador / Encargado (Opcional)")
-    .setDescription("Selecciona directamente al usuario en Discord que administrará la facción")
-    .setUserSelectMenuComponent(userSelect);
+    .setDescription("Menciona o indica al usuario secundario de la facción si aplica")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("cofundador_usuario")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Nombre, Tag o ID del Co-Fundador (Opcional)")
+        .setRequired(false).setMaxLength(100)
+    );
 
   const l3 = new LabelBuilder()
     .setLabel("Nombre de la facción o empresa")
@@ -466,16 +466,16 @@ export function buildSolicitudRPModal(): ModalBuilder {
     .setDescription("Selecciona la categoría del evento o escena a coordinar")
     .setStringSelectMenuComponent(rpSelect);
 
-  const userSelect = new UserSelectMenuBuilder()
-    .setCustomId("participante_principal")
-    .setPlaceholder("Selecciona al usuario clave / líder (opcional)...")
-    .setMinValues(0)
-    .setMaxValues(1);
-
   const l2 = new LabelBuilder()
     .setLabel("Participante principal / Líder (Opcional)")
-    .setDescription("Selecciona al usuario involucrado en la escena si aplica")
-    .setUserSelectMenuComponent(userSelect);
+    .setDescription("Menciona al usuario involucrado en la escena si aplica (opcional)")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("participante_principal")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Nombre, Tag o ID del participante (Opcional)")
+        .setRequired(false).setMaxLength(100)
+    );
 
   const l3 = new LabelBuilder()
     .setLabel("Detalles y requerimientos del Staff")
