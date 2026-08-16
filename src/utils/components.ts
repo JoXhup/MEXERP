@@ -307,8 +307,8 @@ export function buildTicketContainer(
   const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
   const cat = CATEGORIES[ticket.category]!;
 
-  const rolePings = cat.pingRoleIds.map(id => `<@&${id}>`).join(" ");
-  const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\nTu solicitud ha sido registrada correctamente. Un miembro del equipo staff ${rolePings} te atenderá a la brevedad.`;
+  const rolePings = cat.pingRoleIds.map(id => `<@&${id}>`).join(" / ");
+  const headerText = `# ${cat.emoji} ${cat.label} - Sonora RP\n**Bienvenid@** <@${ticket.ownerId}>, su solicitud fue creada con exito, espere a un miembro de la administracion atienda el ticket (${rolePings}).`;
 
   // Información de tu Ticket
   const infoLines: string[] = ["📝 **Información de tu Ticket:**"];
@@ -325,7 +325,7 @@ export function buildTicketContainer(
 
     if (urls.length > 0) {
       imageUrls.push(...urls);
-      infoLines.push(`**${label}:**\n* 🖼️ ${urls.length} archivo(s) adjunto(s)`);
+      infoLines.push(`**${label}:**\n* ${urls.length} archivo(s) adjunto(s)`);
     } else {
       infoLines.push(`**${label}:**\n* ${value.trim()}`);
     }

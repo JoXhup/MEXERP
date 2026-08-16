@@ -146,12 +146,6 @@ export async function createTicketChannel(
     flags: MessageFlags.IsComponentsV2,
   });
 
-  // Notificar con ping a los roles correspondientes de la categoría
-  if (cat.pingRoleIds && cat.pingRoleIds.length > 0) {
-    const pings = cat.pingRoleIds.map(id => `<@&${id}>`).join(" ");
-    await channel.send({ content: pings }).catch(() => null);
-  }
-
   return channel;
 }
 

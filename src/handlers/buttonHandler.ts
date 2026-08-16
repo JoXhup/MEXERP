@@ -47,9 +47,8 @@ async function handleClaim(
   client: Client,
   channelId: string,
 ): Promise<void> {
-  // Solo staff puede reclamar
   const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const isStaff = isAdmin(member ?? null);
+  const isStaff = member?.roles.cache.has(config.staffRoleId) || member?.permissions.has("Administrator");
 
   if (!isStaff) {
     await interaction.reply({
@@ -110,19 +109,17 @@ async function handleClaim(
     flags: MessageFlags.IsComponentsV2,
   });
 
-  // Notificar en el canal
-  if (interaction.channel?.isTextBased()) {
-    await (interaction.channel as TextChannel).send({
-      components: [
-        buildSuccessContainer(
-          "Ticket reclamado",
-          `<@${ticket.ownerId}> — Tu ticket ha sido reclamado por <@${interaction.user.id}>. Te atendere en breve.`,
-          client,
-        ),
-      ],
-      flags: MessageFlags.IsComponentsV2,
-    });
-  }
+  // Notificar únicamente al staff de forma Efímera (flags 64)
+  await interaction.followUp({
+    components: [
+      buildSuccessContainer(
+        "Ticket Reclamado",
+        `Has reclamado el ticket de <@${ticket.ownerId}> exitosamente. La asistencia automática de la IA ha finalizado y el ticket pasa a tu atención personal.`,
+        client,
+      ),
+    ],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  });
 
   await sendLog(client, "Ticket Reclamado", `Reclamado por ${interaction.user.tag}`, [
     { name: "Ticket", value: ticket.ticketId },

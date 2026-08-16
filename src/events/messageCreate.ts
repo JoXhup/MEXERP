@@ -3,12 +3,12 @@ import { sendErlcApiErrorContainer } from "../handlers/erlcHandler.js";
 import { documentCache, buildAISystemPrompt } from "../utils/documentCache.js";
 import { queryGroq } from "../utils/ai.js";
 import { config } from "../config.js";
+import { Ticket } from "../models/Ticket.js";
+import { CATEGORIES } from "../constants/categories.js";
 
 // ─── Canal de IA Auto-respuesta ───────────────────────────────────────────────
 const AI_CHANNEL_ID = "1528875068203991150";
 const TICKET_CHANNEL_URL = "https://discord.com/channels/1528571127352262866/1528868846906114321";
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL   = "llama-3.3-70b-versatile";
 
 const erlcCmdNames = new Set([
   "h", "m", "pm", "kill", "down", "refresh", "respawn", "load", "heal",
@@ -24,7 +24,14 @@ export const name = Events.MessageCreate;
 export async function execute(message: Message): Promise<void> {
   if (message.author.bot || !message.content) return;
 
-  // ─── Canal de IA ────────────────────────────────────────────────────────────
+  // ─── Asistencia de IA en Tickets (Mientras el ticket esté sin reclamar) ─────
+  const ticket = await Ticket.findOne({ channelId: message.channelId });
+  if (ticket && ticket.status === "open" && !ticket.claimedBy) {
+    await handleTicketAIResponse(message, ticket);
+    return;
+  }
+
+  // ─── Canal de IA General ───────────────────────────────────────────────────
   if (message.channelId === AI_CHANNEL_ID) {
     await handleAIChannel(message);
     return;
@@ -40,24 +47,73 @@ export async function execute(message: Message): Promise<void> {
   }
 }
 
-// ─── Handler de Auto-respuesta IA ─────────────────────────────────────────────
+// ─── Handler de Asistencia IA en Tickets (Sin Reclamar) ───────────────────────
+async function handleTicketAIResponse(message: Message, ticket: any): Promise<void> {
+  const userQuery = message.content.trim();
+  if (!userQuery || userQuery.length < 2) return;
+
+  const guildId = message.guildId ?? "global";
+
+  // Mostrar "escribiendo..." en el canal del ticket
+  if ("sendTyping" in message.channel) {
+    await (message.channel as any).sendTyping().catch(() => {});
+  }
+
+  // Cargar base de datos / conocimiento del servidor
+  await documentCache.ensureLoaded(guildId);
+  const combined = documentCache.getCombined(guildId, userQuery);
+
+  if (!config.groqApiKey) return;
+
+  const cat = CATEGORIES[ticket.category];
+  const catLabel = cat?.label ?? ticket.category;
+
+  const systemPrompt =
+    `${buildAISystemPrompt(combined)}\n\n` +
+    `ASISTENTE VIRTUAL DE SOPORTE — SONORA RP:\n` +
+    `Estás respondiendo en un ticket de soporte de la categoría "${catLabel}" abierto por el usuario <@${ticket.ownerId}>.\n` +
+    `INSTRUCCIONES OBLIGATORIAS:\n` +
+    `1. Responde de forma formal, amable, clara y profesional como si fueras un miembro capacitado del Staff de Sonora RP conversando directamente en el chat.\n` +
+    `2. Resuelve la duda u orienta al usuario mientras un miembro de la administración se conecta a atender personalmente su ticket.\n` +
+    `3. Tienes acceso completo a toda la información del servidor (reglamentos, tabla de sanciones, manuales, etc.). Utilízala para responder con precisión.\n` +
+    `4. NO utilices embeds, ni contenedores ni bloques decorativos. Responde en MENSAJE NORMAL DE TEXTO PLANO conversacional directo.\n` +
+    `5. En cuanto un miembro del staff reclame el ticket, tú dejarás de intervenir automáticamente.`;
+
+  try {
+    let respuesta = await queryGroq({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userQuery },
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+    });
+
+    if (respuesta) {
+      if (respuesta.length > 1900) {
+        respuesta = respuesta.substring(0, 1900) + "...";
+      }
+      await message.reply({ content: respuesta, allowedMentions: { repliedUser: false } });
+    }
+  } catch (err: any) {
+    console.error("[TICKET_AI] Error procesando respuesta de IA en ticket:", err.message);
+  }
+}
+
+// ─── Handler de Auto-respuesta IA Canal General ──────────────────────────────
 async function handleAIChannel(message: Message): Promise<void> {
   const pregunta = message.content.trim();
   if (!pregunta || pregunta.length < 2) return;
 
   const guildId = message.guildId ?? "global";
 
-  // Mostrar "escribiendo..."
   if ("sendTyping" in message.channel) {
     await (message.channel as any).sendTyping().catch(() => {});
   }
 
-  // Asegurar que la cache de MongoDB esté cargada
   await documentCache.ensureLoaded(guildId);
-
   const combined = documentCache.getCombined(guildId, pregunta);
 
-  // Si no hay conocimiento cargado
   if (combined.count === 0) {
     await message.reply({
       content: [
@@ -99,7 +155,6 @@ async function handleAIChannel(message: Message): Promise<void> {
 
   if (!respuesta) return;
 
-  // Si la IA no encontró la info en el conocimiento
   if (respuesta === "NO_INFO" || respuesta.toUpperCase().includes("NO_INFO")) {
     await message.reply({
       content: [
@@ -114,7 +169,6 @@ async function handleAIChannel(message: Message): Promise<void> {
     return;
   }
 
-  // Truncar si supera el límite de Discord
   if (respuesta.length > 1900) {
     respuesta = respuesta.substring(0, 1900) + "\n\n*(Respuesta truncada por longitud)*";
   }
