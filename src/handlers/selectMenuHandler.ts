@@ -8,8 +8,8 @@ import {
   buildControlRolModal,
   buildRetiroRolModal,
   buildSolicitudRPModal,
+  buildReportarStaffModal,
   buildRawReportarUsuarioModal,
-  buildRawReporteStaffModal,
   buildRawRecompensasModal,
   buildRawRobosICModal,
   buildRawReporteDesarrolloModal,
@@ -79,7 +79,7 @@ export async function handleSelectCategory(
         await showRawModal(interaction, buildRawReportarUsuarioModal());
         break;
       case "reporte_staff":
-        await showRawModal(interaction, buildRawReporteStaffModal());
+        await interaction.showModal(buildReportarStaffModal());
         break;
       case "recompensas":
         await showRawModal(interaction, buildRawRecompensasModal());

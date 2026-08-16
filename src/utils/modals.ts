@@ -111,51 +111,53 @@ export function buildReportarModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: REPORTAR STAFF ─────────────────────────────────────────────────
+// ─── MODAL V2: REPORTAR STAFF (USER SELECT + STRING SELECT V2) ───────────────
 export function buildReportarStaffModal(): ModalBuilder {
   const modal = new ModalBuilder()
-    .setCustomId("ticket:modal:reportar_staff")
+    .setCustomId("ticket:modal:reporte_staff")
     .setTitle("Reporte de Staff");
+
+  const staffSelect = new UserSelectMenuBuilder()
+    .setCustomId("staff_reportado")
+    .setPlaceholder("Selecciona al miembro del Staff...")
+    .setMinValues(1)
+    .setMaxValues(1);
+
+  const l1 = new LabelBuilder()
+    .setLabel("Miembro del Staff reportado")
+    .setDescription("Selecciona al integrante del staff en la lista de Discord")
+    .setUserSelectMenuComponent(staffSelect);
 
   const gravSelect = new StringSelectMenuBuilder()
     .setCustomId("gravedad")
     .setPlaceholder("Selecciona la gravedad del incidente...")
     .setMinValues(1).setMaxValues(1)
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Leve — mal comportamiento puntual").setValue("leve"),
-      new StringSelectMenuOptionBuilder().setLabel("Moderado — abuso de permisos").setValue("moderado"),
-      new StringSelectMenuOptionBuilder().setLabel("Grave — acoso o discriminacion").setValue("grave"),
-      new StringSelectMenuOptionBuilder().setLabel("Muy grave — corrupcion activa").setValue("muy_grave"),
+      new StringSelectMenuOptionBuilder().setLabel("Leve — mal comportamiento puntual").setValue("Leve"),
+      new StringSelectMenuOptionBuilder().setLabel("Moderado — abuso de permisos").setValue("Moderado"),
+      new StringSelectMenuOptionBuilder().setLabel("Grave — acoso o discriminación").setValue("Grave"),
+      new StringSelectMenuOptionBuilder().setLabel("Muy grave — corrupción activa").setValue("Muy Grave"),
     );
-
-  const l1 = new LabelBuilder()
-    .setLabel("Gravedad del incidente")
-    .setDescription("Evalua la severidad de lo que ocurrio")
-    .setStringSelectMenuComponent(gravSelect);
 
   const l2 = new LabelBuilder()
-    .setLabel("Staff reportado")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("staff_reportado")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre del miembro del staff")
-        .setRequired(true).setMinLength(2).setMaxLength(100)
-    );
+    .setLabel("Gravedad del incidente")
+    .setDescription("Evalúa la severidad de lo que ocurrió")
+    .setStringSelectMenuComponent(gravSelect);
 
   const l3 = new LabelBuilder()
-    .setLabel("Descripcion del incidente")
-    .setDescription("Se totalmente especifico con fechas y acciones")
+    .setLabel("Descripción del incidente")
+    .setDescription("Sé totalmente específico con fechas y acciones")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("incidente")
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder("Describe el comportamiento inadecuado del staff...")
-        .setRequired(true).setMinLength(30).setMaxLength(1000)
+        .setRequired(true).setMinLength(20).setMaxLength(1000)
     );
 
   const l4 = new LabelBuilder()
-    .setLabel("Pruebas o testigos (opcional)")
+    .setLabel("Pruebas o evidencias (opcional)")
+    .setDescription("Enlaces a imágenes o videos del incidente (opcional)")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("pruebas")
@@ -321,7 +323,7 @@ export function buildCKModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: ÁREA DE ROL (STRING SELECT + USER SELECT V2) ───────────────────
+// ─── MODAL V2: ÁREA DE ROL (CO-FUNDADOR OPCIONAL CON MINVALUES 0) ───────────────
 export function buildAreaRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:area_rol")
@@ -345,7 +347,9 @@ export function buildAreaRolModal(): ModalBuilder {
 
   const userSelect = new UserSelectMenuBuilder()
     .setCustomId("cofundador_usuario")
-    .setPlaceholder("Selecciona al Co-Fundador (opcional)...");
+    .setPlaceholder("Selecciona al Co-Fundador (opcional)...")
+    .setMinValues(0)
+    .setMaxValues(1);
 
   const l2 = new LabelBuilder()
     .setLabel("Co-Fundador / Encargado (Opcional)")
@@ -464,11 +468,13 @@ export function buildSolicitudRPModal(): ModalBuilder {
 
   const userSelect = new UserSelectMenuBuilder()
     .setCustomId("participante_principal")
-    .setPlaceholder("Selecciona al usuario clave / líder...");
+    .setPlaceholder("Selecciona al usuario clave / líder (opcional)...")
+    .setMinValues(0)
+    .setMaxValues(1);
 
   const l2 = new LabelBuilder()
-    .setLabel("Participante principal / Líder")
-    .setDescription("Selecciona al usuario involucrado en la escena")
+    .setLabel("Participante principal / Líder (Opcional)")
+    .setDescription("Selecciona al usuario involucrado en la escena si aplica")
     .setUserSelectMenuComponent(userSelect);
 
   const l3 = new LabelBuilder()
