@@ -51,6 +51,7 @@ import {
   handleDoAddUser,
   handleDoRemoveUser,
 } from "../handlers/ticketUserHandler.js";
+import { handleCkModalSubmit } from "../handlers/ckHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -259,6 +260,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Modal Sanción Retirar (/sancion administrativa retirar)
       if (id === "sancion:retirar:modal") {
         await handleSancionRetirarModalSubmit(interaction, client);
+        return;
+      }
+
+      // Modal Character Kill (/ck generar)
+      if (id.startsWith("ck:modal:generar:")) {
+        await handleCkModalSubmit(interaction, client);
         return;
       }
 
