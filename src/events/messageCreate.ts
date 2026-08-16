@@ -47,6 +47,40 @@ export async function execute(message: Message): Promise<void> {
   }
 }
 
+function buildDynamicGuildChannelsContext(guild: any): string {
+  if (!guild || !guild.channels) return "";
+  try {
+    const channels = guild.channels.cache;
+    const everyoneRole = guild.roles.everyone;
+    const channelEntries: string[] = [];
+
+    channels.forEach((ch: any) => {
+      if (!ch || !ch.name || ch.isThread?.()) return;
+
+      // Ocultar canales privados / administrativos donde @everyone no tenga permisos de ver
+      if (everyoneRole) {
+        const perms = ch.permissionsFor(everyoneRole);
+        if (perms && !perms.has("ViewChannel")) {
+          return;
+        }
+      }
+
+      const parentName = ch.parent ? ch.parent.name : null;
+      if (ch.type === 0 || ch.type === 5 || ch.type === 15) {
+        const typeStr = ch.type === 15 ? "Foro" : ch.type === 5 ? "Anuncios" : "Texto";
+        const catInfo = parentName ? ` [Categoría: ${parentName}]` : "";
+        channelEntries.push(`- #${ch.name}${catInfo} (${typeStr}): <#${ch.id}>`);
+      }
+    });
+
+    if (channelEntries.length === 0) return "";
+    return `CANALES Y FOROS PÚBLICOS DISPONIBLES EN EL SERVIDOR (USA ÚNICAMENTE SINTAXIS <#ID_DEL_CANAL>):\n` + channelEntries.slice(0, 40).join("\n");
+  } catch (err) {
+    console.error("[DYNAMIC_CHANNELS] Error extrayendo canales:", err);
+    return "";
+  }
+}
+
 // ─── Handler de Asistencia IA en Tickets (Sin Reclamar) ───────────────────────
 async function handleTicketAIResponse(message: Message, ticket: any): Promise<void> {
   const userQuery = message.content.trim();
@@ -68,8 +102,10 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
   const cat = CATEGORIES[ticket.category];
   const catLabel = cat?.label ?? ticket.category;
 
+  const dynamicChannels = buildDynamicGuildChannelsContext(message.guild);
+
   const systemPrompt =
-    `${buildAISystemPrompt(combined)}\n\n` +
+    `${buildAISystemPrompt(combined, dynamicChannels)}\n\n` +
     `ASISTENTE VIRTUAL DE SOPORTE INTERNO — SONORA RP:\n` +
     `Estás respondiendo en el ticket de la categoría "${catLabel}" abierto por <@${ticket.ownerId}>.\n` +
     `Mantén el hilo de la conversación recordando los mensajes anteriores de la charla.`;
@@ -149,8 +185,10 @@ async function handleAIChannel(message: Message): Promise<void> {
     return;
   }
 
+  const dynamicChannels = buildDynamicGuildChannelsContext(message.guild);
+
   const systemPrompt =
-    `${buildAISystemPrompt(combined)}\n\n` +
+    `${buildAISystemPrompt(combined, dynamicChannels)}\n\n` +
     `REGLA ADICIONAL PARA EL CANAL DE DUDAS:\n` +
     `Si la duda es completamente ajena a Sonora RP, responde que solo atiendes dudas del servidor.\n` +
     `ÚNICAMENTE si la duda es sobre el servidor pero NO existe información en los documentos cargados, responde la palabra clave: "NO_INFO".`;
