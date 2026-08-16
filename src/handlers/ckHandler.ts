@@ -30,7 +30,7 @@ import { buildErrorContainer, buildSuccessContainer } from "../utils/components.
 const REQUIRED_ROLE_ID = "1532578233973739732";
 const LOG_CHANNEL_ID = "1538734146321391676";
 const PUBLIC_CK_CHANNEL_ID = "1538735086269108234";
-const DARK_CONTAINER_COLOR = 0x2b2d31; // Color Gris Oscuro / Negro
+const DARK_CONTAINER_COLOR = 0x2b2d31; // Color Gris Oscuro / Negro elegante
 
 const ROLES_TO_ADD = [
   "1529584400126181516",
@@ -215,33 +215,32 @@ export async function handleCkModalSubmit(
     const robloxName = verifiedUser?.robloxName ?? ineData?.robloxUsername ?? "Sin vincular";
     const robloxId = verifiedUser?.robloxId;
 
-    const avatarUrl = robloxId
-      ? `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`
-      : (interaction.guild.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL() ?? "");
+    // Thumbnail del Server Icon
+    const serverIconUrl = interaction.guild.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
     const unixTimestamp = Math.floor(Date.now() / 1000);
 
-    // Construir Container de Confirmación estructurado (Gris/Negro)
+    // Construir Container de Confirmación estilo Sonora RP (Gris/Negro con Server Icon)
     const confirmContainer = new ContainerBuilder()
       .setAccentColor(DARK_CONTAINER_COLOR)
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `### 💀 CK ENTRANTE\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+              `### REGISTRO OFICIAL DE CHARACTER KILL\n**Fecha:** <t:${unixTimestamp}:F>`
             )
           )
-          .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl))
+          .setThumbnailAccessory(new ThumbnailBuilder().setURL(serverIconUrl))
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Información del personaje**\n` +
-          `• Nombres y apellidos: \`${nombreIC}\`\n` +
-          `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
-          `• ID / N° INE: \`${numIne}\``
+          `**Datos del Ciudadano (IC)**\n` +
+          `• **Nombre IC:** ${nombreIC}\n` +
+          `• **Identificación (INE):** ${numIne}\n` +
+          `• **Cuenta Roblox:** ${robloxName}${robloxId ? ` (${robloxId})` : ""}`
         )
       )
       .addSeparatorComponents(
@@ -249,12 +248,12 @@ export async function handleCkModalSubmit(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Información del Ck**\n` +
-          `• Motivo del Ck: \`${motivo}\`\n` +
-          `• Tipo de Ck: \`${tipoCk}\`\n` +
-          `• Aprobado por: <@${interaction.user.id}>\n` +
-          `• Usuario Ckeado: <@${targetUserId}>\n` +
-          `• Evidencias Adjuntas: \`${imageUrls.length} archivo(s)\``
+          `**Detalles del Character Kill (OOC)**\n` +
+          `• **Usuario Sancionado:** <@${targetUserId}>\n` +
+          `• **Modalidad:** ${tipoCk}\n` +
+          `• **Motivo:** ${motivo}\n` +
+          `• **Staff Responsable:** <@${interaction.user.id}>\n` +
+          `• **Archivos Adjuntos:** ${imageUrls.length} archivo(s)`
         )
       )
       .addSeparatorComponents(
@@ -274,7 +273,7 @@ export async function handleCkModalSubmit(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+          `-# Sonora RP System · Confirmación de Character Kill`
         )
       );
 
@@ -342,7 +341,7 @@ export async function handleCkButtonInteraction(
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent("### Proceso de Character Kill Anulado")
+            new TextDisplayBuilder().setContent("### REGISTRO DE CHARACTER KILL — ANULADO")
           )
       )
       .addSeparatorComponents(
@@ -350,12 +349,12 @@ export async function handleCkButtonInteraction(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `La solicitud de CK para <@${pending.targetUserId}> fue cancelada por <@${interaction.user.id}>. No se aplicó ningún cambio.`
+          `La solicitud de Character Kill para <@${pending.targetUserId}> fue cancelada por <@${interaction.user.id}>. No se aplicó ninguna modificación.`
         )
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# SORP System · Operación cancelada.`
+          `-# Sonora RP System · Operación Anulada`
         )
       );
 
@@ -385,9 +384,8 @@ export async function handleCkButtonInteraction(
         targetMember = await interaction.guild?.members.fetch(targetUserId) ?? null;
       } catch {}
 
-      const robloxAvatarUrl = robloxId
-        ? `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`
-        : (targetMember?.user.displayAvatarURL({ size: 256 }) ?? interaction.guild?.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL() ?? "");
+      // Server Icon Thumbnail
+      const serverIconUrl = interaction.guild?.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
       // 1. Aplicar Roles al usuario
       if (targetMember) {
@@ -424,20 +422,20 @@ export async function handleCkButtonInteraction(
             new SectionBuilder()
               .addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(
-                  `### 💀 CK ENTRANTE (STAFF LOG)\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+                  `### REGISTRO OFICIAL DE CHARACTER KILL (STAFF LOG)\n**Fecha:** <t:${unixTimestamp}:F>`
                 )
               )
-              .setThumbnailAccessory(new ThumbnailBuilder().setURL(robloxAvatarUrl))
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(serverIconUrl))
           )
           .addSeparatorComponents(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Información del personaje**\n` +
-              `• Nombres y apellidos: \`${nombreIC}\`\n` +
-              `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
-              `• ID / N° INE: \`${numIne}\``
+              `**Datos del Ciudadano (IC)**\n` +
+              `• **Nombre IC:** ${nombreIC}\n` +
+              `• **Identificación (INE):** ${numIne}\n` +
+              `• **Cuenta Roblox:** ${robloxName}${robloxId ? ` (${robloxId})` : ""}`
             )
           )
           .addSeparatorComponents(
@@ -445,11 +443,11 @@ export async function handleCkButtonInteraction(
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Información del Ck**\n` +
-              `• Motivo del Ck: \`${motivo}\`\n` +
-              `• Tipo de Ck: \`${tipoCk}\`\n` +
-              `• Aprobado por: <@${staffUserId}>\n` +
-              `• Usuario Ckeado: <@${targetUserId}>`
+              `**Detalles del Character Kill (OOC)**\n` +
+              `• **Usuario Sancionado:** <@${targetUserId}>\n` +
+              `• **Modalidad:** ${tipoCk}\n` +
+              `• **Motivo:** ${motivo}\n` +
+              `• **Staff Responsable:** <@${staffUserId}>`
             )
           );
 
@@ -473,7 +471,7 @@ export async function handleCkButtonInteraction(
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+              `-# Sonora RP System · Sistema de Gestión de CK`
             )
           );
 
@@ -492,20 +490,20 @@ export async function handleCkButtonInteraction(
             new SectionBuilder()
               .addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(
-                  `### 💀 CK ENTRANTE\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+                  `### REGISTRO OFICIAL DE CHARACTER KILL\n**Fecha:** <t:${unixTimestamp}:F>`
                 )
               )
-              .setThumbnailAccessory(new ThumbnailBuilder().setURL(robloxAvatarUrl))
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(serverIconUrl))
           )
           .addSeparatorComponents(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Información del personaje**\n` +
-              `• Nombres y apellidos: \`${nombreIC}\`\n` +
-              `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
-              `• ID / N° INE: \`${numIne}\``
+              `**Datos del Ciudadano (IC)**\n` +
+              `• **Nombre IC:** ${nombreIC}\n` +
+              `• **Identificación (INE):** ${numIne}\n` +
+              `• **Cuenta Roblox:** ${robloxName}${robloxId ? ` (${robloxId})` : ""}`
             )
           )
           .addSeparatorComponents(
@@ -513,11 +511,11 @@ export async function handleCkButtonInteraction(
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Información del Ck**\n` +
-              `• Motivo del Ck: \`${motivo}\`\n` +
-              `• Tipo de Ck: \`${tipoCk}\`\n` +
-              `• Aprobado por: <@${staffUserId}>\n` +
-              `• Usuario Ckeado: <@${targetUserId}>`
+              `**Detalles del Character Kill (OOC)**\n` +
+              `• **Usuario Sancionado:** <@${targetUserId}>\n` +
+              `• **Modalidad:** ${tipoCk}\n` +
+              `• **Motivo:** ${motivo}\n` +
+              `• **Staff Responsable:** <@${staffUserId}>`
             )
           )
           .addSeparatorComponents(
@@ -525,7 +523,7 @@ export async function handleCkButtonInteraction(
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+              `-# Sonora RP System · Sistema de Gestión de CK`
             )
           );
 
@@ -541,10 +539,10 @@ export async function handleCkButtonInteraction(
       const successContainer = buildSuccessContainer(
         "Character Kill Procesado Exitosamente",
         `**Usuario:** <@${targetUserId}>\n` +
-        `**Tipo:** ${tipoCk}\n` +
-        `**INE:** Eliminada de la base de datos\n` +
-        `**Economía:** Reseteada a $0\n` +
-        `**Log Registrado:** <#${LOG_CHANNEL_ID}>\n` +
+        `**Modalidad:** ${tipoCk}\n` +
+        `**INE:** Registro eliminado\n` +
+        `**Economía:** Saldo reseteado a $0\n` +
+        `**Log de Evidencias:** <#${LOG_CHANNEL_ID}>\n` +
         `**Anuncio Público:** <#${PUBLIC_CK_CHANNEL_ID}>`,
         client,
       );
