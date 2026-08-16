@@ -321,14 +321,39 @@ export function buildCKModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: ÁREA DE ROL (CO-FUNDADOR OPCIONAL) ─────────────────────────────
+// ─── MODAL V2: ÁREA DE ROL (STRING SELECT + USER SELECT V2) ───────────────────
 export function buildAreaRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:area_rol")
     .setTitle("Solicitud de Área de ROL");
 
+  const tipoSelect = new StringSelectMenuBuilder()
+    .setCustomId("tipo_organizacion")
+    .setPlaceholder("Selecciona el tipo de organización...")
+    .setMinValues(1).setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Facción Legal").setValue("Facción Legal").setDescription("LSPD, Gobierno, Médicos, etc."),
+      new StringSelectMenuOptionBuilder().setLabel("Facción Ilegal").setValue("Facción Ilegal").setDescription("Cartel, Mafia, Pandilla, etc."),
+      new StringSelectMenuOptionBuilder().setLabel("Organización Extranjera").setValue("Organización Extranjera").setDescription("Mercenarios o Grupo Internacional"),
+      new StringSelectMenuOptionBuilder().setLabel("Empresa / Negocio").setValue("Empresa / Negocio").setDescription("Taller, Discoteca, Comercio IC"),
+    );
+
   const l1 = new LabelBuilder()
-    .setLabel("Nombre oficial de la facción o empresa")
+    .setLabel("Tipo de Organización")
+    .setDescription("Selecciona la modalidad oficial de tu proyecto de ROL")
+    .setStringSelectMenuComponent(tipoSelect);
+
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId("cofundador_usuario")
+    .setPlaceholder("Selecciona al Co-Fundador (opcional)...");
+
+  const l2 = new LabelBuilder()
+    .setLabel("Co-Fundador / Encargado (Opcional)")
+    .setDescription("Selecciona directamente al usuario en Discord que administrará la facción")
+    .setUserSelectMenuComponent(userSelect);
+
+  const l3 = new LabelBuilder()
+    .setLabel("Nombre de la facción o empresa")
     .setDescription("Ingresa el nombre exacto de la organización")
     .setTextInputComponent(
       new TextInputBuilder()
@@ -336,28 +361,6 @@ export function buildAreaRolModal(): ModalBuilder {
         .setStyle(TextInputStyle.Short)
         .setPlaceholder("Ej: Cartel de Sonora / Taller Mecánico Los Santos")
         .setRequired(true).setMinLength(3).setMaxLength(100)
-    );
-
-  const l2 = new LabelBuilder()
-    .setLabel("Tipo (Legal / Ilegal / Extranjera / Empresa)")
-    .setDescription("Indica la modalidad de tu proyecto de ROL")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("tipo_organizacion")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Legal / Ilegal / Extranjera / Empresa")
-        .setRequired(true).setMaxLength(50)
-    );
-
-  const l3 = new LabelBuilder()
-    .setLabel("Co-Fundador / Usuario encargado (Opcional)")
-    .setDescription("Menciona o indica al usuario secundario de la facción si aplica")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("cofundador_usuario")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre, Tag o ID del Co-Fundador (Opcional)")
-        .setRequired(false).setMaxLength(100)
     );
 
   const l4 = new LabelBuilder()
@@ -407,22 +410,20 @@ export function buildControlRolModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: RETIRO DE ROL ──────────────────────────────────────────────────
+// ─── MODAL V2: RETIRO DE ROL (ROLE SELECT V2) ─────────────────────────────────
 export function buildRetiroRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:retiro_rol")
     .setTitle("Solicitud de Retiro de Rol");
 
+  const roleSelect = new RoleSelectMenuBuilder()
+    .setCustomId("rol_a_remover")
+    .setPlaceholder("Selecciona el rol de Discord a retirar...");
+
   const l1 = new LabelBuilder()
     .setLabel("Rol de Discord a remover")
-    .setDescription("Ingresa el nombre exacto del rol a retirar")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("rol_a_remover")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre del rol a remover")
-        .setRequired(true).setMinLength(2).setMaxLength(100)
-    );
+    .setDescription("Selecciona directamente el rol del servidor que solicitas retirar")
+    .setRoleSelectMenuComponent(roleSelect);
 
   const l2 = new LabelBuilder()
     .setLabel("Motivo de la solicitud")
@@ -439,24 +440,38 @@ export function buildRetiroRolModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: SOLICITUD DE ROLEPLAY ──────────────────────────────────────────
+// ─── MODAL V2: SOLICITUD DE ROLEPLAY (STRING SELECT + USER SELECT V2) ─────────
 export function buildSolicitudRPModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId("ticket:modal:solicitud_rp")
     .setTitle("Solicitud de Roleplay");
 
-  const l1 = new LabelBuilder()
-    .setLabel("Tipo de situación de RP")
-    .setDescription("Ejemplo: Evento, Tiroteo masivo, Asalto, Negociaciones")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("tipo_rp")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Ej: Evento, Tiroteo masivo, Asalto, Negociación, etc.")
-        .setRequired(true).setMinLength(3).setMaxLength(100)
+  const rpSelect = new StringSelectMenuBuilder()
+    .setCustomId("tipo_rp")
+    .setPlaceholder("Selecciona el tipo de situación de RP...")
+    .setMinValues(1).setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Evento de RP").setValue("Evento de RP").setDescription("Coordinación de evento masivo"),
+      new StringSelectMenuOptionBuilder().setLabel("Tiroteo / Enfrentamiento").setValue("Tiroteo").setDescription("Supervisión de tiroteo IC"),
+      new StringSelectMenuOptionBuilder().setLabel("Asalto / Secuestro").setValue("Asalto / Secuestro").setDescription("Negociación o asistencia de staff"),
+      new StringSelectMenuOptionBuilder().setLabel("Otro tipo de RP").setValue("Otro RP").setDescription("Situaciones especiales de roleplay"),
     );
 
+  const l1 = new LabelBuilder()
+    .setLabel("Tipo de situación de RP")
+    .setDescription("Selecciona la categoría del evento o escena a coordinar")
+    .setStringSelectMenuComponent(rpSelect);
+
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId("participante_principal")
+    .setPlaceholder("Selecciona al usuario clave / líder...");
+
   const l2 = new LabelBuilder()
+    .setLabel("Participante principal / Líder")
+    .setDescription("Selecciona al usuario involucrado en la escena")
+    .setUserSelectMenuComponent(userSelect);
+
+  const l3 = new LabelBuilder()
     .setLabel("Detalles y requerimientos del Staff")
     .setDescription("Describe la situación y qué requieren del equipo de soporte")
     .setTextInputComponent(
@@ -467,7 +482,7 @@ export function buildSolicitudRPModal(): ModalBuilder {
         .setRequired(true).setMinLength(15).setMaxLength(1000)
     );
 
-  modal.addLabelComponents(l1, l2);
+  modal.addLabelComponents(l1, l2, l3);
   return modal;
 }
 
