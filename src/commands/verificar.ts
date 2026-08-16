@@ -2,20 +2,14 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
   MessageFlags,
-  ContainerBuilder,
-  SectionBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  ThumbnailBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  SeparatorSpacingSize,
+  AttachmentBuilder,
   type Client,
   type TextChannel,
 } from "discord.js";
+import fs from "fs";
+import path from "path";
 import { config } from "../config.js";
-import { getFooterTimestamp } from "../utils/components.js";
+import { buildVerificationPanelContainer } from "../utils/components.js";
 import { isAdmin } from "../utils/permissions.js";
 
 export const data = new SlashCommandBuilder()
@@ -27,7 +21,6 @@ export async function execute(
   interaction: ChatInputCommandInteraction,
   client: Client,
 ): Promise<void> {
-  // Solo rol admin
   const member = interaction.guild?.members.cache.get(interaction.user.id) ?? null;
   if (!isAdmin(member)) {
     await interaction.reply({
@@ -48,54 +41,31 @@ export async function execute(
 
     const guildIcon = interaction.guild?.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
-    // ─── PANEL CONTAINER (acento verde) ─────────────────────────────────────
-    const panel = new ContainerBuilder()
-      .setAccentColor(0x57f287) // Verde Discord
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("# Pasos de Verificacion <a:verify:1530639821683556563>")
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(
-              [
-                `Bienvenid@ al apartado **Whitelist** para realizar tu proceso, realiza las siguientes instrucciones para realizarlo correctamente.`,
-                ``,
-                `- Pulsa en el boton **"Iniciar"** para abrir el proceso.`,
-                `- Coloca tu usuario de roblox y responde la pregunta mencionada.`,
-              ].join("\n")
-            )
-          )
-          .setThumbnailAccessory(
-            new ThumbnailBuilder().setURL(guildIcon)
-          )
-      )
-      .addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("<a:pins:1530640122633257041> *Listo, disfruta de Sonora RP, tu mejor opcion.*")
-      )
-      .addActionRowComponents(
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId("verification:start")
-            .setLabel("Iniciar")
-            .setStyle(ButtonStyle.Success)
-            .setEmoji("✅")
-        )
-      )
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `-# Sonora RP System · ${getFooterTimestamp()}`
-        )
-      );
+    let bannerUrl: string | undefined = undefined;
+    const attachments: AttachmentBuilder[] = [];
+
+    const candidatePaths = [
+      path.join(process.cwd(), "src", "utils", "Assets", "Verify.png"),
+      path.join(process.cwd(), "assets", "Verify.png"),
+      path.join(process.cwd(), "Verify.png"),
+      path.join(process.cwd(), "src", "utils", "Assets", "Verify.jpg"),
+      path.join(process.cwd(), "assets", "Verify.jpg"),
+      path.join(process.cwd(), "Verify.jpg"),
+    ];
+
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        attachments.push(new AttachmentBuilder(p, { name: "Verify.png" }));
+        bannerUrl = "attachment://Verify.png";
+        break;
+      }
+    }
+
+    const panel = buildVerificationPanelContainer(client, guildIcon, bannerUrl);
 
     await (channel as TextChannel).send({
       components: [panel],
+      files: attachments,
       flags: MessageFlags.IsComponentsV2,
     });
 

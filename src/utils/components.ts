@@ -1142,3 +1142,80 @@ export function buildIntroduccionPanelContainer(
 
   return container;
 }
+
+// ─── PANEL VERIFICACIÓN / WHITELIST (COMPONENTS V2 CONTAINER) ─────────────
+export function buildVerificationPanelContainer(
+  client: Client,
+  guildIconUrl?: string,
+  bannerUrl?: string,
+): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const headerContent = `# Pasos de Verificacion ✅`;
+
+  const instructionsText = [
+    "Bienvenid@ al apartado **Whitelist** para realizar tu proceso, realiza las siguientes instrucciones para realizarlo correctamente.",
+    "",
+    "• Pulsa en el boton **\"Iniciar\"** para abrir el proceso.",
+    "• Coloca tu usuario de roblox y responde la pregunta mencionada.",
+  ].join("\n");
+
+  const subtitleText = "📌 *Listo, disfruta de Sonora RP, tu mejor opcion.*";
+
+  const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("verification:start")
+      .setLabel("Iniciar")
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("✅")
+  );
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0x22c55e) // Verde brillante
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(headerContent)
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(instructionsText)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(subtitleText)
+    )
+    .addActionRowComponents(buttonRow);
+
+  if (bannerUrl) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    );
+    (container as any).components.push({
+      type: 12, // MediaGallery
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
+    );
+
+  return container;
+}

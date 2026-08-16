@@ -3,7 +3,7 @@ import { ActivityType, MessageFlags, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
-import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer, buildNormativaPanelContainer, buildIntroduccionPanelContainer } from "../utils/components.js";
+import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer, buildNormativaPanelContainer, buildIntroduccionPanelContainer, buildVerificationPanelContainer } from "../utils/components.js";
 import { config } from "../config.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
@@ -285,7 +285,56 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Introducción:", introErr);
   }
 
-  // 6. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
+  // 6. Inicializar Panel de Verificación / Whitelist en el canal 1528973867362812024
+  try {
+    const VERIFY_CHANNEL_ID = config.verificationChannelId || "1528973867362812024";
+    const verifyChan = await client.channels.fetch(VERIFY_CHANNEL_ID).catch(() => null);
+
+    if (verifyChan && verifyChan.isTextBased()) {
+      const textChan = verifyChan as TextChannel;
+      const messages = await textChan.messages.fetch({ limit: 20 }).catch(() => null);
+      const existingPanel = messages?.find(m => m.author.id === client.user?.id && m.components.length > 0);
+      if (existingPanel) {
+        await existingPanel.delete().catch(() => null);
+        console.log("[READY] Panel antiguo de Verificación eliminado.");
+      }
+
+      const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
+
+      let bannerUrl: string | undefined = undefined;
+      const attachments: AttachmentBuilder[] = [];
+
+      const candidatePaths = [
+        path.join(process.cwd(), "src", "utils", "Assets", "Verify.png"),
+        path.join(process.cwd(), "assets", "Verify.png"),
+        path.join(process.cwd(), "Verify.png"),
+        path.join(process.cwd(), "src", "utils", "Assets", "Verify.jpg"),
+        path.join(process.cwd(), "assets", "Verify.jpg"),
+        path.join(process.cwd(), "Verify.jpg"),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          attachments.push(new AttachmentBuilder(p, { name: "Verify.png" }));
+          bannerUrl = "attachment://Verify.png";
+          console.log(`[READY] Banner de Verificación encontrado en: ${p}`);
+          break;
+        }
+      }
+
+      await textChan.send({
+        components: [buildVerificationPanelContainer(client, guildIconUrl, bannerUrl)],
+        files: attachments,
+        // @ts-ignore — Components V2 flag required
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[READY] Panel de Verificación publicado automáticamente en el canal.");
+    }
+  } catch (verifyErr) {
+    console.error("[READY] Error enviando panel de Verificación:", verifyErr);
+  }
+
+  // 7. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
   await restoreActiveArrests(client);
   initLockupExpirationChecker(client);
   await documentCache.loadAllFromDb();
