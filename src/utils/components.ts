@@ -1151,16 +1151,20 @@ export function buildVerificationPanelContainer(
 ): ContainerBuilder {
   const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
 
-  const headerContent = `# Pasos de Verificacion ✅`;
+  const headerContent = `# Pasos de Verificación ✅`;
 
   const instructionsText = [
-    "Bienvenid@ al apartado **Whitelist** para realizar tu proceso, realiza las siguientes instrucciones para realizarlo correctamente.",
+    "Bienvenid@ al apartado de **Verificación Whitelist** de **Sonora RP**.",
     "",
-    "• Pulsa en el boton **\"Iniciar\"** para abrir el proceso.",
-    "• Coloca tu usuario de roblox y responde la pregunta mencionada.",
+    "Este es el sistema oficial de verificación para vincular tu cuenta de Roblox y obtener acceso completo a todos los demás canales del servidor de Discord.",
+    "",
+    "### 📋 ¿Cómo verificarte?",
+    "• Presiona el botón **\"Iniciar\"** ubicado abajo.",
+    "• Completa el proceso de vinculación de tu cuenta de Roblox.",
+    "• Al finalizar, el sistema te asignará los roles correspondientes para desbloquear el servidor.",
   ].join("\n");
 
-  const subtitleText = "📌 *Listo, disfruta de Sonora RP, tu mejor opcion.*";
+  const subtitleText = "📌 *Completa tu verificación para disfrutar de Sonora RP.*";
 
   const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
