@@ -41,10 +41,8 @@ export async function showAddRemoveUserMenu(
 
   const container = new ContainerBuilder()
     .setAccentColor(0x3b82f6)
-    .addSectionComponents(
-      new SectionBuilder().addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("# 👤 Gestión de Usuarios en Ticket\nSelecciona el usuario de Discord abajo y luego elige si deseas agregarlo o retirarlo del ticket.")
-      )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("# 👤 Gestión de Usuarios en Ticket\nSelecciona el usuario de Discord abajo y luego elige si deseas agregarlo o retirarlo del ticket.")
     )
     .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
     .addActionRowComponents(rowSelect);
@@ -82,10 +80,8 @@ export async function handleUserSelectTarget(
 
   const container = new ContainerBuilder()
     .setAccentColor(0x7c3aed)
-    .addSectionComponents(
-      new SectionBuilder().addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`# 👤 Usuario Seleccionado: <@${targetUserId}>\n¿Qué acción deseas realizar con <@${targetUserId}> en este ticket?`)
-      )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`# 👤 Usuario Seleccionado: <@${targetUserId}>\n¿Qué acción deseas realizar con <@${targetUserId}> en este ticket?`)
     )
     .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
     .addActionRowComponents(row);
