@@ -274,7 +274,7 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
     emoji: "📋",
     modalTitle: "Solicitud de Área de ROL",
     channelPrefix: "faccion",
-    pingRoleIds: ["1531818941733797938", "1534292165872587024"],
+    pingRoleIds: ["1532578233973739732"],
     fields: [
       {
         customId: "nombre_faccion",

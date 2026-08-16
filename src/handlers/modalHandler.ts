@@ -69,21 +69,29 @@ export async function handleModalSubmit(
       }
     }
 
-    // 2. Leer StringSelects del modal v2 (componentes en los labels o action rows)
+    // 2. Leer Selects (UserSelect, RoleSelect, StringSelect, ChannelSelect) del modal v2
     try {
       const rawComponents = (interaction as any).data?.components ?? (interaction as any).components ?? [];
       for (const row of rawComponents) {
         const inner = row?.component ?? row?.components?.[0] ?? row;
-        if (inner?.type === ComponentType.StringSelect || inner?.type === 3 || inner?.componentType === ComponentType.StringSelect) {
-          const customId = inner.customId ?? inner.custom_id;
-          const values = inner.values;
-          if (customId && values?.length) {
-            modalData[customId] = values[0];
+        const type = inner?.type ?? inner?.componentType;
+        const customId = inner?.customId ?? inner?.custom_id;
+        const values = inner?.values;
+
+        if (customId && values?.length) {
+          if (type === ComponentType.UserSelect || type === 5) {
+            modalData[customId] = values.map((id: string) => `<@${id}>`).join(", ");
+          } else if (type === ComponentType.RoleSelect || type === 6) {
+            modalData[customId] = values.map((id: string) => `<@&${id}>`).join(", ");
+          } else if (type === ComponentType.ChannelSelect || type === 8) {
+            modalData[customId] = values.map((id: string) => `<#${id}>`).join(", ");
+          } else {
+            modalData[customId] = values.join(", ");
           }
         }
       }
-    } catch {
-      // Si no hay selects en el modal, ignorar
+    } catch (err) {
+      console.error("[MODAL SELECTS] Error procesando componentes select:", err);
     }
 
     // 3. Leer FileUploads del modal v2 — los archivos subidos llegan en resolved.attachments

@@ -4,6 +4,9 @@ import { CATEGORIES } from "../constants/categories.js";
 import {
   buildCategoryModal,
   buildCKModal,
+  buildAreaRolModal,
+  buildRetiroRolModal,
+  buildSolicitudRPModal,
   buildRawReportarUsuarioModal,
   buildRawReporteStaffModal,
   buildRawRecompensasModal,
@@ -56,6 +59,15 @@ export async function handleSelectCategory(
   // Mostrar modal específico por categoría
   try {
     switch (categoryId) {
+      case "area_rol":
+        await interaction.showModal(buildAreaRolModal());
+        break;
+      case "retiro_rol":
+        await interaction.showModal(buildRetiroRolModal());
+        break;
+      case "solicitud_rp":
+        await interaction.showModal(buildSolicitudRPModal());
+        break;
       case "solicitud_ck":
         await interaction.showModal(buildCKModal());
         break;
