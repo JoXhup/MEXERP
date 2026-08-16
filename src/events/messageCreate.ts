@@ -50,7 +50,7 @@ export async function execute(message: Message): Promise<void> {
 // ─── Handler de Asistencia IA en Tickets (Sin Reclamar) ───────────────────────
 async function handleTicketAIResponse(message: Message, ticket: any): Promise<void> {
   const userQuery = message.content.trim();
-  if (!userQuery || userQuery.length < 2) return;
+  if (!userQuery || userQuery.length < 1) return;
 
   const guildId = message.guildId ?? "global";
 
@@ -71,22 +71,34 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
   const systemPrompt =
     `${buildAISystemPrompt(combined)}\n\n` +
     `ASISTENTE VIRTUAL DE SOPORTE INTERNO — SONORA RP:\n` +
-    `Estás respondiendo en un ticket de soporte de la categoría "${catLabel}" abierto por el usuario <@${ticket.ownerId}>.\n` +
-    `INSTRUCCIONES OBLIGATORIAS:\n` +
-    `1. Responde de forma amigable, atenta y respetuosa como el asistente virtual oficial del Staff de Sonora RP en chat directo.\n` +
-    `2. Basa tus respuestas ÚNICAMENTE en cómo funciona Sonora RP y en los comandos/sistemas del BOT (ej: /arrestar, /multar, /ine, /estado, etc.). NUNCA hables del código de programación ni utilices información externa ajena al servidor.\n` +
-    `3. Si el usuario pregunta por reglamentos, normas, tablas o canales, PROPORCIONA LOS ENLACES DIRECTOS Y MENCIONES DE CANALES correspondientes.\n` +
-    `4. Si NO dispones de información o no está en la base de datos, sé totalmente SINCERO y responde que no cuentas con ese registro en este momento, indicando que espere a que un administrador atienda el ticket. NUNCA inventes información falsa.\n` +
-    `5. NO utilices embeds, contenedores ni tarjetas. Responde en MENSAJE DE TEXTO PLANO conversacional.\n` +
-    `6. En cuanto un miembro del staff reclame el ticket, tú dejarás de responder.`;
+    `Estás respondiendo en el ticket de la categoría "${catLabel}" abierto por <@${ticket.ownerId}>.\n` +
+    `Mantén el hilo de la conversación recordando los mensajes anteriores de la charla.`;
+
+  // Construir historial de mensajes recientes (últimos 8) para continuidad de chat
+  const historyMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    { role: "system", content: systemPrompt },
+  ];
+
+  try {
+    const recent = await message.channel.messages.fetch({ limit: 8 }).catch(() => null);
+    if (recent) {
+      const sorted = Array.from(recent.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+      for (const m of sorted) {
+        if (!m.content || m.content.startsWith(":") || m.components?.length > 0) continue;
+        const role = m.author.id === message.client.user?.id ? "assistant" : "user";
+        historyMessages.push({ role, content: m.content });
+      }
+    } else {
+      historyMessages.push({ role: "user", content: userQuery });
+    }
+  } catch {
+    historyMessages.push({ role: "user", content: userQuery });
+  }
 
   try {
     let respuesta = await queryGroq({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userQuery },
-      ],
-      temperature: 0.3,
+      messages: historyMessages,
+      temperature: 0.2,
       max_tokens: 1000,
     });
 
@@ -104,7 +116,7 @@ async function handleTicketAIResponse(message: Message, ticket: any): Promise<vo
 // ─── Handler de Auto-respuesta IA Canal General ──────────────────────────────
 async function handleAIChannel(message: Message): Promise<void> {
   const pregunta = message.content.trim();
-  if (!pregunta || pregunta.length < 2) return;
+  if (!pregunta || pregunta.length < 1) return;
 
   const guildId = message.guildId ?? "global";
 
@@ -135,18 +147,35 @@ async function handleAIChannel(message: Message): Promise<void> {
   const systemPrompt =
     `${buildAISystemPrompt(combined)}\n\n` +
     `REGLA ADICIONAL PARA EL CANAL DE DUDAS:\n` +
-    `Busca exhaustivamente en todos los documentos cargados (Códigos Penales, Reglamentos, Manuales, Títulos, Capítulos, Artículos y Secciones).\n` +
-    `Relaciona los términos de la pregunta aunque tengan pequeñas variaciones informales.\n` +
-    `ÚNICAMENTE si la duda es completamente ajena y no existe ninguna información o antecedente en los documentos cargados, responde la palabra clave: "NO_INFO".`;
+    `Si la duda es completamente ajena a Sonora RP, responde que solo atiendes dudas del servidor.\n` +
+    `ÚNICAMENTE si la duda es sobre el servidor pero NO existe información en los documentos cargados, responde la palabra clave: "NO_INFO".`;
+
+  // Construir historial de mensajes recientes (últimos 8)
+  const historyMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    { role: "system", content: systemPrompt },
+  ];
+
+  try {
+    const recent = await message.channel.messages.fetch({ limit: 8 }).catch(() => null);
+    if (recent) {
+      const sorted = Array.from(recent.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+      for (const m of sorted) {
+        if (!m.content || m.content.startsWith(":") || m.components?.length > 0) continue;
+        const role = m.author.id === message.client.user?.id ? "assistant" : "user";
+        historyMessages.push({ role, content: m.content });
+      }
+    } else {
+      historyMessages.push({ role: "user", content: pregunta });
+    }
+  } catch {
+    historyMessages.push({ role: "user", content: pregunta });
+  }
 
   let respuesta = "";
   try {
     respuesta = await queryGroq({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: pregunta },
-      ],
-      temperature: 0.25,
+      messages: historyMessages,
+      temperature: 0.2,
       max_tokens: 1200,
     });
   } catch (err: any) {
