@@ -11,9 +11,9 @@ import {
   buildSolicitudRPModal,
   buildReportarStaffModal,
   buildReporteDesarrolloModalV2,
-  buildRawReportarUsuarioModal,
-  buildRawRecompensasModal,
-  buildRawRobosICModal,
+  buildReportarUsuarioModalV2,
+  buildRecompensasModalV2,
+  buildRobosICModalV2,
 } from "../utils/modals.js";
 import { buildErrorContainer } from "../utils/components.js";
 import { getCooldownRemaining, formatMs } from "../utils/cooldown.js";
@@ -80,16 +80,16 @@ export async function handleSelectCategory(
         await interaction.showModal(buildCKModal());
         break;
       case "reportar_usuario":
-        await showRawModal(interaction, buildRawReportarUsuarioModal());
+        await interaction.showModal(buildReportarUsuarioModalV2());
         break;
       case "reporte_staff":
         await interaction.showModal(buildReportarStaffModal());
         break;
       case "recompensas":
-        await showRawModal(interaction, buildRawRecompensasModal());
+        await interaction.showModal(buildRecompensasModalV2());
         break;
       case "robos_ic":
-        await showRawModal(interaction, buildRawRobosICModal());
+        await interaction.showModal(buildRobosICModalV2());
         break;
       case "reporte_desarrollo":
         await interaction.showModal(buildReporteDesarrolloModalV2());

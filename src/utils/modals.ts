@@ -50,64 +50,160 @@ export function buildCategoryModal(cat: CategoryMeta): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: REPORTAR ───────────────────────────────────────────────────────
-export function buildReportarModal(): ModalBuilder {
+// ─── MODAL V2: REPORTAR USUARIO (USER SELECT + STRING SELECT V2) ─────────────
+export function buildReportarUsuarioModalV2(): ModalBuilder {
   const modal = new ModalBuilder()
-    .setCustomId("ticket:modal:reportar")
+    .setCustomId("ticket:modal:reportar_usuario")
     .setTitle("Reporte de Usuario");
 
-  // Label 1: StringSelect — tipo de prueba
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId("usuario_reportado")
+    .setPlaceholder("Selecciona al usuario a reportar...")
+    .setMinValues(1)
+    .setMaxValues(1);
+
+  const l1 = new LabelBuilder()
+    .setLabel("Usuario reportado")
+    .setDescription("Selecciona al usuario en la lista de Discord")
+    .setUserSelectMenuComponent(userSelect);
+
   const tipoSelect = new StringSelectMenuBuilder()
     .setCustomId("tipo_prueba")
     .setPlaceholder("Selecciona el tipo de prueba que tienes...")
     .setMinValues(1).setMaxValues(1)
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel("Capturas de pantalla").setValue("capturas"),
-      new StringSelectMenuOptionBuilder().setLabel("Video o grabacion").setValue("video"),
-      new StringSelectMenuOptionBuilder().setLabel("Testigos presenciales").setValue("testigos"),
-      new StringSelectMenuOptionBuilder().setLabel("Logs del servidor").setValue("logs"),
-      new StringSelectMenuOptionBuilder().setLabel("Sin pruebas").setValue("sin_pruebas"),
+      new StringSelectMenuOptionBuilder().setLabel("Capturas de pantalla").setValue("Capturas"),
+      new StringSelectMenuOptionBuilder().setLabel("Video o grabación").setValue("Video"),
+      new StringSelectMenuOptionBuilder().setLabel("Testigos presenciales").setValue("Testigos"),
+      new StringSelectMenuOptionBuilder().setLabel("Logs del servidor").setValue("Logs"),
+      new StringSelectMenuOptionBuilder().setLabel("Sin pruebas").setValue("Sin pruebas"),
     );
-  const l1 = new LabelBuilder()
+
+  const l2 = new LabelBuilder()
     .setLabel("Tipo de prueba disponible")
-    .setDescription("Indica con que tipo de evidencia cuentas")
+    .setDescription("Indica con qué tipo de evidencia cuentas")
     .setStringSelectMenuComponent(tipoSelect);
 
-  // Label 2: usuario reportado
-  const l2 = new LabelBuilder()
-    .setLabel("Usuario reportado")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("usuario_reportado")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre#0000 o ID del usuario")
-        .setRequired(true).setMinLength(2).setMaxLength(100)
-    );
-
-  // Label 3: motivo
   const l3 = new LabelBuilder()
     .setLabel("Motivo del reporte")
-    .setDescription("Proporciona el mayor detalle posible")
+    .setDescription("Proporciona el mayor detalle posible de la falta")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("motivo")
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder("Describe detalladamente el motivo del reporte...")
-        .setRequired(true).setMinLength(20).setMaxLength(1000)
+        .setRequired(true).setMinLength(15).setMaxLength(1000)
     );
 
-  // Label 4: pruebas (opcional)
   const l4 = new LabelBuilder()
     .setLabel("Links de pruebas (opcional)")
+    .setDescription("Enlaces a capturas, videos o imágenes (opcional)")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("pruebas")
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder("https://imgur.com/... o descripcion de las pruebas")
+        .setPlaceholder("https://imgur.com/... o descripción de las pruebas")
         .setRequired(false).setMaxLength(500)
     );
 
   modal.addLabelComponents(l1, l2, l3, l4);
+  return modal;
+}
+
+// ─── MODAL V2: RECLAMO DE RECOMPENSAS (STRING SELECT V2) ──────────────────────
+export function buildRecompensasModalV2(): ModalBuilder {
+  const modal = new ModalBuilder()
+    .setCustomId("ticket:modal:recompensas")
+    .setTitle("Reclamo de Recompensas");
+
+  const rewardSelect = new StringSelectMenuBuilder()
+    .setCustomId("premio_ganado")
+    .setPlaceholder("Selecciona la recompensa ganada...")
+    .setMinValues(1).setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Robux").setValue("Robux"),
+      new StringSelectMenuOptionBuilder().setLabel("Discord Nitro").setValue("Discord Nitro"),
+      new StringSelectMenuOptionBuilder().setLabel("Rango VIP / Donante").setValue("Rango VIP"),
+      new StringSelectMenuOptionBuilder().setLabel("Vehículo / Beneficio IC").setValue("Beneficio IC"),
+      new StringSelectMenuOptionBuilder().setLabel("Otro premio").setValue("Otro premio"),
+    );
+
+  const l1 = new LabelBuilder()
+    .setLabel("Premio o recompensa a reclamar")
+    .setDescription("Selecciona el tipo de premio o recompensa obtenida")
+    .setStringSelectMenuComponent(rewardSelect);
+
+  const l2 = new LabelBuilder()
+    .setLabel("Evento o sorteo donde lo ganaste")
+    .setDescription("Indica el nombre del sorteo, evento o dinámica")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("evento_sorteo")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Nombre del sorteo o evento")
+        .setRequired(true).setMinLength(3).setMaxLength(150)
+    );
+
+  const l3 = new LabelBuilder()
+    .setLabel("Prueba de ganador (opcional)")
+    .setDescription("Link al mensaje del sorteo o captura (opcional)")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("pruebas")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Link del mensaje del sorteo o captura de pantalla...")
+        .setRequired(false).setMaxLength(500)
+    );
+
+  modal.addLabelComponents(l1, l2, l3);
+  return modal;
+}
+
+// ─── MODAL V2: ROBOS IC (STRING SELECT V2) ────────────────────────────────────
+export function buildRobosICModalV2(): ModalBuilder {
+  const modal = new ModalBuilder()
+    .setCustomId("ticket:modal:robos_ic")
+    .setTitle("Reclamo de Robo IC");
+
+  const roboSelect = new StringSelectMenuBuilder()
+    .setCustomId("monto_robo")
+    .setPlaceholder("Selecciona los bienes o monto robado...")
+    .setMinValues(1).setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel("Dinero en Efectivo IC").setValue("Dinero IC"),
+      new StringSelectMenuOptionBuilder().setLabel("Armamento IC").setValue("Armamento"),
+      new StringSelectMenuOptionBuilder().setLabel("Vehículo IC").setValue("Vehículo"),
+      new StringSelectMenuOptionBuilder().setLabel("Objetos / Mercancía").setValue("Objetos/Mercancía"),
+    );
+
+  const l1 = new LabelBuilder()
+    .setLabel("Monto o bienes robados")
+    .setDescription("Selecciona la categoría de lo robado en la escena IC")
+    .setStringSelectMenuComponent(roboSelect);
+
+  const l2 = new LabelBuilder()
+    .setLabel("Circunstancias del robo IC")
+    .setDescription("Describe el lugar, hora e involucrados en el robo")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("detalles_robo")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Describe las circunstancias en que se llevó a cabo el robo...")
+        .setRequired(true).setMinLength(15).setMaxLength(1000)
+    );
+
+  const l3 = new LabelBuilder()
+    .setLabel("Pruebas del robo IC (opcional)")
+    .setDescription("Capturas, clips de video o evidencias (opcional)")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setCustomId("pruebas")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Capturas, clips de video o evidencias...")
+        .setRequired(false).setMaxLength(500)
+    );
+
+  modal.addLabelComponents(l1, l2, l3);
   return modal;
 }
 
