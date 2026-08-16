@@ -52,6 +52,7 @@ import {
   handleDoRemoveUser,
 } from "../handlers/ticketUserHandler.js";
 import { handleCkModalSubmit, handleCkButtonInteraction } from "../handlers/ckHandler.js";
+import { handlePeriodicoModalSubmit } from "../handlers/periodicoHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -272,6 +273,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
       // Modal Character Kill (/ck generar)
       if (id.startsWith("ck:modal:generar:")) {
         await handleCkModalSubmit(interaction, client);
+        return;
+      }
+
+      // Modal Periódico (/periodico)
+      if (id === "periodico:modal_submit") {
+        await handlePeriodicoModalSubmit(interaction, client);
         return;
       }
 

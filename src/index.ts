@@ -41,6 +41,7 @@ import warnCommand from "./commands/warn.js";
 import sancionCommand from "./commands/sancion.js";
 import ckCommand from "./commands/ck.js";
 import narcoCommand from "./commands/narco.js";
+import periodicoCommand from "./commands/periodico.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -104,6 +105,7 @@ const commands: Command[] = [
   sancionCommand as unknown as Command,
   ckCommand as unknown as Command,
   narcoCommand as unknown as Command,
+  periodicoCommand as unknown as Command,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
