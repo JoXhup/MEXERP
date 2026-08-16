@@ -127,6 +127,8 @@ const command: Command = {
         client,
         totalShiftTimeMs,
         activeWarnsCount,
+        userStats?.ratingCount ?? 0,
+        userStats?.ratingSum ?? 0,
       );
 
       await interaction.editReply({

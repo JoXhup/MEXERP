@@ -182,6 +182,14 @@ export async function handleStatsSelectMenu(
       activeWarns.length
     );
 
+    const rCount = userStats?.ratingCount ?? 0;
+    const rSum = userStats?.ratingSum ?? 0;
+    const avgR = rCount > 0 ? (rSum / rCount) : 0;
+    const rStars = avgR > 0 ? "⭐".repeat(Math.round(avgR)) : "";
+    const userRatingText = rCount > 0
+      ? `${rStars} \`${avgR.toFixed(1)} / 5.0\` (${rCount} evaluaciones)`
+      : "*Sin evaluaciones de usuarios aún*";
+
     const statsContent = [
       `# Estadísticas Generales`,
       `> Datos de actividad de <@${targetUserId}>`,
@@ -192,6 +200,9 @@ export async function handleStatsSelectMenu(
       `› 🎫 **Tickets Atendidos:** ${processedCount}`,
       `› ⏱️ **Horas en Turno:** ${horasDisplay}`,
       `› 📅 **Ingresó al Staff:** ${hiredAt ? `<t:${Math.floor(hiredAt.getTime() / 1000)}:D>` : "*Sin registro*"}`,
+      ``,
+      `**Evaluación de Usuarios:**`,
+      `› ⭐ **Calificación Recibida:** ${userRatingText}`,
       ``,
       `**Calificación de Desempeño:**`,
       `› ${stars} — **${label}**`,
