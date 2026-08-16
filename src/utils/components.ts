@@ -787,3 +787,114 @@ export function buildStaffProfileContainer(
       new TextDisplayBuilder().setContent(`-# Sonora RP Staff · ${getFooterTimestamp()}`)
     );
 }
+
+// ─── PANEL TABLA DE SANCIONES / WARN LIST (COMPONENTS V2 CONTAINER) ─────────
+export const WARN_LIST_ROLE_ID = "1532578233973739732";
+
+export function buildWarnListPanelContainer(
+  client: Client,
+  guildIconUrl?: string,
+  bannerUrl?: string,
+): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const headerContent = `# ❗ WARN LIST · TABLA DE SANCIONES\n**Reglamento Oficial de Sanciones Administrativas & Modales de Rol — Sonora RP**`;
+
+  const group1 = [
+    "### 📜 Sanciones & Modales de Rol",
+    "",
+    "**Fail RP (Leve)**",
+    "🔒 **Lockup:** 1 día",
+    "",
+    "**Meta Gaming (MG)**",
+    "⚠️ **Warn**",
+    "",
+    "**Power Gaming (PG)**",
+    "⚠️ **Warn**",
+    "",
+    "**No Valorar Vida del Personaje (NVPJ)**",
+    "🔒 **Lockup:** 1 día + warn",
+    "",
+    "**Revenge Kill (RK)**",
+    "🔒 **Lockup:** 30 minutos",
+    "",
+    "**Random Deathmatch (RDM)**",
+    "🔒 **Lockup:** 1 hora",
+  ].join("\n");
+
+  const group2 = [
+    "**PG2**",
+    "🔒 **Lockup:** 60 minutos",
+    "",
+    "**Toxicidad Leve**",
+    "⚠️ **Warn**",
+    "",
+    "**Insultos Graves**",
+    "🔒 **Lockup:** 1 día a 5 días *(depende de la gravedad)*",
+    "",
+    "**Abuso de Vacío Legal o Bugs**",
+    "⚠️ Warn o lockup de 5 horas a 1 día *(según la gravedad)*",
+    "",
+    "**Uso de Cheats o Hacks**",
+    "🚫 **Ban Permanente**",
+    "",
+    "**Evasión de Sanción (Ban Evading)**",
+    "🔒 **Lockup:** 3 horas",
+  ].join("\n");
+
+  const footerSection = `**Revisado por:** <@&${WARN_LIST_ROLE_ID}>`;
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0xf97316) // Naranja brillante
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(headerContent)
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(group1)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(group2)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(footerSection)
+    );
+
+  if (bannerUrl) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    );
+    (container as any).components.push({
+      type: 12, // MediaGallery
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
+    );
+
+  return container;
+}

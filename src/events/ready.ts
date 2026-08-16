@@ -3,7 +3,7 @@ import { ActivityType, MessageFlags, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
-import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer } from "../utils/components.js";
+import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer } from "../utils/components.js";
 import { config } from "../config.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
@@ -139,7 +139,55 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Gestión de Aperturas:", aperturasErr);
   }
 
-  // 3. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
+  // 3. Inicializar Panel de Tabla de Sanciones (Warn List) en el canal 1531094184142831698
+  try {
+    const WARNLIST_CHANNEL_ID = "1531094184142831698";
+    const warnlistChan = await client.channels.fetch(WARNLIST_CHANNEL_ID).catch(() => null);
+
+    if (warnlistChan && warnlistChan.isTextBased()) {
+      const textChan = warnlistChan as TextChannel;
+      const messages = await textChan.messages.fetch({ limit: 20 }).catch(() => null);
+      const existingPanel = messages?.find(m => m.author.id === client.user?.id && m.components.length > 0);
+      if (existingPanel) {
+        await existingPanel.delete().catch(() => null);
+        console.log("[READY] Panel antiguo de Tabla de Sanciones eliminado.");
+      }
+
+      const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
+
+      let bannerUrl: string | undefined = undefined;
+      const attachments: AttachmentBuilder[] = [];
+
+      const candidatePaths = [
+        path.join(process.cwd(), "src", "utils", "Assets", "TabladeSanciones.png"),
+        path.join(process.cwd(), "assets", "TabladeSanciones.png"),
+        path.join(process.cwd(), "TabladeSanciones.png"),
+        path.join(process.cwd(), "src", "utils", "Assets", "TabladeSanciones.jpg"),
+        path.join(process.cwd(), "assets", "TabladeSanciones.jpg"),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          attachments.push(new AttachmentBuilder(p, { name: "TabladeSanciones.png" }));
+          bannerUrl = "attachment://TabladeSanciones.png";
+          console.log(`[READY] Banner de Tabla de Sanciones encontrado en: ${p}`);
+          break;
+        }
+      }
+
+      await textChan.send({
+        components: [buildWarnListPanelContainer(client, guildIconUrl, bannerUrl)],
+        files: attachments,
+        // @ts-ignore — Components V2 flag required
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[READY] Panel de Tabla de Sanciones (Warn List) publicado automáticamente en el canal.");
+    }
+  } catch (warnlistErr) {
+    console.error("[READY] Error enviando panel de Tabla de Sanciones:", warnlistErr);
+  }
+
+  // 4. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
   await restoreActiveArrests(client);
   initLockupExpirationChecker(client);
   await documentCache.loadAllFromDb();
