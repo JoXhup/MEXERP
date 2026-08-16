@@ -389,6 +389,7 @@ export function buildTicketContainer(
     "control_rol",
     "solicitud_rp",
     "solicitud_ck",
+    "solicitud_rol",
     "retiro_rol",
     "robos_ic",
   ].includes(ticket.category);

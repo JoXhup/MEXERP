@@ -5,6 +5,7 @@ export type TicketCategory =
   | "reportar_usuario"
   | "solicitud_ck"
   | "solicitud_rp"
+  | "solicitud_rol"
   | "retiro_rol"
   | "reporte_staff"
   | "retiro_sanciones"

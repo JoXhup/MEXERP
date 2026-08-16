@@ -170,42 +170,42 @@ export function buildReportarStaffModal(): ModalBuilder {
   return modal;
 }
 
-// ─── MODAL V2: PETICION DE ROL ────────────────────────────────────────────────
-export function buildPeticionRolModal(): ModalBuilder {
+// ─── MODAL V2: SOLICITUD DE ROL (ROLE SELECT V2) ───────────────────────────────
+export function buildSolicitudRolModal(): ModalBuilder {
   const modal = new ModalBuilder()
-    .setCustomId("ticket:modal:peticion_rol")
-    .setTitle("Peticion de Rol");
+    .setCustomId("ticket:modal:solicitud_rol")
+    .setTitle("Solicitud de Rol");
+
+  const roleSelect = new RoleSelectMenuBuilder()
+    .setCustomId("rol_solicitado")
+    .setPlaceholder("Selecciona el rol de Discord solicitado...")
+    .setMinValues(1).setMaxValues(1);
 
   const l1 = new LabelBuilder()
     .setLabel("Rol solicitado")
-    .setTextInputComponent(
-      new TextInputBuilder()
-        .setCustomId("rol_solicitado")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Nombre exacto del rol")
-        .setRequired(true).setMinLength(2).setMaxLength(100)
-    );
+    .setDescription("Selecciona directamente el rol del servidor que solicitas")
+    .setRoleSelectMenuComponent(roleSelect);
 
   const l2 = new LabelBuilder()
-    .setLabel("Motivo")
-    .setDescription("Justifica tu solicitud con detalle")
+    .setLabel("Motivo de la solicitud")
+    .setDescription("Explica la razón y justifica tu solicitud")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("motivo")
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder("Explica por que mereces o necesitas este rol...")
-        .setRequired(true).setMinLength(20).setMaxLength(800)
+        .setPlaceholder("Explica el motivo por el cual solicitas este rol...")
+        .setRequired(true).setMinLength(10).setMaxLength(800)
     );
 
   const l3 = new LabelBuilder()
-    .setLabel("Evidencia de requisitos")
-    .setDescription("Sin pruebas no podemos procesar la solicitud")
+    .setLabel("Evidencia de requisitos (opcional)")
+    .setDescription("Enlaces a capturas o evidencias de requisitos cumplidos")
     .setTextInputComponent(
       new TextInputBuilder()
         .setCustomId("pruebas")
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder("Links, capturas o descripcion de los requisitos cumplidos...")
-        .setRequired(true).setMinLength(10).setMaxLength(500)
+        .setPlaceholder("Capturas, enlaces o pruebas de cumplimiento de requisitos...")
+        .setRequired(false).setMaxLength(500)
     );
 
   modal.addLabelComponents(l1, l2, l3);

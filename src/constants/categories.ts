@@ -101,6 +101,44 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
     ],
   },
 
+  solicitud_rol: {
+    id: "solicitud_rol",
+    label: "Solicitud de Rol",
+    description: "Solicita un rol específico de Discord o facción cumpliendo requisitos",
+    emoji: "✨",
+    modalTitle: "Solicitud de Rol",
+    channelPrefix: "solrol",
+    pingRoleIds: ["1531834575796310096", "1534292165872587024"],
+    fields: [
+      {
+        customId: "rol_solicitado",
+        label: "Rol solicitado",
+        style: "short",
+        placeholder: "Nombre del rol de Discord",
+        required: true,
+        minLength: 2,
+        maxLength: 100,
+      },
+      {
+        customId: "motivo",
+        label: "Motivo de la solicitud",
+        style: "paragraph",
+        placeholder: "Explica el motivo por el cual solicitas este rol...",
+        required: true,
+        minLength: 10,
+        maxLength: 800,
+      },
+      {
+        customId: "pruebas",
+        label: "Evidencia de requisitos",
+        style: "paragraph",
+        placeholder: "Capturas, enlaces o pruebas de cumplimiento de requisitos...",
+        required: false,
+        maxLength: 500,
+      },
+    ],
+  },
+
   retiro_rol: {
     id: "retiro_rol",
     label: "Retiro de Rol",
@@ -614,6 +652,7 @@ export const CATEGORY_ORDER: string[] = [
   "reportar_usuario",
   "solicitud_ck",
   "solicitud_rp",
+  "solicitud_rol",
   "retiro_rol",
   "reporte_staff",
   "retiro_sanciones",

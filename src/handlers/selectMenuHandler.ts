@@ -6,6 +6,7 @@ import {
   buildCKModal,
   buildAreaRolModal,
   buildControlRolModal,
+  buildSolicitudRolModal,
   buildRetiroRolModal,
   buildSolicitudRPModal,
   buildReportarStaffModal,
@@ -65,6 +66,9 @@ export async function handleSelectCategory(
         break;
       case "control_rol":
         await interaction.showModal(buildControlRolModal());
+        break;
+      case "solicitud_rol":
+        await interaction.showModal(buildSolicitudRolModal());
         break;
       case "retiro_rol":
         await interaction.showModal(buildRetiroRolModal());
