@@ -23,12 +23,14 @@ import {
 } from "discord.js";
 import { Ine } from "../models/Ine.js";
 import { Economy } from "../models/Economy.js";
+import { VerifiedUser } from "../models/VerifiedUser.js";
 import { getRawResolved } from "../utils/rawInteractionStore.js";
 import { buildErrorContainer, buildSuccessContainer } from "../utils/components.js";
 
 const REQUIRED_ROLE_ID = "1532578233973739732";
 const LOG_CHANNEL_ID = "1538734146321391676";
 const PUBLIC_CK_CHANNEL_ID = "1538735086269108234";
+const DARK_CONTAINER_COLOR = 0x2b2d31; // Color Gris Oscuro / Negro
 
 const ROLES_TO_ADD = [
   "1529584400126181516",
@@ -46,22 +48,6 @@ interface PendingCk {
 }
 
 const pendingCkStore = new Map<string, PendingCk>();
-
-// Helper para formato de fecha limpio
-function getFormattedDate(): string {
-  const now = new Date();
-  return now.toLocaleDateString("es-MX", {
-    timeZone: "America/Mexico_City",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }) + " · " + now.toLocaleTimeString("es-MX", {
-    timeZone: "America/Mexico_City",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
 
 // ─── HANDLER COMANDO /ck generar ──────────────────────────────────────────────
 export async function handleCkGenerarCommand(
@@ -113,11 +99,6 @@ export async function handleCkGenerarCommand(
               label: "CK Administrativo",
               value: "CK Administrativo",
               description: "Ejecutado por sanción o resolución administrativa",
-            },
-            {
-              label: "CK2",
-              value: "CK2",
-              description: "Character Kill secundario o especial",
             },
             {
               label: "CK",
@@ -225,14 +206,30 @@ export async function handleCkModalSubmit(
       createdAt: Date.now(),
     });
 
-    // Construir Container de Confirmación limpio y estructurado
-    const avatarUrl = interaction.user.displayAvatarURL({ size: 256 });
+    // Consultar información del ciudadano (INE + Roblox)
+    const verifiedUser = await VerifiedUser.findOne({ discordId: targetUserId });
+    const ineData = await Ine.findOne({ discordId: targetUserId });
+
+    const nombreIC = ineData?.nombre ?? "No registrado";
+    const numIne = ineData?.numIne ?? ineData?.curp ?? "No registrado";
+    const robloxName = verifiedUser?.robloxName ?? ineData?.robloxUsername ?? "Sin vincular";
+    const robloxId = verifiedUser?.robloxId;
+
+    const avatarUrl = robloxId
+      ? `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`
+      : (interaction.guild.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL() ?? "");
+
+    const unixTimestamp = Math.floor(Date.now() / 1000);
+
+    // Construir Container de Confirmación estructurado (Gris/Negro)
     const confirmContainer = new ContainerBuilder()
-      .setAccentColor(0xf97316)
+      .setAccentColor(DARK_CONTAINER_COLOR)
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent("### Confirmación de Character Kill (CK)")
+            new TextDisplayBuilder().setContent(
+              `### 💀 CK ENTRANTE\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+            )
           )
           .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl))
       )
@@ -241,10 +238,10 @@ export async function handleCkModalSubmit(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Usuario Afectado:** <@${targetUserId}>\n` +
-          `**Tipo de CK:** ${tipoCk}\n` +
-          `**Motivo:** ${motivo}\n` +
-          `**Evidencias Adjuntas:** ${imageUrls.length} archivo(s)`
+          `**Información del personaje**\n` +
+          `• Nombres y apellidos: \`${nombreIC}\`\n` +
+          `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
+          `• ID / N° INE: \`${numIne}\``
         )
       )
       .addSeparatorComponents(
@@ -252,12 +249,12 @@ export async function handleCkModalSubmit(
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Acciones que se ejecutarán:**\n` +
-          `• Eliminación permanente del registro de INE.\n` +
-          `• Reseteo del saldo bancario y efectivo a $0.\n` +
-          `• Asignación de roles: <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>.\n` +
-          `• Publicación del informe en canal de logs (<#${LOG_CHANNEL_ID}>).\n` +
-          `• Publicación de anuncio en canal público (<#${PUBLIC_CK_CHANNEL_ID}>).`
+          `**Información del Ck**\n` +
+          `• Motivo del Ck: \`${motivo}\`\n` +
+          `• Tipo de Ck: \`${tipoCk}\`\n` +
+          `• Aprobado por: <@${interaction.user.id}>\n` +
+          `• Usuario Ckeado: <@${targetUserId}>\n` +
+          `• Evidencias Adjuntas: \`${imageUrls.length} archivo(s)\``
         )
       )
       .addSeparatorComponents(
@@ -276,7 +273,9 @@ export async function handleCkModalSubmit(
         )
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+        new TextDisplayBuilder().setContent(
+          `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+        )
       );
 
     await interaction.editReply({
@@ -318,7 +317,6 @@ export async function handleCkButtonInteraction(
     return;
   }
 
-  // Verificar que quien confirma/anula sea quien ejecutó el comando o un Administrador
   const member = interaction.member as GuildMember;
   const isOwner = interaction.user.id === pending.staffUserId;
   const isAdmin = member?.permissions?.has(PermissionFlagsBits.Administrator);
@@ -340,7 +338,7 @@ export async function handleCkButtonInteraction(
     pendingCkStore.delete(pendingId);
 
     const cancelContainer = new ContainerBuilder()
-      .setAccentColor(0xef4444)
+      .setAccentColor(DARK_CONTAINER_COLOR)
       .addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(
@@ -356,7 +354,9 @@ export async function handleCkButtonInteraction(
         )
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+        new TextDisplayBuilder().setContent(
+          `-# SORP System · Operación cancelada.`
+        )
       );
 
     await interaction.editReply({
@@ -370,23 +370,34 @@ export async function handleCkButtonInteraction(
   if (action === "confirm") {
     try {
       const { targetUserId, tipoCk, motivo, imageUrls, staffUserId } = pending;
-      let targetAvatarUrl = interaction.guild?.iconURL() ?? "";
+      
+      // Obtener datos del ciudadano ANTES de borrar la INE
+      const verifiedUser = await VerifiedUser.findOne({ discordId: targetUserId });
+      const ineData = await Ine.findOne({ discordId: targetUserId });
+
+      const nombreIC = ineData?.nombre ?? "No registrado";
+      const numIne = ineData?.numIne ?? ineData?.curp ?? "No registrado";
+      const robloxName = verifiedUser?.robloxName ?? ineData?.robloxUsername ?? "Sin vincular";
+      const robloxId = verifiedUser?.robloxId;
+
+      let targetMember: GuildMember | null = null;
+      try {
+        targetMember = await interaction.guild?.members.fetch(targetUserId) ?? null;
+      } catch {}
+
+      const robloxAvatarUrl = robloxId
+        ? `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`
+        : (targetMember?.user.displayAvatarURL({ size: 256 }) ?? interaction.guild?.iconURL({ size: 256 }) ?? client.user?.displayAvatarURL() ?? "");
 
       // 1. Aplicar Roles al usuario
-      try {
-        const targetMember = await interaction.guild?.members.fetch(targetUserId);
-        if (targetMember) {
-          targetAvatarUrl = targetMember.user.displayAvatarURL();
-          for (const roleId of ROLES_TO_ADD) {
-            if (!targetMember.roles.cache.has(roleId)) {
-              await targetMember.roles.add(roleId).catch(err => {
-                console.warn(`[CK CONFIRM] Error asignando rol ${roleId}:`, err);
-              });
-            }
+      if (targetMember) {
+        for (const roleId of ROLES_TO_ADD) {
+          if (!targetMember.roles.cache.has(roleId)) {
+            await targetMember.roles.add(roleId).catch(err => {
+              console.warn(`[CK CONFIRM] Error asignando rol ${roleId}:`, err);
+            });
           }
         }
-      } catch (err) {
-        console.warn(`[CK CONFIRM] No se pudo obtener el miembro ${targetUserId}:`, err);
       }
 
       // 2. Base de datos: Eliminar INE y Resetear Economía
@@ -402,32 +413,43 @@ export async function handleCkButtonInteraction(
         console.error(`[CK CONFIRM] Error reseteando Economía:`, err);
       });
 
+      const unixTimestamp = Math.floor(Date.now() / 1000);
+
       // 3. Publicar en Canal de Log Staff (1538734146321391676) con MediaGallery
       const logChannel = client.channels.cache.get(LOG_CHANNEL_ID) as TextChannel | undefined;
       if (logChannel) {
         const logContainer = new ContainerBuilder()
-          .setAccentColor(0xf97316)
+          .setAccentColor(DARK_CONTAINER_COLOR)
           .addSectionComponents(
             new SectionBuilder()
               .addTextDisplayComponents(
-                new TextDisplayBuilder().setContent("### REGISTRO DE CHARACTER KILL (STAFF LOG)")
+                new TextDisplayBuilder().setContent(
+                  `### 💀 CK ENTRANTE (STAFF LOG)\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+                )
               )
-              .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(robloxAvatarUrl))
           )
           .addSeparatorComponents(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Usuario Afectado:** <@${targetUserId}>\n` +
-              `**Staff Ejecutor:** <@${staffUserId}>\n` +
-              `**Tipo de CK:** ${tipoCk}\n` +
-              `**Fecha:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-              `**Motivo:**\n${motivo}\n\n` +
-              `**Acciones Registradas:**\n` +
-              `• Registro de INE removido\n` +
-              `• Saldo bancario y efectivo reseteados a $0\n` +
-              `• Roles asignados: <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>`
+              `**Información del personaje**\n` +
+              `• Nombres y apellidos: \`${nombreIC}\`\n` +
+              `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
+              `• ID / N° INE: \`${numIne}\``
+            )
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**Información del Ck**\n` +
+              `• Motivo del Ck: \`${motivo}\`\n` +
+              `• Tipo de Ck: \`${tipoCk}\`\n` +
+              `• Aprobado por: <@${staffUserId}>\n` +
+              `• Usuario Ckeado: <@${targetUserId}>`
             )
           );
 
@@ -450,7 +472,9 @@ export async function handleCkButtonInteraction(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`-# Sonora RP Staff System · ${getFormattedDate()}`)
+            new TextDisplayBuilder().setContent(
+              `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+            )
           );
 
         await logChannel.send({
@@ -463,30 +487,46 @@ export async function handleCkButtonInteraction(
       const publicChannel = client.channels.cache.get(PUBLIC_CK_CHANNEL_ID) as TextChannel | undefined;
       if (publicChannel) {
         const publicContainer = new ContainerBuilder()
-          .setAccentColor(0xf97316)
+          .setAccentColor(DARK_CONTAINER_COLOR)
           .addSectionComponents(
             new SectionBuilder()
               .addTextDisplayComponents(
-                new TextDisplayBuilder().setContent("### REGISTRO OFICIAL DE CHARACTER KILL")
+                new TextDisplayBuilder().setContent(
+                  `### 💀 CK ENTRANTE\n<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`
+                )
               )
-              .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(robloxAvatarUrl))
           )
           .addSeparatorComponents(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**Usuario:** <@${targetUserId}>\n` +
-              `**Tipo de CK:** ${tipoCk}\n\n` +
-              `**Motivo:**\n${motivo}\n\n` +
-              `**Staff Responsable:** <@${staffUserId}>`
+              `**Información del personaje**\n` +
+              `• Nombres y apellidos: \`${nombreIC}\`\n` +
+              `• Usuario Roblox: \`${robloxName}\`${robloxId ? ` (\`${robloxId}\`)` : ""}\n` +
+              `• ID / N° INE: \`${numIne}\``
             )
           )
           .addSeparatorComponents(
             new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
           )
           .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+            new TextDisplayBuilder().setContent(
+              `**Información del Ck**\n` +
+              `• Motivo del Ck: \`${motivo}\`\n` +
+              `• Tipo de Ck: \`${tipoCk}\`\n` +
+              `• Aprobado por: <@${staffUserId}>\n` +
+              `• Usuario Ckeado: <@${targetUserId}>`
+            )
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `-# SORP System · Si crees que tu Ck es injusto, abre un ticket para apelarlo.`
+            )
           );
 
         await publicChannel.send({
