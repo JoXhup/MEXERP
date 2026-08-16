@@ -39,6 +39,7 @@ import subirCommand from "./commands/subir.js";
 import lockupCommand from "./commands/lockup.js";
 import warnCommand from "./commands/warn.js";
 import sancionCommand from "./commands/sancion.js";
+import ckCommand from "./commands/ck.js";
 
 // ─── IMPORTAR EVENTOS ─────────────────────────────────────────────────────────
 import * as readyEvent from "./events/ready.js";
@@ -100,6 +101,7 @@ const commands: Command[] = [
   lockupCommand as unknown as Command,
   warnCommand as unknown as Command,
   sancionCommand as unknown as Command,
+  ckCommand as unknown as Command,
 ];
 for (const cmd of commands) {
   const name = (cmd.data as { name: string }).name;
