@@ -55,19 +55,24 @@ export async function execute(client: Client): Promise<void> {
 
       const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
 
-      // Buscar si existe imagen banner en assets/ticketsupport.png (o fallback a assets/BienvenidasSonoraRP.png)
+      // Buscar si existe imagen banner en src/utils/Assets/ticketsupport.png o assets/ticketsupport.png
       let bannerUrl: string | undefined = undefined;
       const attachments: AttachmentBuilder[] = [];
 
-      const customBannerPath = path.join(process.cwd(), "assets", "ticketsupport.png");
-      const defaultBannerPath = path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png");
+      const candidatePaths = [
+        path.join(process.cwd(), "src", "utils", "Assets", "ticketsupport.png"),
+        path.join(process.cwd(), "assets", "ticketsupport.png"),
+        path.join(process.cwd(), "src", "utils", "Assets", "BienvenidasSonoraRP.png"),
+        path.join(process.cwd(), "assets", "BienvenidasSonoraRP.png"),
+      ];
 
-      if (fs.existsSync(customBannerPath)) {
-        attachments.push(new AttachmentBuilder(customBannerPath, { name: "ticketsupport.png" }));
-        bannerUrl = "attachment://ticketsupport.png";
-      } else if (fs.existsSync(defaultBannerPath)) {
-        attachments.push(new AttachmentBuilder(defaultBannerPath, { name: "BienvenidasSonoraRP.png" }));
-        bannerUrl = "attachment://BienvenidasSonoraRP.png";
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          attachments.push(new AttachmentBuilder(p, { name: "ticketsupport.png" }));
+          bannerUrl = "attachment://ticketsupport.png";
+          console.log(`[READY] Banner de tickets encontrado en: ${p}`);
+          break;
+        }
       }
 
       await textChan.send({

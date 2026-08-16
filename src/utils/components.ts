@@ -94,20 +94,6 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string, banne
   const container = new ContainerBuilder()
     .setAccentColor(0x5865f2); // Azul-morado Blurple
 
-  // Si se proporciona un banner (ej: attachment://ticketsupport.png), se agrega MediaGallery en la parte superior
-  if (bannerUrl) {
-    (container as any).components.push({
-      type: 12, // MediaGallery ComponentType
-      items: [{ media: { url: bannerUrl } }],
-      toJSON() {
-        return {
-          type: 12,
-          items: [{ media: { url: bannerUrl } }],
-        };
-      },
-    });
-  }
-
   container
     .addSectionComponents(
       new SectionBuilder()
@@ -139,7 +125,29 @@ export function buildPanelContainer(client: Client, guildIconUrl?: string, banne
     .addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
     )
-    .addActionRowComponents(selectRow)
+    .addActionRowComponents(selectRow);
+
+  // Si se proporciona un banner (ej: attachment://ticketsupport.png), se agrega MediaGallery abajo
+  if (bannerUrl) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    );
+    (container as any).components.push({
+      type: 12, // MediaGallery ComponentType
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
     );
