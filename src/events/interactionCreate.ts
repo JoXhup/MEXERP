@@ -51,7 +51,7 @@ import {
   handleDoAddUser,
   handleDoRemoveUser,
 } from "../handlers/ticketUserHandler.js";
-import { handleCkModalSubmit } from "../handlers/ckHandler.js";
+import { handleCkModalSubmit, handleCkButtonInteraction } from "../handlers/ckHandler.js";
 
 export const name = "interactionCreate";
 export const once = false;
@@ -81,6 +81,12 @@ export async function execute(interaction: Interaction, client: Client): Promise
     // ─── BOTONES ────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
       const id = interaction.customId;
+
+      // Botones Confirmar / Anular CK
+      if (id.startsWith("ck:confirm:") || id.startsWith("ck:cancel:")) {
+        await handleCkButtonInteraction(interaction, client);
+        return;
+      }
 
       // Multas
       if (id.startsWith("fine:pay:")) {

@@ -1,6 +1,7 @@
 import type {
   ChatInputCommandInteraction,
   ModalSubmitInteraction,
+  ButtonInteraction,
   Client,
   GuildMember,
   TextChannel,
@@ -16,6 +17,9 @@ import {
   SeparatorBuilder,
   SeparatorSpacingSize,
   ThumbnailBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from "discord.js";
 import { Ine } from "../models/Ine.js";
 import { Economy } from "../models/Economy.js";
@@ -32,15 +36,26 @@ const ROLES_TO_ADD = [
   "1531425281502613675",
 ];
 
-// Helper para timestamp
-function getTimestampString(): string {
+interface PendingCk {
+  targetUserId: string;
+  staffUserId: string;
+  tipoCk: string;
+  motivo: string;
+  imageUrls: string[];
+  createdAt: number;
+}
+
+const pendingCkStore = new Map<string, PendingCk>();
+
+// Helper para formato de fecha limpio
+function getFormattedDate(): string {
   const now = new Date();
   return now.toLocaleDateString("es-MX", {
     timeZone: "America/Mexico_City",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }) + " " + now.toLocaleTimeString("es-MX", {
+  }) + " · " + now.toLocaleTimeString("es-MX", {
     timeZone: "America/Mexico_City",
     hour: "2-digit",
     minute: "2-digit",
@@ -73,7 +88,7 @@ export async function handleCkGenerarCommand(
 
   const targetUser = interaction.options.getUser("usuario", true);
 
-  // Construir Modal Raw con FileUpload (type 19) usando REST directo
+  // Modal Raw con FileUpload (type 19) usando REST directo
   const rawModalData = {
     title: "Generar Character Kill (CK)",
     custom_id: `ck:modal:generar:${targetUser.id}`,
@@ -81,7 +96,7 @@ export async function handleCkGenerarCommand(
       {
         type: 18,
         label: "Tipo de CK",
-        description: "Selecciona la modalidad de CK a ejecutar",
+        description: "Selecciona la modalidad de CK a aplicar",
         component: {
           type: 3, // StringSelect
           custom_id: "tipo_ck",
@@ -120,7 +135,7 @@ export async function handleCkGenerarCommand(
           type: 4, // TextInput Paragraph
           custom_id: "motivo",
           style: 2,
-          placeholder: "Describe detalladamente la razón o justificación del CK...",
+          placeholder: "Describe la razón o justificación del CK...",
           required: true,
           min_length: 10,
           max_length: 1000,
@@ -129,7 +144,7 @@ export async function handleCkGenerarCommand(
       {
         type: 18,
         label: "Pruebas o evidencias de CK",
-        description: "Imágenes o videos (Solo visibles en el canal de logs)",
+        description: "Imágenes o videos (Solo visibles en canal de logs)",
         component: {
           type: 19, // FileUpload
           custom_id: "pruebas",
@@ -161,11 +176,9 @@ export async function handleCkModalSubmit(
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
-    // 1. Extraer datos del modal
     let tipoCk = "CK";
     let motivo = "Sin motivo especificado";
 
-    // Extraer campos
     const rawComponents =
       (interaction as any).data?.components ?? (interaction as any).components ?? [];
     for (const row of rawComponents) {
@@ -182,13 +195,12 @@ export async function handleCkModalSubmit(
       }
     }
 
-    // Fallback por getTextInputValue si aplica
     try {
       const m = interaction.fields.getTextInputValue("motivo");
       if (m) motivo = m;
     } catch {}
 
-    // 2. Extraer archivos subidos (resolved.attachments)
+    // Extraer archivos adjuntos
     const rawResolved = getRawResolved(interaction.id);
     const resolvedData =
       rawResolved ??
@@ -198,171 +210,317 @@ export async function handleCkModalSubmit(
 
     const attachmentsMap = resolvedData?.attachments ?? {};
     const imageUrls: string[] = [];
-
     for (const att of Object.values(attachmentsMap) as any[]) {
       if (att?.url) imageUrls.push(att.url);
     }
 
-    console.log(`[CK GENERAR] Archivos adjuntos encontrados (${imageUrls.length}):`, imageUrls);
-
-    // 3. Obtener miembro objetivo
-    let targetUserTag = `<@${targetUserId}>`;
-    let targetAvatarUrl = interaction.guild.iconURL() ?? "";
-    try {
-      const targetMember = await interaction.guild.members.fetch(targetUserId);
-      if (targetMember) {
-        targetUserTag = `<@${targetMember.id}> (${targetMember.user.tag})`;
-        targetAvatarUrl = targetMember.user.displayAvatarURL();
-
-        // Asignar los 3 roles requeridos si no los tiene
-        for (const roleId of ROLES_TO_ADD) {
-          if (!targetMember.roles.cache.has(roleId)) {
-            await targetMember.roles.add(roleId).catch(err => {
-              console.warn(`[CK GENERAR] No se pudo asignar el rol ${roleId}:`, err);
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[CK GENERAR] No se pudo obtener el miembro ${targetUserId} en el servidor:`, err);
-    }
-
-    // 4. Resetear datos en la base de datos (Eliminar INE y reseteo de economía)
-    await Ine.deleteOne({ discordId: targetUserId }).catch(err => {
-      console.error(`[CK GENERAR] Error al eliminar INE de ${targetUserId}:`, err);
+    // Registrar pendiente en memoria para confirmación
+    const pendingId = `${targetUserId}_${Date.now()}`;
+    pendingCkStore.set(pendingId, {
+      targetUserId,
+      staffUserId: interaction.user.id,
+      tipoCk,
+      motivo,
+      imageUrls,
+      createdAt: Date.now(),
     });
 
-    await Economy.findOneAndUpdate(
-      { discordId: targetUserId },
-      { money: 0, bank: 0, blackMoney: 0 },
-      { upsert: false },
-    ).catch(err => {
-      console.error(`[CK GENERAR] Error al resetear economía de ${targetUserId}:`, err);
-    });
-
-    // 5. Publicar en Canal de Logs (CON imágenes de evidencia)
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID) as TextChannel | undefined;
-    if (logChannel) {
-      const logContainer = new ContainerBuilder()
-        .setAccentColor(0xf97316) // Naranja ROL
-        .addSectionComponents(
-          new SectionBuilder()
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent("📋 **REGISTRO OFICIAL DE CK (STAFF LOG)**")
-            )
-            .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
-        )
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            `👤 **Usuario Sancionado:** <@${targetUserId}>\n` +
-            `🛡️ **Staff Ejecutor:** <@${interaction.user.id}>\n` +
-            `💀 **Tipo de CK:** **${tipoCk}**\n` +
-            `📝 **Motivo:**\n${motivo}\n\n` +
-            `💳 **INE Eliminada:** Sí (Registros removidos)\n` +
-            `💰 **Dinero IC:** Reseteado a $0\n` +
-            `🎭 **Roles Asignados:** <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>\n` +
-            `📅 **Fecha de Registro:** <t:${Math.floor(Date.now() / 1000)}:F>`
+    // Construir Container de Confirmación limpio y estructurado
+    const avatarUrl = interaction.user.displayAvatarURL({ size: 256 });
+    const confirmContainer = new ContainerBuilder()
+      .setAccentColor(0xf97316)
+      .addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### Confirmación de Character Kill (CK)")
           )
-        );
-
-      // Si hay imágenes, agregamos MediaGallery al log
-      if (imageUrls.length > 0) {
-        const galleryItems = imageUrls.slice(0, 10).map(url => ({ media: { url } }));
-        logContainer.addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        );
-        (logContainer as any).components.push({
-          type: 12, // Media Gallery
-          items: galleryItems,
-          toJSON() {
-            return { type: 12, items: galleryItems };
-          },
-        });
-      }
-
-      logContainer
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl))
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**Usuario Afectado:** <@${targetUserId}>\n` +
+          `**Tipo de CK:** ${tipoCk}\n` +
+          `**Motivo:** ${motivo}\n` +
+          `**Evidencias Adjuntas:** ${imageUrls.length} archivo(s)`
         )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`-# Sonora RP Staff System · ${getTimestampString()}`)
-        );
-
-      await logChannel.send({
-        components: [logContainer],
-        flags: MessageFlags.IsComponentsV2,
-      }).catch(err => {
-        console.error(`[CK GENERAR] Error enviando log a ${LOG_CHANNEL_ID}:`, err);
-      });
-    }
-
-    // 6. Publicar en Canal Público de CK (SIN imágenes de evidencia)
-    const publicChannel = client.channels.cache.get(PUBLIC_CK_CHANNEL_ID) as TextChannel | undefined;
-    if (publicChannel) {
-      const publicContainer = new ContainerBuilder()
-        .setAccentColor(0xf97316) // Naranja ROL
-        .addSectionComponents(
-          new SectionBuilder()
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent("💀 **REGISTRO OFICIAL DE CHARACTER KILL**")
-            )
-            .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**Acciones que se ejecutarán:**\n` +
+          `• Eliminación permanente del registro de INE.\n` +
+          `• Reseteo del saldo bancario y efectivo a $0.\n` +
+          `• Asignación de roles: <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>.\n` +
+          `• Publicación del informe en canal de logs (<#${LOG_CHANNEL_ID}>).\n` +
+          `• Publicación de anuncio en canal público (<#${PUBLIC_CK_CHANNEL_ID}>).`
         )
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ck:confirm:${pendingId}`)
+            .setLabel("Confirmar CK")
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`ck:cancel:${pendingId}`)
+            .setLabel("Anular CK")
+            .setStyle(ButtonStyle.Danger)
         )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            `👤 **Usuario:** <@${targetUserId}>\n` +
-            `💀 **Tipo de CK:** **${tipoCk}**\n` +
-            `📝 **Motivo del CK:**\n${motivo}\n\n` +
-            `🛡️ **Staff Responsable:** <@${interaction.user.id}>`
-          )
-        )
-        .addSeparatorComponents(
-          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-        )
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getTimestampString()}`)
-        );
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+      );
 
-      await publicChannel.send({
-        components: [publicContainer],
-        flags: MessageFlags.IsComponentsV2,
-      }).catch(err => {
-        console.error(`[CK GENERAR] Error enviando anuncio a ${PUBLIC_CK_CHANNEL_ID}:`, err);
-      });
-    }
-
-    // 7. Responder al Staff con confirmación limpia
     await interaction.editReply({
-      components: [
-        buildSuccessContainer(
-          "✅ Character Kill Procesado",
-          `👤 **Usuario:** <@${targetUserId}>\n` +
-          `💀 **Tipo:** ${tipoCk}\n` +
-          `🗑️ **Datos Removidos:** INE eliminada · Dinero IC reseteado a $0\n` +
-          `🎭 **Roles Asignados:** <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>\n` +
-          `📋 **Log con pruebas:** <#${LOG_CHANNEL_ID}>\n` +
-          `📢 **Anuncio público:** <#${PUBLIC_CK_CHANNEL_ID}>`,
-          client,
-        ),
-      ],
+      components: [confirmContainer],
       flags: MessageFlags.IsComponentsV2,
     });
   } catch (err) {
-    console.error("[CK GENERAR] Error procesando submit de modal:", err);
+    console.error("[CK MODAL SUBMIT] Error:", err);
     await interaction.editReply({
       components: [
-        buildErrorContainer(
-          "Ocurrió un error inesperado al procesar el Character Kill (CK).",
-          client,
-        ),
+        buildErrorContainer("Error al procesar el formulario de CK.", client),
       ],
       flags: MessageFlags.IsComponentsV2,
     });
+  }
+}
+
+// ─── HANDLER DE BOTONES CONFIRMAR / ANULAR CK ─────────────────────────────────
+export async function handleCkButtonInteraction(
+  interaction: ButtonInteraction,
+  client: Client,
+): Promise<void> {
+  const parts = interaction.customId.split(":");
+  if (parts[0] !== "ck") return;
+
+  const action = parts[1]; // confirm | cancel
+  const pendingId = parts[2];
+
+  if (!pendingId) return;
+
+  const pending = pendingCkStore.get(pendingId);
+  if (!pending) {
+    await interaction.reply({
+      components: [
+        buildErrorContainer("Esta solicitud de CK ha expirado o ya fue procesada.", client),
+      ],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Verificar que quien confirma/anula sea quien ejecutó el comando o un Administrador
+  const member = interaction.member as GuildMember;
+  const isOwner = interaction.user.id === pending.staffUserId;
+  const isAdmin = member?.permissions?.has(PermissionFlagsBits.Administrator);
+
+  if (!isOwner && !isAdmin) {
+    await interaction.reply({
+      components: [
+        buildErrorContainer("Solo el staff que inició el CK o un Administrador puede confirmar o anular esta acción.", client),
+      ],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await interaction.deferUpdate();
+
+  // ─── ACCION: ANULAR CK ──────────────────────────────────────────────────────
+  if (action === "cancel") {
+    pendingCkStore.delete(pendingId);
+
+    const cancelContainer = new ContainerBuilder()
+      .setAccentColor(0xef4444)
+      .addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### Proceso de Character Kill Anulado")
+          )
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `La solicitud de CK para <@${pending.targetUserId}> fue cancelada por <@${interaction.user.id}>. No se aplicó ningún cambio.`
+        )
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+      );
+
+    await interaction.editReply({
+      components: [cancelContainer],
+      flags: MessageFlags.IsComponentsV2,
+    });
+    return;
+  }
+
+  // ─── ACCION: CONFIRMAR CK ───────────────────────────────────────────────────
+  if (action === "confirm") {
+    try {
+      const { targetUserId, tipoCk, motivo, imageUrls, staffUserId } = pending;
+      let targetAvatarUrl = interaction.guild?.iconURL() ?? "";
+
+      // 1. Aplicar Roles al usuario
+      try {
+        const targetMember = await interaction.guild?.members.fetch(targetUserId);
+        if (targetMember) {
+          targetAvatarUrl = targetMember.user.displayAvatarURL();
+          for (const roleId of ROLES_TO_ADD) {
+            if (!targetMember.roles.cache.has(roleId)) {
+              await targetMember.roles.add(roleId).catch(err => {
+                console.warn(`[CK CONFIRM] Error asignando rol ${roleId}:`, err);
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[CK CONFIRM] No se pudo obtener el miembro ${targetUserId}:`, err);
+      }
+
+      // 2. Base de datos: Eliminar INE y Resetear Economía
+      await Ine.deleteOne({ discordId: targetUserId }).catch(err => {
+        console.error(`[CK CONFIRM] Error eliminando INE:`, err);
+      });
+
+      await Economy.findOneAndUpdate(
+        { discordId: targetUserId },
+        { money: 0, bank: 0, blackMoney: 0 },
+        { upsert: false },
+      ).catch(err => {
+        console.error(`[CK CONFIRM] Error reseteando Economía:`, err);
+      });
+
+      // 3. Publicar en Canal de Log Staff (1538734146321391676) con MediaGallery
+      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID) as TextChannel | undefined;
+      if (logChannel) {
+        const logContainer = new ContainerBuilder()
+          .setAccentColor(0xf97316)
+          .addSectionComponents(
+            new SectionBuilder()
+              .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent("### REGISTRO DE CHARACTER KILL (STAFF LOG)")
+              )
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**Usuario Afectado:** <@${targetUserId}>\n` +
+              `**Staff Ejecutor:** <@${staffUserId}>\n` +
+              `**Tipo de CK:** ${tipoCk}\n` +
+              `**Fecha:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
+              `**Motivo:**\n${motivo}\n\n` +
+              `**Acciones Registradas:**\n` +
+              `• Registro de INE removido\n` +
+              `• Saldo bancario y efectivo reseteados a $0\n` +
+              `• Roles asignados: <@&1529584400126181516>, <@&1528974991813771304>, <@&1531425281502613675>`
+            )
+          );
+
+        if (imageUrls.length > 0) {
+          const galleryItems = imageUrls.slice(0, 10).map(url => ({ media: { url } }));
+          logContainer.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          );
+          (logContainer as any).components.push({
+            type: 12,
+            items: galleryItems,
+            toJSON() {
+              return { type: 12, items: galleryItems };
+            },
+          });
+        }
+
+        logContainer
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`-# Sonora RP Staff System · ${getFormattedDate()}`)
+          );
+
+        await logChannel.send({
+          components: [logContainer],
+          flags: MessageFlags.IsComponentsV2,
+        }).catch(err => console.error("[CK CONFIRM] Error enviando log:", err));
+      }
+
+      // 4. Publicar en Canal Público (1538735086269108234) SIN imágenes
+      const publicChannel = client.channels.cache.get(PUBLIC_CK_CHANNEL_ID) as TextChannel | undefined;
+      if (publicChannel) {
+        const publicContainer = new ContainerBuilder()
+          .setAccentColor(0xf97316)
+          .addSectionComponents(
+            new SectionBuilder()
+              .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent("### REGISTRO OFICIAL DE CHARACTER KILL")
+              )
+              .setThumbnailAccessory(new ThumbnailBuilder().setURL(targetAvatarUrl))
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**Usuario:** <@${targetUserId}>\n` +
+              `**Tipo de CK:** ${tipoCk}\n\n` +
+              `**Motivo:**\n${motivo}\n\n` +
+              `**Staff Responsable:** <@${staffUserId}>`
+            )
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`-# Sonora RP System · ${getFormattedDate()}`)
+          );
+
+        await publicChannel.send({
+          components: [publicContainer],
+          flags: MessageFlags.IsComponentsV2,
+        }).catch(err => console.error("[CK CONFIRM] Error enviando anuncio público:", err));
+      }
+
+      pendingCkStore.delete(pendingId);
+
+      // 5. Responder confirmación final
+      const successContainer = buildSuccessContainer(
+        "Character Kill Procesado Exitosamente",
+        `**Usuario:** <@${targetUserId}>\n` +
+        `**Tipo:** ${tipoCk}\n` +
+        `**INE:** Eliminada de la base de datos\n` +
+        `**Economía:** Reseteada a $0\n` +
+        `**Log Registrado:** <#${LOG_CHANNEL_ID}>\n` +
+        `**Anuncio Público:** <#${PUBLIC_CK_CHANNEL_ID}>`,
+        client,
+      );
+
+      await interaction.editReply({
+        components: [successContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    } catch (err) {
+      console.error("[CK CONFIRM] Error procesando confirmación:", err);
+      await interaction.editReply({
+        components: [
+          buildErrorContainer("Error inesperado al confirmar el CK.", client),
+        ],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    }
   }
 }
