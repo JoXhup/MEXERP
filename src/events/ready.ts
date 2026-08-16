@@ -3,7 +3,7 @@ import { ActivityType, MessageFlags, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { cleanExpiredCooldowns } from "../utils/cooldown.js";
-import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer } from "../utils/components.js";
+import { buildPanelContainer, buildJornadasPanelContainer, buildAperturasPanelContainer, buildWarnListPanelContainer, buildNormativaPanelContainer } from "../utils/components.js";
 import { config } from "../config.js";
 import { restoreActiveArrests } from "../handlers/arrestHandler.js";
 import { initLockupExpirationChecker } from "../handlers/lockupHandler.js";
@@ -187,7 +187,56 @@ export async function execute(client: Client): Promise<void> {
     console.error("[READY] Error enviando panel de Tabla de Sanciones:", warnlistErr);
   }
 
-  // 4. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
+  // 4. Inicializar Panel de Normativa General en el canal 1528865749987491990
+  try {
+    const NORMATIVA_CHANNEL_ID = "1528865749987491990";
+    const normativaChan = await client.channels.fetch(NORMATIVA_CHANNEL_ID).catch(() => null);
+
+    if (normativaChan && normativaChan.isTextBased()) {
+      const textChan = normativaChan as TextChannel;
+      const messages = await textChan.messages.fetch({ limit: 20 }).catch(() => null);
+      const existingPanel = messages?.find(m => m.author.id === client.user?.id && m.components.length > 0);
+      if (existingPanel) {
+        await existingPanel.delete().catch(() => null);
+        console.log("[READY] Panel antiguo de Normativa General eliminado.");
+      }
+
+      const guildIconUrl = textChan.guild?.iconURL({ size: 256 }) ?? undefined;
+
+      let bannerUrl: string | undefined = undefined;
+      const attachments: AttachmentBuilder[] = [];
+
+      const candidatePaths = [
+        path.join(process.cwd(), "src", "utils", "Assets", "ReglasSORP.jpg"),
+        path.join(process.cwd(), "assets", "ReglasSORP.jpg"),
+        path.join(process.cwd(), "ReglasSORP.jpg"),
+        path.join(process.cwd(), "src", "utils", "Assets", "ReglasSORP.png"),
+        path.join(process.cwd(), "assets", "ReglasSORP.png"),
+        path.join(process.cwd(), "ReglasSORP.png"),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          attachments.push(new AttachmentBuilder(p, { name: "ReglasSORP.jpg" }));
+          bannerUrl = "attachment://ReglasSORP.jpg";
+          console.log(`[READY] Banner de Normativa General encontrado en: ${p}`);
+          break;
+        }
+      }
+
+      await textChan.send({
+        components: [buildNormativaPanelContainer(client, guildIconUrl, bannerUrl)],
+        files: attachments,
+        // @ts-ignore — Components V2 flag required
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[READY] Panel de Normativa General publicado automáticamente en el canal.");
+    }
+  } catch (normativaErr) {
+    console.error("[READY] Error enviando panel de Normativa General:", normativaErr);
+  }
+
+  // 5. Restaurar arrestos activos, inicializar expirador de lockups y base de datos de conocimiento
   await restoreActiveArrests(client);
   initLockupExpirationChecker(client);
   await documentCache.loadAllFromDb();

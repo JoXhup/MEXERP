@@ -898,3 +898,76 @@ export function buildWarnListPanelContainer(
 
   return container;
 }
+
+// ─── PANEL NORMATIVA GENERAL (COMPONENTS V2 CONTAINER) ────────────────────────
+export function buildNormativaPanelContainer(
+  client: Client,
+  guildIconUrl?: string,
+  bannerUrl?: string,
+): ContainerBuilder {
+  const iconUrl = guildIconUrl ?? client.user?.displayAvatarURL({ size: 256 }) ?? "";
+
+  const headerContent = `# 📜 NORMATIVA GENERAL\n**Reglamento Oficial & Normas de la Comunidad — Sonora RP**`;
+
+  const bodyContent = [
+    "En este documento encontrarás la normativa general que rige dentro de **Sonora RP**, incluyendo conceptos de Roleplay, normativa legal e ilegal, uso de armas, comandos `/me` y `/do`, normas de Discord y sistema de sanciones.",
+    "",
+    "Su lectura y cumplimiento es **obligatorio** para todos los miembros de la comunidad, independientemente de su rango o función.",
+    "",
+    "*El desconocimiento de la normativa no exime de su cumplimiento ni de las sanciones correspondientes.*",
+  ].join("\n");
+
+  const linkButtonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Normativa General")
+      .setStyle(ButtonStyle.Link)
+      .setURL("https://docs.google.com/document/d/1bJxwBK7E1NH4QETysCzsRS_EkeRcDPIMclDF0AsbfEM/edit?tab=t.0")
+      .setEmoji("📁")
+  );
+
+  const container = new ContainerBuilder()
+    .setAccentColor(0x3b82f6) // Azul rey / Blurple elegante
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(headerContent)
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(bodyContent)
+    );
+
+  if (bannerUrl) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    );
+    (container as any).components.push({
+      type: 12, // MediaGallery
+      items: [{ media: { url: bannerUrl } }],
+      toJSON() {
+        return {
+          type: 12,
+          items: [{ media: { url: bannerUrl } }],
+        };
+      },
+    });
+  }
+
+  container
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addActionRowComponents(linkButtonRow)
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# SORP System · ${getFooterTimestamp()}`)
+    );
+
+  return container;
+}
