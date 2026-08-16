@@ -177,6 +177,7 @@ export async function execute(client: Client): Promise<void> {
     const { default: lockupCommand } = await import("../commands/lockup.js");
     const { default: warnCommand } = await import("../commands/warn.js");
     const { default: sancionCommand } = await import("../commands/sancion.js");
+    const { default: ckCommand } = await import("../commands/ck.js");
 
     const commandsPayload = [
       panelCommand, statsCommand, contratarCommand, despedirCommand, ineCommand,
@@ -184,7 +185,7 @@ export async function execute(client: Client): Promise<void> {
       transferenciasCommand, cobrarCommand, lavarCommand, historialCommand, economiaCommand,
       multarCommand, multasCommand, cmdCommand, bienvenidaCommand, pingCommand,
       tryoutCommand, narcopostCommand, subirCommand, lockupCommand,
-      warnCommand, sancionCommand
+      warnCommand, sancionCommand, ckCommand
     ].map(c => c.data);
     commandsPayload.push(jornadaData.toJSON() as any);
     commandsPayload.push(profileData.toJSON() as any);
