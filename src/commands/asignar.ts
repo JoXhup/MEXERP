@@ -27,7 +27,7 @@ const data = new SlashCommandBuilder()
     sub
       .setName("all")
       .setDescription(
-        "Quita todos los roles, asigna rol no verificado, reinicia apodo a todos (excepto al Owner) y borra INEs."
+        "Restablece roles y apodos (excepto Owner) y borra los registros de INE."
       )
   );
 
