@@ -375,6 +375,7 @@ export async function execute(client: Client): Promise<void> {
     const { default: ckCommand } = await import("../commands/ck.js");
     const { default: narcoCommand } = await import("../commands/narco.js");
     const { default: periodicoCommand } = await import("../commands/periodico.js");
+    const { default: asignarCommand } = await import("../commands/asignar.js");
 
     const commandsPayload = [
       panelCommand, statsCommand, contratarCommand, despedirCommand, ineCommand,
@@ -382,7 +383,8 @@ export async function execute(client: Client): Promise<void> {
       transferenciasCommand, cobrarCommand, lavarCommand, historialCommand, economiaCommand,
       multarCommand, multasCommand, cmdCommand, bienvenidaCommand, pingCommand,
       tryoutCommand, narcopostCommand, subirCommand, lockupCommand,
-      warnCommand, sancionCommand, ckCommand, narcoCommand, periodicoCommand
+      warnCommand, sancionCommand, ckCommand, narcoCommand, periodicoCommand,
+      asignarCommand
     ].map(c => c.data);
     commandsPayload.push(jornadaData.toJSON() as any);
     commandsPayload.push(profileData.toJSON() as any);

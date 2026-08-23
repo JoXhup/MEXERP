@@ -35,6 +35,12 @@ import tryoutCommand from "./commands/tryout.js";
 import narcopostCommand from "./commands/narcopost.js";
 import subirCommand from "./commands/subir.js";
 import lockupCommand from "./commands/lockup.js";
+import warnCommand from "./commands/warn.js";
+import sancionCommand from "./commands/sancion.js";
+import ckCommand from "./commands/ck.js";
+import narcoCommand from "./commands/narco.js";
+import periodicoCommand from "./commands/periodico.js";
+import asignarCommand from "./commands/asignar.js";
 
 const commands = [
   panelCommand,
@@ -61,6 +67,12 @@ const commands = [
   narcopostCommand,
   subirCommand,
   lockupCommand,
+  warnCommand,
+  sancionCommand,
+  ckCommand,
+  narcoCommand,
+  periodicoCommand,
+  asignarCommand,
 ].map(cmd => cmd.data);
 commands.push(jornadaData.toJSON() as any);
 commands.push(profileData.toJSON() as any);

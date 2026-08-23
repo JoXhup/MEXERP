@@ -24,13 +24,6 @@ export const name = Events.MessageCreate;
 export async function execute(message: Message): Promise<void> {
   if (message.author.bot || !message.content) return;
 
-  // ─── Asistencia de IA en Tickets (Mientras el ticket esté sin reclamar) ─────
-  const ticket = await Ticket.findOne({ channelId: message.channelId });
-  if (ticket && ticket.status === "open" && !ticket.claimedBy) {
-    await handleTicketAIResponse(message, ticket);
-    return;
-  }
-
   // ─── Canal de IA General ───────────────────────────────────────────────────
   if (message.channelId === AI_CHANNEL_ID) {
     await handleAIChannel(message);
@@ -78,79 +71,6 @@ function buildDynamicGuildChannelsContext(guild: any): string {
   } catch (err) {
     console.error("[DYNAMIC_CHANNELS] Error extrayendo canales:", err);
     return "";
-  }
-}
-
-// ─── Handler de Asistencia IA en Tickets (Sin Reclamar) ───────────────────────
-async function handleTicketAIResponse(message: Message, ticket: any): Promise<void> {
-  const userQuery = message.content.trim();
-  if (!userQuery || userQuery.length < 1) return;
-
-  const guildId = message.guildId ?? "global";
-
-  // Mostrar "escribiendo..." en el canal del ticket
-  if ("sendTyping" in message.channel) {
-    await (message.channel as any).sendTyping().catch(() => {});
-  }
-
-  // Cargar base de datos / conocimiento del servidor
-  await documentCache.ensureLoaded(guildId);
-  const combined = documentCache.getCombined(guildId, userQuery);
-
-  if (!config.groqApiKey) return;
-
-  const cat = CATEGORIES[ticket.category];
-  const catLabel = cat?.label ?? ticket.category;
-
-  const dynamicChannels = buildDynamicGuildChannelsContext(message.guild);
-
-  const systemPrompt =
-    `${buildAISystemPrompt(combined, dynamicChannels)}\n\n` +
-    `ASISTENTE VIRTUAL DE SOPORTE INTERNO — SONORA RP:\n` +
-    `Estás respondiendo en el ticket de la categoría "${catLabel}" abierto por <@${ticket.ownerId}>.\n` +
-    `Mantén el hilo de la conversación recordando los mensajes anteriores de la charla.`;
-
-  // Construir historial de mensajes recientes (últimos 8) para continuidad de chat
-  const historyMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-    { role: "system", content: systemPrompt },
-  ];
-
-  try {
-    const recent = await message.channel.messages.fetch({ limit: 8 }).catch(() => null);
-    if (recent) {
-      const sorted = Array.from(recent.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-      for (const m of sorted) {
-        if (!m.content || m.content.startsWith(":") || m.components?.length > 0) continue;
-        const role = m.author.id === message.client.user?.id ? "assistant" : "user";
-        historyMessages.push({ role, content: m.content });
-      }
-    } else {
-      historyMessages.push({ role: "user", content: userQuery });
-    }
-  } catch {
-    historyMessages.push({ role: "user", content: userQuery });
-  }
-
-  try {
-    let respuesta = await queryGroq({
-      messages: historyMessages,
-      temperature: 0.2,
-      max_tokens: 1000,
-    });
-
-    if (respuesta) {
-      respuesta = cleanRepetitiveResponse(respuesta);
-      if (respuesta.length > 1900) {
-        respuesta = respuesta.substring(0, 1900) + "...";
-      }
-      await message.reply({ content: respuesta, allowedMentions: { repliedUser: false } });
-    }
-  } catch (err: any) {
-    console.error("[TICKET_AI] Error procesando respuesta de IA en ticket:", err.message);
-    await message.reply({
-      content: "¡Hola! En este momento mis sistemas de IA están ajustando su carga, pero he registrado tu consulta. Un miembro del equipo de Staff te atenderá aquí en breve. 🙌",
-      allowedMentions: { repliedUser: false },
-    }).catch(() => null);
   }
 }
 
