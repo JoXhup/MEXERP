@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonora RP - Verificación Oficial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #030712;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    .bg-mesh { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: 1; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; }
+    .blob-1 { width: 400px; height: 400px; background: linear-gradient(135deg, #10b981, #06b6d4); top: -80px; left: -80px; }
+    .blob-2 { width: 380px; height: 380px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); bottom: -80px; right: -80px; }
+    .glass-card {
+      position: relative;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(40px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 32px;
+      padding: 3rem 2rem;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+    }
+    h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.8rem; }
+    p { font-size: 0.95rem; color: #94a3b8; line-height: 1.6; margin-bottom: 1.5rem; }
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      margin-bottom: 1rem;
+    }
+    .footer-text { font-size: 0.75rem; color: #64748b; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+  <div class="glass-card">
+    <div class="badge">🟢 Servidor Activo 24/7</div>
+    <h1>Sonora RP Verificación</h1>
+    <p>Portal oficial de autenticación y vinculación OAuth 2.0 de Roblox para la comunidad de <strong>Sonora Roleplay</strong>.</p>
+    <p>Para iniciar tu verificación, dirígete al canal de Discord <code>#verificacion</code> y presiona el botón <strong>Iniciar</strong>.</p>
+    <div class="footer-text">Sonora RP System · Powered by Firebase & Roblox OAuth 2.0</div>
+  </div>
+</body>
+</html>

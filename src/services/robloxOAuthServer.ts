@@ -23,7 +23,7 @@ import { getFooterTimestamp } from "../utils/components.js";
 
 export const ROBLOX_CLIENT_ID = process.env.ROBLOX_CLIENT_ID || "4269442493051477939";
 export const ROBLOX_CLIENT_SECRET = process.env.ROBLOX_CLIENT_SECRET || "RBX-yTVBuq7blUyWrCvmwEMGDwXNDeAMHiQ9hXJHsYtEerntbf2ccDObK9K1FvAhrxUu";
-export const ROBLOX_REDIRECT_URI = process.env.ROBLOX_REDIRECT_URI || "http://localhost:3000/oauth/callback";
+export const ROBLOX_REDIRECT_URI = process.env.ROBLOX_REDIRECT_URI || "https://joxhup.web.app/oauth/callback";
 export const OAUTH_PORT = Number(process.env.PORT || 3000);
 
 interface OAuthState {
@@ -48,12 +48,17 @@ setInterval(() => {
  * Genera la URL de autorización oficial de Roblox para un usuario de Discord
  */
 export function generateRobloxOAuthUrl(discordUserId: string, guildId: string): string {
-  const state = crypto.randomBytes(16).toString("hex");
-  stateMap.set(state, {
+  // Crear token de estado firmado con HMAC para funcionamiento stateless y serverless
+  const payload = {
     discordUserId,
     guildId,
     createdAt: Date.now(),
-  });
+  };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const sig = crypto.createHmac("sha256", ROBLOX_CLIENT_SECRET).update(payloadB64).digest("hex");
+  const state = `${payloadB64}.${sig}`;
+
+  stateMap.set(state, payload);
 
   const authUrl = new URL("https://apis.roblox.com/oauth/v1/authorize");
   authUrl.searchParams.set("client_id", ROBLOX_CLIENT_ID);
