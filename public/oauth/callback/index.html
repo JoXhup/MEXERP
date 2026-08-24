@@ -3,117 +3,284 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verificación - Sonora RP</title>
+  <title>Sonora RP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      background-color: #030712;
-      color: #f8fafc;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      background: #000;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
       overflow: hidden;
       position: relative;
     }
-    .bg-mesh { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: 1; }
-    .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; animation: floatBlob 18s infinite ease-in-out alternate; }
-    .blob-1 { width: 450px; height: 450px; background: linear-gradient(135deg, #10b981, #06b6d4); top: -100px; left: -100px; }
-    .blob-2 { width: 400px; height: 400px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); bottom: -100px; right: -100px; animation-duration: 20s; animation-delay: -5s; }
-    .blob-3 { width: 320px; height: 320px; background: linear-gradient(135deg, #059669, #3b82f6); top: 40%; left: 50%; transform: translate(-50%, -50%); animation-duration: 14s; }
 
-    @keyframes floatBlob {
-      0% { transform: translate(0px, 0px) scale(1); }
-      50% { transform: translate(40px, -60px) scale(1.12); }
-      100% { transform: translate(-30px, 50px) scale(0.92); }
+    /* ── Orbs animados ── */
+    .orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0;
+      animation: orbFloat linear infinite;
+    }
+    .orb-1 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #1a6b3a 0%, transparent 70%);
+      top: -120px; left: -120px;
+      animation-duration: 20s;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #0f4a2a 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+      animation-duration: 25s;
+      animation-delay: -8s;
+    }
+    .orb-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, #14532d 0%, transparent 70%);
+      top: 40%; left: 55%;
+      animation-duration: 18s;
+      animation-delay: -4s;
     }
 
-    .glass-card {
+    @keyframes orbFloat {
+      0%   { opacity: 0;    transform: translate(0, 0) scale(1); }
+      10%  { opacity: 0.6; }
+      50%  { transform: translate(30px, -40px) scale(1.08); opacity: 0.5; }
+      90%  { opacity: 0.6; }
+      100% { opacity: 0;    transform: translate(-20px, 30px) scale(0.94); }
+    }
+
+    /* ── Ruido / grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* ── Card principal ── */
+    .card {
       position: relative;
       z-index: 10;
-      background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(40px) saturate(200%);
-      -webkit-backdrop-filter: blur(40px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.65), 0 18px 36px -18px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.25);
-      border-radius: 36px;
-      padding: 3rem 2.25rem;
-      max-width: 440px;
       width: 90%;
+      max-width: 380px;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(48px) saturate(180%);
+      -webkit-backdrop-filter: blur(48px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 28px;
+      padding: 48px 36px 40px;
       text-align: center;
-      animation: iosSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        0 32px 64px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      opacity: 0;
+      transform: translateY(24px) scale(0.97);
+      animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
     }
 
-    @keyframes iosSlideUp {
-      from { opacity: 0; transform: translateY(40px) scale(0.96); }
+    @keyframes cardIn {
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .avatar-container { position: relative; width: 110px; height: 110px; margin: 0 auto 1.75rem auto; }
-    .avatar-pulse-ring {
-      position: absolute; inset: -4px; border-radius: 50%;
-      background: linear-gradient(135deg, #10b981, #3b82f6);
-      animation: spinGlow 8s linear infinite; opacity: 0.85;
-      filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6));
+    /* ── Icono / avatar ── */
+    .icon-wrap {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 28px;
+      position: relative;
     }
-    @keyframes spinGlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .avatar-img-wrap {
-      position: relative; z-index: 2; width: 100%; height: 100%;
-      border-radius: 50%; border: 3px solid #0f172a; overflow: hidden;
-      background: #1e293b; display: flex; align-items: center; justify-content: center;
+    .icon-bg {
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #22c55e, #16a34a, #15803d, #22c55e);
+      animation: spinSlow 6s linear infinite;
+      opacity: 0;
+      transition: opacity 0.4s;
     }
-    .avatar-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .icon-bg.visible { opacity: 1; }
+    .icon-inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #0a0a0a;
+      border: 2px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      overflow: hidden;
+    }
+    .icon-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    @keyframes spinSlow {
+      to { transform: rotate(360deg); }
+    }
 
-    .ios-badge {
-      display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;
-      border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em;
-      text-transform: uppercase; margin-bottom: 1.25rem;
-    }
-    .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); }
-    .badge-error { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.35); }
-    .badge-loading { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.35); }
-
-    h1 { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.85rem; color: #ffffff; }
-    p { font-size: 0.95rem; line-height: 1.65; color: #94a3b8; margin-bottom: 1.75rem; }
-    .user-tag {
-      display: inline-block; background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15); padding: 4px 12px;
-      border-radius: 12px; font-weight: 700; color: #38bdf8; font-size: 0.95rem;
-    }
-    .ios-hint {
-      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px; padding: 12px 16px; font-size: 0.85rem; color: #cbd5e1;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .footer-text { margin-top: 1.75rem; font-size: 0.75rem; color: #64748b; font-weight: 500; }
+    /* ── Spinner de carga ── */
     .spinner {
-      display: inline-block; width: 24px; height: 24px;
-      border: 3px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
-      border-top-color: #34d399; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem;
+      width: 28px;
+      height: 28px;
+      border: 2.5px solid rgba(255,255,255,0.08);
+      border-top-color: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .badge-success {
+      background: rgba(34, 197, 94, 0.12);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    .badge-error {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .badge-loading {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .badge-success .badge-dot { animation: pulse-dot 1.4s ease infinite; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Tipografía ── */
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.4px;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.35);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 28px 0;
+    }
+
+    /* ── Footer hint ── */
+    .hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.2);
+      font-weight: 400;
+    }
+
+    /* ── Username pill ── */
+    .username-pill {
+      display: inline-block;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 2px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      margin-top: 6px;
+    }
+
+    /* Error orbs son rojos */
+    body.state-error .orb-1 {
+      background: radial-gradient(circle, #7f1d1d 0%, transparent 70%);
+    }
+    body.state-error .orb-2 {
+      background: radial-gradient(circle, #991b1b 0%, transparent 70%);
+    }
+    body.state-error .orb-3 {
+      background: radial-gradient(circle, #7f1d1d 0%, transparent 70%);
+    }
   </style>
 </head>
 <body>
-  <div class="bg-mesh">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+
+  <div class="orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
   </div>
 
-  <div class="glass-card" id="card">
-    <div id="loading-state">
-      <div class="spinner"></div>
-      <div class="ios-badge badge-loading">Procesando Verificación</div>
-      <h1>Conectando con Roblox</h1>
-      <p>Estamos validando tus credenciales oficiales de Roblox para otorgarte los roles de Ciudadano en Discord...</p>
+  <div class="card" id="card">
+    <div class="icon-wrap" id="icon-wrap">
+      <div class="icon-bg" id="icon-bg"></div>
+      <div class="icon-inner" id="icon-inner">
+        <div class="spinner" id="spinner"></div>
+      </div>
     </div>
 
-    <div id="content-state" style="display: none;"></div>
+    <div class="badge badge-loading" id="badge">
+      <span class="badge-dot"></span>
+      Verificando
+    </div>
+
+    <h1 id="title">Conectando con Roblox</h1>
+    <p class="subtitle" id="subtitle">Un momento…</p>
+
+    <div class="divider"></div>
+    <p class="hint" id="hint">Puedes cerrar esta ventana después.</p>
   </div>
 
   <script>
@@ -125,180 +292,145 @@
     const UNVERIFIED_ROLE_ID = "1528974924805312562";
     const LOG_CHANNEL_ID = "1528981341461544970";
 
-    async function processVerification() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-      const error = urlParams.get('error');
-      const errorDesc = urlParams.get('error_description');
+    const badge   = document.getElementById('badge');
+    const title   = document.getElementById('title');
+    const subtitle= document.getElementById('subtitle');
+    const hint    = document.getElementById('hint');
+    const iconInner = document.getElementById('icon-inner');
+    const iconBg  = document.getElementById('icon-bg');
+    const spinner = document.getElementById('spinner');
 
-      const loadingEl = document.getElementById('loading-state');
-      const contentEl = document.getElementById('content-state');
+    function setSuccess(username, avatarUrl) {
+      document.body.classList.add('state-success');
 
-      function showResult(title, message, isSuccess, avatarUrl = '') {
-        loadingEl.style.display = 'none';
-        contentEl.style.display = 'block';
-
-        contentEl.innerHTML = `
-          ${avatarUrl ? `
-          <div class="avatar-container">
-            <div class="avatar-pulse-ring" style="${isSuccess ? '' : 'background: linear-gradient(135deg, #ef4444, #ec4899); filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.6));'}"></div>
-            <div class="avatar-img-wrap">
-              <img src="${avatarUrl}" alt="Avatar">
-            </div>
-          </div>
-          ` : ''}
-          <div class="ios-badge ${isSuccess ? 'badge-success' : 'badge-error'}">
-            <span>${isSuccess ? 'Verificación Completada' : 'Error de Verificación'}</span>
-          </div>
-          <h1>${title}</h1>
-          <p>${message}</p>
-          <div class="ios-hint">
-            <span>💬</span>
-            <span>Ya puedes cerrar esta pestaña y regresar a Discord.</span>
-          </div>
-          <div class="footer-text">Sonora RP System · Autenticación Oficial Roblox OAuth 2.0</div>
-        `;
+      // Icono
+      if (avatarUrl) {
+        iconInner.innerHTML = `<img src="${avatarUrl}" alt="">`;
+      } else {
+        iconInner.innerHTML = '✓';
+        iconInner.style.fontSize = '26px';
+        iconInner.style.color = '#4ade80';
       }
+      iconBg.classList.add('visible');
 
-      if (error) {
-        showResult('Autenticación Cancelada', `Roblox devolvió: ${errorDesc || error}. Por favor regresa a Discord e inténtalo de nuevo.`, false);
-        return;
-      }
+      badge.className = 'badge badge-success';
+      badge.innerHTML = '<span class="badge-dot"></span> Verificado';
 
-      if (!code || !state) {
-        showResult('Parámetros Faltantes', 'No se recibió el código o estado de autorización. Por favor inicia el proceso desde Discord.', false);
-        return;
-      }
+      title.textContent = 'Verificación completada';
+      subtitle.innerHTML = `Bienvenido a Sonora RP<br><span class="username-pill">@${username}</span>`;
+      hint.textContent = 'Puedes cerrar esta ventana y volver a Discord.';
+    }
 
-      // Decodificar state
+    function setError(msg) {
+      document.body.classList.add('state-error');
+
+      iconInner.innerHTML = '✕';
+      iconInner.style.fontSize = '26px';
+      iconInner.style.color = '#f87171';
+
+      badge.className = 'badge badge-error';
+      badge.innerHTML = '<span class="badge-dot"></span> Error';
+
+      title.textContent = 'No se pudo verificar';
+      subtitle.textContent = msg || 'Intenta nuevamente desde Discord.';
+      hint.textContent = 'Cierra esta ventana y genera un nuevo enlace.';
+    }
+
+    async function run() {
+      const p = new URLSearchParams(window.location.search);
+      const code  = p.get('code');
+      const state = p.get('state');
+      const error = p.get('error');
+
+      if (error) { setError('Autenticación cancelada.'); return; }
+      if (!code || !state) { setError('Enlace inválido.'); return; }
+
       let discordUserId = '';
       try {
         const payloadB64 = state.split('.')[0];
-        const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-        discordUserId = payload.discordUserId || '';
-      } catch (e) {
-        console.warn('Error decodificando state:', e);
-      }
+        const decoded = atob(payloadB64.replace(/-/g,'+').replace(/_/g,'/'));
+        discordUserId = JSON.parse(decoded).discordUserId || '';
+      } catch {}
 
       try {
-        // 1. Intercambiar token con Roblox
-        const tokenParams = new URLSearchParams();
-        tokenParams.set('client_id', ROBLOX_CLIENT_ID);
-        tokenParams.set('client_secret', ROBLOX_CLIENT_SECRET);
-        tokenParams.set('grant_type', 'authorization_code');
-        tokenParams.set('code', code);
-
+        // Token exchange
         const tokenRes = await fetch('https://apis.roblox.com/oauth/v1/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: tokenParams.toString()
+          body: new URLSearchParams({
+            client_id: ROBLOX_CLIENT_ID,
+            client_secret: ROBLOX_CLIENT_SECRET,
+            grant_type: 'authorization_code',
+            code
+          })
         });
+        if (!tokenRes.ok) { setError('Error al conectar con Roblox.'); return; }
+        const { access_token } = await tokenRes.json();
 
-        if (!tokenRes.ok) {
-          showResult('Error de Token', 'No se pudo completar el intercambio de credenciales con Roblox. Por favor genera un nuevo enlace en Discord.', false);
-          return;
-        }
-
-        const tokenData = await tokenRes.json();
-        const accessToken = tokenData.access_token;
-
-        // 2. Obtener información de usuario
-        const userInfoRes = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
-          headers: { Authorization: `Bearer ${accessToken}` }
+        // User info
+        const uRes = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` }
         });
+        if (!uRes.ok) { setError('No se pudo obtener el perfil.'); return; }
+        const u = await uRes.json();
+        const robloxId = Number(u.sub);
+        const username = u.preferred_username || u.name || `User_${robloxId}`;
 
-        if (!userInfoRes.ok) {
-          showResult('Error de Perfil', 'No se pudo obtener la información de tu perfil de Roblox.', false);
-          return;
-        }
-
-        const userInfo = await userInfoRes.json();
-        const robloxUserId = Number(userInfo.sub);
-        const robloxUsername = userInfo.preferred_username || userInfo.name || `User_${robloxUserId}`;
-
-        // 3. Avatar headshot
-        let avatarUrl = userInfo.picture || '';
-        if (!avatarUrl) {
+        // Avatar
+        let avatar = u.picture || '';
+        if (!avatar) {
           try {
-            const thumbRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxUserId}&size=150x150&format=Png&isCircular=false`);
-            if (thumbRes.ok) {
-              const thumbData = await thumbRes.json();
-              if (thumbData.data?.[0]?.imageUrl) {
-                avatarUrl = thumbData.data[0].imageUrl;
-              }
-            }
+            const t = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=false`);
+            if (t.ok) { const d = await t.json(); avatar = d.data?.[0]?.imageUrl || ''; }
           } catch {}
         }
 
-        // 4. Actualizar roles y apodo en Discord si tenemos discordUserId
+        // Discord roles
         if (discordUserId) {
-          try {
-            // Obtener roles actuales
-            const memberRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordUserId}`, {
-              headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
+          const mRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordUserId}`, {
+            headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
+          });
+          if (mRes.ok) {
+            const m = await mRes.json();
+            const roles = new Set(m.roles || []);
+            VERIFIED_ROLE_IDS.forEach(r => roles.add(r));
+            roles.delete(UNVERIFIED_ROLE_ID);
+            await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordUserId}`, {
+              method: 'PATCH',
+              headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roles: [...roles], nick: username })
             });
-            if (memberRes.ok) {
-              const memberData = await memberRes.json();
-              const currentRoles = new Set(memberData.roles || []);
-              VERIFIED_ROLE_IDS.forEach(r => currentRoles.add(r));
-              currentRoles.delete(UNVERIFIED_ROLE_ID);
-
-              await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordUserId}`, {
-                method: 'PATCH',
-                headers: {
-                  Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  roles: Array.from(currentRoles),
-                  nick: robloxUsername
-                })
-              });
-            }
-
-            // Enviar Log a canal
-            await fetch(`https://discord.com/api/v10/channels/${LOG_CHANNEL_ID}/messages`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                embeds: [{
-                  title: '✅ Usuario Verificado vía Roblox OAuth 2.0 (Firebase)',
-                  description: `<@${discordUserId}> ha vinculado su cuenta oficial de Roblox.`,
-                  color: 0x10b981,
-                  thumbnail: { url: avatarUrl || 'https://images.rbxcdn.com/264531478229e71e72e1c3e38706d8a3.png' },
-                  fields: [
-                    { name: '› Discord', value: `<@${discordUserId}> (\`${discordUserId}\`)`, inline: true },
-                    { name: '› Roblox Username', value: `\`@${robloxUsername}\``, inline: true },
-                    { name: '› Roblox ID', value: `\`${robloxUserId}\``, inline: true },
-                    { name: '› Perfil de Roblox', value: `[Ver Perfil](https://www.roblox.com/users/${robloxUserId}/profile)`, inline: false }
-                  ],
-                  footer: { text: `Sonora RP System · ${new Date().toLocaleString('es-MX')}` }
-                }]
-              })
-            }).catch(() => {});
-          } catch (e) {
-            console.error('Error actualizando Discord:', e);
           }
+
+          // Log
+          fetch(`https://discord.com/api/v10/channels/${LOG_CHANNEL_ID}/messages`, {
+            method: 'POST',
+            headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              embeds: [{
+                title: '✅ Verificación completada',
+                description: `<@${discordUserId}> vinculó su cuenta de Roblox.`,
+                color: 0x22c55e,
+                thumbnail: { url: avatar || 'https://images.rbxcdn.com/264531478229e71e72e1c3e38706d8a3.png' },
+                fields: [
+                  { name: 'Discord', value: `<@${discordUserId}>`, inline: true },
+                  { name: 'Roblox', value: `\`@${username}\``, inline: true },
+                  { name: 'Perfil', value: `[Ver](https://www.roblox.com/users/${robloxId}/profile)`, inline: true }
+                ],
+                footer: { text: new Date().toLocaleString('es-MX') }
+              }]
+            })
+          }).catch(() => {});
         }
 
-        showResult(
-          '¡Verificación Exitosa!',
-          `¡Bienvenid@ a <strong>Sonora RP</strong>!<br><br>Tu cuenta de Discord ha sido vinculada correctamente con el usuario de Roblox <span class="user-tag">@${robloxUsername}</span>.<br><br>Se te han otorgado los roles de <strong>Ciudadano</strong> y desbloqueado el acceso completo a los canales.`,
-          true,
-          avatarUrl
-        );
+        setSuccess(username, avatar);
 
-      } catch (err) {
-        console.error('Error en proceso:', err);
-        showResult('Error de Conexión', 'Ocurrió un problema de red al procesar tu solicitud. Por favor intenta de nuevo.', false);
+      } catch {
+        setError('Ocurrió un problema. Intenta de nuevo.');
       }
     }
 
-    processVerification();
+    run();
   </script>
 </body>
 </html>
