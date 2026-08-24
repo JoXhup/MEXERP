@@ -23,7 +23,7 @@ import { getFooterTimestamp } from "../utils/components.js";
 
 export const ROBLOX_CLIENT_ID = process.env.ROBLOX_CLIENT_ID || "4269442493051477939";
 export const ROBLOX_CLIENT_SECRET = process.env.ROBLOX_CLIENT_SECRET || "RBX-yTVBuq7blUyWrCvmwEMGDwXNDeAMHiQ9hXJHsYtEerntbf2ccDObK9K1FvAhrxUu";
-export const ROBLOX_REDIRECT_URI = process.env.ROBLOX_REDIRECT_URI || "https://joxhup.web.app/oauth/callback";
+export const ROBLOX_REDIRECT_URI = process.env.ROBLOX_REDIRECT_URI || "http://localhost:3000/oauth/callback";
 export const OAUTH_PORT = Number(process.env.PORT || 3000);
 
 interface OAuthState {
@@ -378,258 +378,232 @@ function renderHtmlResponse(
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
       <title>${escapeHtml(title)} — Sonora RP</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
       <style>
-        * {
+        *, *::before, *::after {
           box-sizing: border-box;
           margin: 0;
           padding: 0;
-          -webkit-tap-highlight-color: transparent;
         }
+
         body {
-          background-color: #030712;
-          color: #f8fafc;
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+          min-height: 100vh;
+          background: #000;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 100vh;
           overflow: hidden;
           position: relative;
         }
 
-        /* ─── ANIMATED BACKGROUND BLOBS (APPLE LIQUID MESH) ─── */
-        .bg-mesh {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          z-index: 1;
+        /* ── Orbs animados ── */
+        .orbs {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
         }
-        .blob {
+        .orb {
           position: absolute;
           border-radius: 50%;
-          filter: blur(90px);
-          opacity: 0.55;
-          animation: floatBlob 18s infinite ease-in-out alternate;
+          filter: blur(80px);
+          opacity: 0.5;
+          animation: orbFloat linear infinite;
         }
-        .blob-1 {
-          width: 450px;
-          height: 450px;
-          background: ${isSuccess ? "linear-gradient(135deg, #10b981, #06b6d4)" : "linear-gradient(135deg, #f43f5e, #be123c)"};
-          top: -100px;
-          left: -100px;
-          animation-duration: 16s;
-        }
-        .blob-2 {
-          width: 400px;
-          height: 400px;
-          background: ${isSuccess ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : "linear-gradient(135deg, #e11d48, #9333ea)"};
-          bottom: -100px;
-          right: -100px;
+        .orb-1 {
+          width: 500px; height: 500px;
+          background: radial-gradient(circle, ${isSuccess ? "#1a6b3a" : "#7f1d1d"} 0%, transparent 70%);
+          top: -120px; left: -120px;
           animation-duration: 20s;
-          animation-delay: -5s;
         }
-        .blob-3 {
-          width: 320px;
-          height: 320px;
-          background: ${isSuccess ? "linear-gradient(135deg, #059669, #3b82f6)" : "linear-gradient(135deg, #fb7185, #7c3aed)"};
-          top: 40%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          animation-duration: 14s;
-          animation-delay: -9s;
+        .orb-2 {
+          width: 400px; height: 400px;
+          background: radial-gradient(circle, ${isSuccess ? "#0f4a2a" : "#991b1b"} 0%, transparent 70%);
+          bottom: -100px; right: -100px;
+          animation-duration: 25s;
+          animation-delay: -8s;
         }
-
-        @keyframes floatBlob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          50% { transform: translate(40px, -60px) scale(1.12); }
-          100% { transform: translate(-30px, 50px) scale(0.92); }
+        .orb-3 {
+          width: 300px; height: 300px;
+          background: radial-gradient(circle, ${isSuccess ? "#14532d" : "#7f1d1d"} 0%, transparent 70%);
+          top: 40%; left: 55%;
+          animation-duration: 18s;
+          animation-delay: -4s;
         }
 
-        /* ─── IPHONE GLASS CARD ─── */
-        .glass-card {
+        @keyframes orbFloat {
+          0%   { transform: translate(0, 0) scale(1); }
+          50%  { transform: translate(30px, -40px) scale(1.08); }
+          100% { transform: translate(-20px, 30px) scale(0.94); }
+        }
+
+        /* ── Card principal Apple Glass ── */
+        .card {
           position: relative;
           z-index: 10;
-          background: rgba(15, 23, 42, 0.55);
-          backdrop-filter: blur(40px) saturate(200%);
-          -webkit-backdrop-filter: blur(40px) saturate(200%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 
-            0 30px 60px -12px rgba(0, 0, 0, 0.65),
-            0 18px 36px -18px rgba(0, 0, 0, 0.75),
-            inset 0 1px 1px rgba(255, 255, 255, 0.25);
-          border-radius: 36px;
-          padding: 3rem 2.25rem;
-          max-width: 440px;
           width: 90%;
+          max-width: 380px;
+          background: rgba(255, 255, 255, 0.04);
+          backdrop-filter: blur(48px) saturate(180%);
+          -webkit-backdrop-filter: blur(48px) saturate(180%);
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          border-radius: 28px;
+          padding: 48px 36px 40px;
           text-align: center;
-          animation: iosSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          box-shadow:
+            0 0 0 1px rgba(0, 0, 0, 0.4),
+            0 8px 32px rgba(0, 0, 0, 0.5),
+            0 32px 64px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        @keyframes iosSlideUp {
-          from {
-            opacity: 0;
-            transform: translateY(40px) scale(0.96);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+        @keyframes cardIn {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* ─── AVATAR RING ─── */
-        .avatar-container {
+        /* ── Icono / avatar ── */
+        .icon-wrap {
+          width: 72px;
+          height: 72px;
+          margin: 0 auto 28px;
           position: relative;
-          width: 110px;
-          height: 110px;
-          margin: 0 auto 1.75rem auto;
         }
-        .avatar-pulse-ring {
+        .icon-bg {
           position: absolute;
-          inset: -4px;
+          inset: -3px;
           border-radius: 50%;
-          background: ${isSuccess ? "linear-gradient(135deg, #10b981, #3b82f6)" : "linear-gradient(135deg, #ef4444, #ec4899)"};
-          animation: spinGlow 8s linear infinite;
-          opacity: 0.85;
-          filter: drop-shadow(0 0 12px ${isSuccess ? "rgba(16, 185, 129, 0.6)" : "rgba(239, 68, 68, 0.6)"});
+          background: conic-gradient(from 0deg, ${isSuccess ? "#22c55e, #16a34a, #15803d, #22c55e" : "#ef4444, #dc2626, #b91c1c, #ef4444"});
+          animation: spinSlow 6s linear infinite;
+          opacity: 1;
         }
-        @keyframes spinGlow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .avatar-img-wrap {
+        .icon-inner {
           position: relative;
           z-index: 2;
           width: 100%;
           height: 100%;
           border-radius: 50%;
-          border: 3px solid #0f172a;
-          overflow: hidden;
-          background: #1e293b;
+          background: #0a0a0a;
+          border: 2px solid rgba(255,255,255,0.06);
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 26px;
+          overflow: hidden;
+          color: ${isSuccess ? "#4ade80" : "#f87171"};
         }
-        .avatar-img-wrap img {
+        .icon-inner img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          border-radius: 50%;
+        }
+        @keyframes spinSlow {
+          to { transform: rotate(360deg); }
         }
 
-        /* ─── IOS BADGE ─── */
-        .ios-badge {
+        /* ── Badge ── */
+        .badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 6px 16px;
-          border-radius: 999px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          background: ${isSuccess ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)"};
-          color: ${isSuccess ? "#34d399" : "#f87171"};
-          border: 1px solid ${isSuccess ? "rgba(52, 211, 153, 0.35)" : "rgba(248, 113, 113, 0.35)"};
-          margin-bottom: 1.25rem;
-          box-shadow: 0 4px 12px ${isSuccess ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)"};
-        }
-        .ios-badge svg {
-          width: 14px;
-          height: 14px;
-          fill: currentColor;
-        }
-
-        h1 {
-          font-size: 1.85rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          margin-bottom: 0.85rem;
-          color: #ffffff;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .user-tag {
-          display: inline-block;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
           padding: 4px 12px;
-          border-radius: 12px;
-          font-weight: 700;
-          color: #38bdf8;
-          font-size: 0.95rem;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-bottom: 16px;
+          background: ${isSuccess ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)"};
+          color: ${isSuccess ? "#4ade80" : "#f87171"};
+          border: 1px solid ${isSuccess ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)"};
+        }
+        .badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        ${isSuccess ? `.badge .badge-dot { animation: pulse-dot 1.4s ease infinite; }` : ""}
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
 
-        p {
-          font-size: 0.95rem;
-          line-height: 1.65;
-          color: #94a3b8;
-          margin-bottom: 1.75rem;
+        /* ── Tipografía ── */
+        h1 {
+          font-size: 22px;
+          font-weight: 600;
+          color: #fff;
+          letter-spacing: -0.4px;
+          line-height: 1.3;
+          margin-bottom: 10px;
+        }
+        .subtitle {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.4);
+          line-height: 1.6;
+          font-weight: 400;
         }
 
-        /* ─── IOS STYLE BUTTON / FOOTER ─── */
-        .ios-hint {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 18px;
-          padding: 12px 16px;
-          font-size: 0.85rem;
-          color: #cbd5e1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-
-        .footer-text {
-          margin-top: 1.75rem;
-          font-size: 0.75rem;
-          color: #64748b;
+        /* ── Username pill ── */
+        .username-pill {
+          display: inline-block;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px;
+          padding: 2px 10px;
+          font-size: 13px;
           font-weight: 500;
+          color: rgba(255,255,255,0.8);
+          margin-top: 6px;
+        }
+
+        /* ── Divider ── */
+        .divider {
+          width: 100%;
+          height: 1px;
+          background: rgba(255,255,255,0.06);
+          margin: 28px 0;
+        }
+
+        /* ── Footer hint ── */
+        .hint {
+          font-size: 12px;
+          color: rgba(255,255,255,0.25);
+          font-weight: 400;
         }
       </style>
     </head>
     <body>
-      <!-- Dynamic Background Blobs -->
-      <div class="bg-mesh">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+      <div class="orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
       </div>
 
-      <!-- iPhone Glass Card -->
-      <div class="glass-card">
-        ${avatarUrl ? `
-        <div class="avatar-container">
-          <div class="avatar-pulse-ring"></div>
-          <div class="avatar-img-wrap">
-            <img src="${escapeHtml(avatarUrl)}" alt="Roblox Avatar">
+      <div class="card">
+        <div class="icon-wrap">
+          <div class="icon-bg"></div>
+          <div class="icon-inner">
+            ${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="">` : (isSuccess ? "✓" : "✕")}
           </div>
         </div>
-        ` : ""}
 
-        <div class="ios-badge">
-          ${isSuccess ? `
-            <svg viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
-            <span>Verificación Completada</span>
-          ` : `
-            <svg viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
-            <span>Error de Verificación</span>
-          `}
+        <div class="badge">
+          <span class="badge-dot"></span>
+          ${isSuccess ? "Verificado" : "Error"}
         </div>
 
         <h1>${escapeHtml(title)}</h1>
-        <p>${message}</p>
+        <p class="subtitle">
+          ${isSuccess ? `Bienvenido a Sonora RP<br><span class="username-pill">@${escapeHtml(username || "Usuario")}</span>` : escapeHtml(message)}
+        </p>
 
-        <div class="ios-hint">
-          <span>💬</span>
-          <span>Ya puedes cerrar esta pestaña y regresar a Discord.</span>
-        </div>
-
-        <div class="footer-text">
-          Sonora RP System · Autenticación Oficial Roblox OAuth 2.0
-        </div>
+        <div class="divider"></div>
+        <p class="hint">${isSuccess ? "Puedes cerrar esta ventana y volver a Discord." : "Cierra esta ventana y genera un nuevo enlace."}</p>
       </div>
     </body>
     </html>
